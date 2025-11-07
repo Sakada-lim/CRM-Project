@@ -1,44 +1,28 @@
-# Bold_Vision_CRM
+# Bold_Vision_CRM (clean starter)
 
-This template should help get you started developing with Vue 3 in Vite.
+Minimal Vue 3 + Vite starter with Vue Router and Pinia enabled, stripped of all demo components and styles.
 
-## Recommended IDE Setup
+## Get started
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Compile and Minify for Production
+## Build
 
-```sh
+```bash
 npm run build
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+## Lint
 
-```sh
+```bash
 npm run lint
 ```
+
+## Notes
+
+- App is intentionally blank: `App.vue` renders only `<RouterView />` and `HomeView` shows a placeholder heading.
+- Pinia is registered but no stores are present. Create new stores in `src/stores/` as needed.
+- Default styles removed. Add your own styles and components as you build features.
