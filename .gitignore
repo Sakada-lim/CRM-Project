@@ -1,0 +1,178 @@
+# === CRM Project .gitignore ===
+# Adjust as you identify your actual stack. This covers:
+# - Node.js / Frontend build artifacts
+# - Python caches & virtual environments
+# - Common environment & secret files
+# - macOS clutter
+# - IDE/editor metadata
+# - Test coverage & reports
+# Lock files (package-lock.json, yarn.lock, pnpm-lock.yaml, Pipfile.lock) are intentionally NOT ignored.
+
+############################
+# OS / Filesystem Noise   #
+############################
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
+
+############################
+# Git & VCS Extras        #
+############################
+*.patch
+*.diff
+.git-credentials
+
+########################################
+# Minimal .gitignore for a React project
+# (Create React App, Vite, or similar)
+########################################
+
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# Build output
+build/
+dist/
+
+# Caches
+.vite/
+.parcel-cache/
+.cache/
+.eslintcache
+*.tsbuildinfo
+
+# Tests & coverage
+coverage/
+*.lcov
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# IDE / Editors
+.idea/
+# .vscode/  # Uncomment if you don't want to commit shared workspace settings
+
+# Misc
+*.tgz
+
+# Optional: Storybook / static exports (uncomment if used)
+# .storybook-out/
+# out/
+
+# Keep lock files (yarn.lock / package-lock.json / pnpm-lock.yaml) committed for reproducibility.
+env/
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+############################
+# Environment & Secrets   #
+############################
+.env
+.env.*
+*.env
+*.local
+*.secret
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+*.cer
+
+############################
+# Logs / Diagnostics      #
+############################
+logs/
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.integration-log/
+
+############################
+# Editor / IDE            #
+############################
+.vscode/
+.idea/
+*.iml
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+
+############################
+# Cache / Temp            #
+############################
+.cache/
+.cache-loader/
+.tmp/
+.tmp/**
+.sass-cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+############################
+# Images / Generated      #
+############################
+*.generated.*
+
+############################
+# Docker / Containers     #
+############################
+# Keep compose files; ignore overrides and ephemeral
+Dockerfile.*.tmp
+docker-compose.override.yml
+
+############################
+# Cloud Functions / Infra #
+############################
+functions/node_modules/
+.firebase/
+firebase-debug.log
+
+############################
+# Misc                    #
+############################
+# Ignore binary artifacts you don't plan to commit
+*.exe
+*.dll
+*.bin
+*.dat
+*.pid
+*.seed
+*.pid.lock
+
+# Ignore archives except when intentionally versioned
+*.tar
+*.tgz
+*.zip
+*.rar
+
+# If you use yarn/ npm, DO NOT ignore lock files.
+# If you want to ignore a specific package manager lock, uncomment below intentionally:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# === End of .gitignore ===

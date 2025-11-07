@@ -1,2 +1,3 @@
 # CRM-Project
-Personal CRM project
+Bold vision company CRM 
+
