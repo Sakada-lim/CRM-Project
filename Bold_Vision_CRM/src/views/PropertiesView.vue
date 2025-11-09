@@ -75,15 +75,27 @@
           :items="properties"
           :items-per-page="5"
         >
-          <template #item.status="{ item }">
-            <v-chip :color="statusColor(item.status)" text-color="white" size="small">
-              {{ item.status }}
-            </v-chip>
-          </template>
+          
+                <template #item.status="{ item }">
+                <v-chip :color="statusColor(item.status)" text-color="white" size="small">
+                  {{ item.status }}
+                </v-chip>
+                </template>
 
-          <template #item.createdAt="{ item }">
-            {{ formatDate(item.createdAt) }}
-          </template>
+                <template #item.createdAt="{ item }">
+                {{ formatDate(item.createdAt) }}
+                </template>
+                <!-- New: Actions column -->
+                <template #item.actions="{ item }">
+                <v-btn
+                  :to="`/properties/${item.id}`"
+                  text
+                  small
+                  color="primary"
+                >
+                  View / Edit
+                </v-btn>
+                </template>
         </v-data-table>
       </v-card-text>
 
@@ -123,6 +135,7 @@ const headers = [
   { title: 'Status', key: 'status' },
   { title: 'Price guide', key: 'priceGuide' },
   { title: 'Created', key: 'createdAt' },
+  { title: 'Actions', key: 'actions', sortable: false },
 ];
 
 const properties = computed(() => propertyStore.properties);
