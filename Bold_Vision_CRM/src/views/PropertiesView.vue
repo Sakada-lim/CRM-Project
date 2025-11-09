@@ -126,6 +126,7 @@ const form = ref({
   status: 'New',
   priceGuide: '',
   notes: '',
+
 });
 
 const headers = [
