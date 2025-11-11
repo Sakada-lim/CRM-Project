@@ -1,28 +1,49 @@
-# Bold_Vision_CRM (clean starter)
+# 🏢 Bold Vision CRM
 
-Minimal Vue 3 + Vite starter with Vue Router and Pinia enabled, stripped of all demo components and styles.
+**Bold Vision CRM** is a lightweight and modular Customer Relationship Management system designed for startups and small teams.  
+The goal of this project is to demonstrate scalable front-end architecture, feature organization, and professional workflow practices using modern web technologies.
 
-## Get started
+---
 
-```bash
-npm install
-npm run dev
-```
+## 🚀 Overview
 
-## Build
+Bold Vision CRM enables teams to manage customer relationships effectively by providing tools for:
+- Managing customer profiles
+- Sorting and filtering based on lead status (Hot / Warm / Cold)
+- Recording feedback and internal notes
+- Managing property listings and linking them to customers
+- Viewing detailed customer and property information
 
-```bash
-npm run build
-```
+This project is currently under active development and serves as a demonstration of full-stack development workflow and software engineering practices.
 
-## Lint
+---
 
-```bash
-npm run lint
-```
+## 🧰 Tech Stack
 
-## Notes
+| Layer | Technology | Purpose |
+|-------|-------------|----------|
+| **Frontend** | [Vue 3](https://vuejs.org/) + [Vite](https://vitejs.dev/) | UI components and routing |
+| **Styling** | Tailwind CSS | Rapid, responsive styling |
+| **Deployment** | GitHub Pages | Hosting and CI/CD via `gh-pages` branch |
+| **Version Control** | Git + GitHub | Source control and collaboration |
+| **Node.js Version** | 20.x (LTS) | Runtime environment |
+| **Package Manager** | npm 10.x | Dependency management |
 
-- App is intentionally blank: `App.vue` renders only `<RouterView />` and `HomeView` shows a placeholder heading.
-- Pinia is registered but no stores are present. Create new stores in `src/stores/` as needed.
-- Default styles removed. Add your own styles and components as you build features.
+---
+
+## 🧱 Project Structure
+
+```plaintext
+CRM-Project/
+├── Bold_Vision_CRM/
+│   ├── src/
+│   │   ├── assets/            # Static images and icons
+│   │   ├── components/        # Reusable Vue components
+│   │   ├── views/             # Page-level Vue components
+│   │   ├── router/            # App routing configuration
+│   │   └── App.vue            # Main app root
+│   ├── package.json
+│   ├── vite.config.js
+│   └── README.md              # This file
+├── .gitignore
+└── docs/                      # Additional documentation (future use)
