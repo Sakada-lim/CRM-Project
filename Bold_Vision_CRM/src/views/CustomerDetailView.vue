@@ -337,7 +337,7 @@
             : 'Not set',
     );
 
-    // feedbackentries from the Customer store
+    // feedback entries from the Customer store
     const feedbackEntries = computed(() => original.value?.feedback || [],);
 
     const newFeedback = ref('');
