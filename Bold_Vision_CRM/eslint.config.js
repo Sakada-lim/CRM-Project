@@ -8,11 +8,6 @@ export default defineConfig([
   {
     name: 'app/files-to-lint',
     files: ['**/*.{js,mjs,jsx,vue}'],
-  },
-
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
-
-  {
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -20,7 +15,15 @@ export default defineConfig([
     },
   },
 
+  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+
   js.configs.recommended,
   ...pluginVue.configs['flat/essential'],
   skipFormatting,
+  {
+    rules: {
+      // disable the V-slot rule as it is too restrictive
+      'vue/valid-v-slot': 'off',
+    }
+  }
 ])
