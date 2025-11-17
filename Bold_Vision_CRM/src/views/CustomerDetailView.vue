@@ -338,7 +338,7 @@
     );
 
     // feedback entries from the Customer store
-    const feedbackEntries = computed(() => original.value?.feedback || [],);
+    const feedbackEntries = computed(() => original.value?.feedback || []);
 
     const newFeedback = ref('');
 
