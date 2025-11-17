@@ -1,8 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import HomeView from '../views/HomeView.vue';
+
 import NewCustomersView from '../views/NewCustomersView.vue';
 import ExistingCustomersView from '../views/ExistingCustomersView.vue';
+import CustomerDetailView from '../views/CustomerDetailView.vue';
+
 import PropertiesView from '../views/PropertiesView.vue';
-import HomeView from '../views/HomeView.vue';
 import PropertyDetailsView from '../views/PropertyDetailsView.vue';
 
 const router = createRouter({
@@ -14,12 +17,12 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/Newcustomers',
+      path: '/new-customers',
       name: 'new-customers',
       component: NewCustomersView,
     },
     {
-      path: '/Existingcustomers',
+      path: '/existing-customers',
       name: 'existing-customers',
       component: ExistingCustomersView,
     },
@@ -32,6 +35,11 @@ const router = createRouter({
       path: '/properties/:id',
       name: 'property-details',
       component: PropertyDetailsView,
+    },
+    {
+      path: '/customers/:id',
+      name: 'customer-details',
+      component: CustomerDetailView,
     },
   ],
 })
