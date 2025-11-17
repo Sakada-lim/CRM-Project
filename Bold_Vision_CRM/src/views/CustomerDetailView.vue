@@ -316,11 +316,11 @@
     function categoryColor(category) {
         switch (category) {
             case 'Hot':
-            return 'red';
+                return 'red';
             case 'Warm':
-            return 'orange';
+                return 'orange';
             default:
-            return 'blue';
+                return 'blue';
         }
     }
 
