@@ -90,22 +90,26 @@
               </v-col>
             </v-row>
           </v-card-text>
+
+          <v-card-actions class="px-4 pb-4">
+            <v-spacer />
+              <v-btn
+                variant="outlined"
+                color="grey-darken-1"
+                class="mr-2"
+                @click="resetChanges"
+              >
+                Reset
+              </v-btn>
+              <v-btn
+                variant="outlined"
+                color="primary"
+                @click="saveChanges"
+              >
+                Save changes
+              </v-btn>
+          </v-card-actions>
         </v-card>
-
-        <v-btn
-          color="primary"
-          class="mr-2"
-          @click="saveChanges"
-        >
-          Save changes
-        </v-btn>
-
-        <v-btn
-          variant="outlined"
-          @click="goBack"
-        >
-          Back to properties
-        </v-btn>
 
         <v-snackbar
           v-model="snackbar"

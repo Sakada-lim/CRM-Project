@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <v-app-bar app color="primary" dark>
-      <v-app-bar-title>Bold Vision CRM Demo</v-app-bar-title>
+      <v-app-bar-title>Bold Vision CRM</v-app-bar-title>
     </v-app-bar>
 
     <v-navigation-drawer app permanent width="220">

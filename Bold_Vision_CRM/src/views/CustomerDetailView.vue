@@ -10,7 +10,6 @@
     <v-card
       class="mb-4"
       elevation="4"
-      variant="outlined"
     >
       <v-card-text>
         <v-row class="align-center" no-gutters>
@@ -56,7 +55,6 @@
         <!-- Basic info card -->
         <v-card
           elevation="4"
-          variant="outlined"
           class="mb-4"
         >
           <v-card-title>Basic information</v-card-title>
@@ -111,37 +109,31 @@
             </v-row>
           </v-card-text>
 
-          <v-card-actions>
+          <v-card-actions class="justify-end mr-2 mb-2">
             <v-btn
-              color="primary"
-              @click="saveChanges"
-            >
-              Save changes
-            </v-btn>
-            <v-btn
-              variant="outlined"
-              @click="resetChanges"
-            >
-              Reset
-            </v-btn>
+                variant="outlined"
+                color="grey-darken-1"
+                class="mr-2"
+                @click="resetChanges"
+              >
+                Reset
+              </v-btn>
+              <v-btn
+                variant="outlined"
+                color="primary"
+                @click="saveChanges"
+              >
+                Save changes
+              </v-btn>
           </v-card-actions>
         </v-card>
 
         <!-- Feedback / interaction timeline -->
         <v-card
           elevation="4"
-          variant="outlined"
         >
           <v-card-title class="justify-space-between align-center">
-            <span>Interaction history</span>
-            <v-btn
-              size="small"
-              color="primary"
-              variant="outlined"
-              @click="addFeedback"
-            >
-              Add feedback
-            </v-btn>
+            Interaction history
           </v-card-title>
 
           <v-card-text>
@@ -154,7 +146,17 @@
               auto-grow
             />
 
-            <v-divider class="mb-3" />
+            <v-divider/>
+
+            <v-card-actions class="justify-end pa-0 mb-4">
+              <v-btn
+                variant="outlined"
+                color="primary"
+                @click="addFeedback"
+              >
+                Add feedback
+              </v-btn>
+            </v-card-actions>
 
             <div v-if="feedbackEntries.length">
               <div
@@ -162,7 +164,7 @@
                 :key="entry.id"
                 class="mb-3"
               >
-                <div class="text-body-2 font-weight-medium">
+                <div class="text-body-2 font-weight-medium" >
                   {{ formatDate(entry.date) }}
                 </div>
                 <div class="text-body-2">
@@ -171,12 +173,6 @@
                 <v-divider class="mt-2" />
               </div>
             </div>
-            <p
-              v-else
-              class="text-body-2 text-medium-emphasis"
-            >
-              No feedback recorded yet. Use “Add feedback” to log calls and notes.
-            </p>
           </v-card-text>
         </v-card>
       </v-col>
@@ -186,7 +182,6 @@
         <!-- Follow-up scheduler -->
         <v-card
           elevation="2"
-          variant="outlined"
           class="mb-4"
         >
           <v-card-title>Follow-up schedule</v-card-title>
@@ -198,8 +193,9 @@
             />
             <v-btn
               size="small"
+              color="primary"
               variant="outlined"
-              class="mb-4"
+              class="mt-2 mb-4"
               @click="setLastContactToToday"
             >
               Set to today
@@ -225,7 +221,6 @@
         <!-- Quick summary card -->
         <v-card
           elevation="2"
-          variant="outlined"
         >
           <v-card-title>Quick summary</v-card-title>
           <v-card-text>
@@ -263,121 +258,115 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useCustomerStore } from '../stores/customerStore';
+    import { ref, computed } from 'vue';
+    import { useRoute, useRouter } from 'vue-router';
+    import { useCustomerStore } from '../stores/customerStore';
 
-// routing + store
-const route = useRoute();
-const router = useRouter();
-const store = useCustomerStore();
+    // routing + store
+    const route = useRoute();
+    const router = useRouter();
+    const store = useCustomerStore();
 
-const id = Number(route.params.id);
+    const id = Number(route.params.id);
 
-// locate customer from store
-const original = computed(() =>
-  store.customers.find((c) => c.id === id),
-);
-const customerFound = computed(() => !!original.value);
+    // locate customer from store
+    const original = computed(() =>
+        store.customers.find((c) => c.id === id),
+    );
+    const customerFound = computed(() => !!original.value);
 
-// local editable copy (skeleton fields; adjust to match your store)
-const editable = ref({
-  id,
-  name: '',
-  phone: '',
-  email: '',
-  category: 'Cold',
-  channel: 'Call',
-  notes: '',
-  lastContactedAt: '',
-  followUpCadence: '',
-});
+    // local editable copy (skeleton fields; adjust to match your store)
+    const editable = ref({
+        id,
+        name: '',
+        phone: '',
+        email: '',
+        category: 'Cold',
+        channel: 'Call',
+        notes: '',
+        lastContactedAt: '',
+        followUpCadence: '',
+    });
 
-// initialise from store if found
-if (original.value) {
-  editable.value = {
-    ...editable.value,
-    ...original.value,
-  };
-} else {
-  // optional: redirect or show not-found later
-}
+    // initialise from store if found
+    if (original.value) {
+        editable.value = {
+            ...editable.value,
+            ...original.value,
+        };
+    }
 
-// breadcrumbs
-const breadcrumbs = computed(() => [
-  { title: 'Existing customers', to: { name: 'customers-existing' } },
-  { title: editable.value.name || 'Customer details', disabled: true },
-]);
+    // breadcrumbs
+    const breadcrumbs = computed(() => [
+        { title: 'Existing customers', to: { name: 'existing-customers' } },
+        { title: editable.value.name || 'Customer details', disabled: true },
+    ]);
 
-// profile initials
-const initials = computed(() => {
-  if (!editable.value.name) return '?';
-  return editable.value.name
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase())
-    .slice(0, 2)
-    .join('');
-});
+    // profile initials
+    const initials = computed(() => {
+        if (!editable.value.name) return '?';
+        return editable.value.name
+            .split(' ')
+            .filter(Boolean)
+            .map((part) => part[0]?.toUpperCase())
+            .slice(0, 2)
+            .join('');
+    });
+    
+    function categoryColor(category) {
+        switch (category) {
+            case 'Hot':
+            return 'red';
+            case 'Warm':
+            return 'orange';
+            default:
+            return 'blue';
+        }
+    }
 
-function categoryColor(category) {
-  switch (category) {
-    case 'Hot':
-      return 'red';
-    case 'Warm':
-      return 'orange';
-    default:
-      return 'blue';
-  }
-}
+    function formatDate(isoOrString) {
+    if (!isoOrString) return 'N/A';
+    const d = new Date(isoOrString);
+    if (Number.isNaN(d.getTime())) return isoOrString;
+    return d.toLocaleDateString();
+    }
 
-function formatDate(isoOrString) {
-  if (!isoOrString) return 'N/A';
-  const d = new Date(isoOrString);
-  if (Number.isNaN(d.getTime())) return isoOrString;
-  return d.toLocaleDateString();
-}
+    const lastContactedLabel = computed(() =>
+        editable.value.lastContactedAt
+            ? formatDate(editable.value.lastContactedAt)
+            : 'Not set',
+    );
 
-const lastContactedLabel = computed(() =>
-  editable.value.lastContactedAt
-    ? formatDate(editable.value.lastContactedAt)
-    : 'Not set',
-);
+    // feedbackentries from the Customer store
+    const feedbackEntries = computed(() => original.value?.feedback || [],);
 
-// simple skeleton feedback state
-const feedbackEntries = ref([
-  // TODO: later load from store; this is just demo data
-  // { id: 1, date: '2025-11-14', note: 'Requested inspection this weekend.' },
-]);
+    const newFeedback = ref('');
 
-const newFeedback = ref('');
+    function addFeedback() {
+        const note = newFeedback.value.trim();
+        if (!note || !customerFound.value) return;
+        store.addFeedback(id, note);
+        newFeedback.value = '';
+    }
 
-function addFeedback() {
-  if (!newFeedback.value.trim()) return;
-  feedbackEntries.value.unshift({
-    id: Date.now(),
-    date: new Date().toISOString(),
-    note: newFeedback.value.trim(),
-  });
-  newFeedback.value = '';
-}
+    function setLastContactToToday() {
+        const iso = new Date().toISOString();
+        editable.value.lastContactedAt = iso;
+        store.setLastContacted(id, iso);
+    }
 
-function setLastContactToToday() {
-  editable.value.lastContactedAt = new Date().toISOString();
-}
 
-function saveChanges() {
-  if (!customerFound.value) return;
-  // TODO: update your Pinia store here
-  // store.updateCustomer(id, { ...editable.value });
-  console.log('Saving (demo only):', editable.value);
-}
+    // Actions
+    function saveChanges() {
+        if (!customerFound.value) return;
+        store.updateCustomer(id, { ...editable.value });
+    }
 
-function resetChanges() {
-  if (!original.value) return;
-  editable.value = {
-    ...editable.value,
-    ...original.value,
-  };
-}
+    function resetChanges() {
+        if (!original.value) return;
+        editable.value = {
+            ...editable.value,
+            ...original.value,
+        };
+    }
 </script>

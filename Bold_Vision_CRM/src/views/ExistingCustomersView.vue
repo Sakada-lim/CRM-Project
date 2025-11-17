@@ -25,6 +25,17 @@
           <template #item.createdAt="{ item }">
             {{ formatDate(item.createdAt) }}
           </template>
+          <template #item.actions="{ item }">
+            <v-btn
+                  :to="`/customers/${item.id}`"
+                  text
+                  small
+                  color="primary"
+                >
+                  View / Edit
+            </v-btn>
+          </template>
+          
         </v-data-table>
       </v-card-text>
 
@@ -54,6 +65,7 @@ const headers = [
   { title: 'Property', key: 'interestedProperty' },
   { title: 'Follow-up cadence', key: 'followUpCadence' },
   { title: 'Created', key: 'createdAt' },
+  { title: 'Actions', key: 'actions', sortable: false },
 ];
 
 const customers = computed(() => store.customers);
