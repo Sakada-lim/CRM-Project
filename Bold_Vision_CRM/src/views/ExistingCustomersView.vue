@@ -35,7 +35,6 @@
                   View / Edit
             </v-btn>
           </template>
-          
         </v-data-table>
       </v-card-text>
 
