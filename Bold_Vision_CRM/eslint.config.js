@@ -24,6 +24,6 @@ export default defineConfig([
     rules: {
       // disable the V-slot rule as it is too restrictive
       'vue/valid-v-slot': 'off',
-    }
-  }
+    },
+  },
 ])

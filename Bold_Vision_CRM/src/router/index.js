@@ -1,12 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '../views/HomeView.vue';
+import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
 
-import NewCustomersView from '../views/NewCustomersView.vue';
-import ExistingCustomersView from '../views/ExistingCustomersView.vue';
-import CustomerDetailView from '../views/CustomerDetailView.vue';
+import ExistingCustomersView from '../views/CustomersView.vue'
+import CustomerDetailView from '../views/CustomerDetailView.vue'
 
-import PropertiesView from '../views/PropertiesView.vue';
-import PropertyDetailsView from '../views/PropertyDetailsView.vue';
+import PropertiesView from '../views/PropertiesView.vue'
+import PropertyDetailsView from '../views/PropertyDetailsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,11 +14,6 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-    },
-    {
-      path: '/new-customers',
-      name: 'new-customers',
-      component: NewCustomersView,
     },
     {
       path: '/existing-customers',

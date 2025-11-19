@@ -8,6 +8,7 @@ The goal of this project is to demonstrate scalable front-end architecture, feat
 ## 🚀 Overview
 
 Bold Vision CRM enables teams to manage customer relationships effectively by providing tools for:
+
 - Managing customer profiles
 - Sorting and filtering based on lead status (Hot / Warm / Cold)
 - Recording feedback and internal notes
@@ -20,14 +21,14 @@ This project is currently under active development and serves as a demonstration
 
 ## 🧰 Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|-------------|----------|
-| **Frontend** | [Vue 3](https://vuejs.org/) + [Vite](https://vitejs.dev/) | UI components and routing |
-| **Styling** | Tailwind CSS | Rapid, responsive styling |
-| **Deployment** | GitHub Pages | Hosting and CI/CD via `gh-pages` branch |
-| **Version Control** | Git + GitHub | Source control and collaboration |
-| **Node.js Version** | 20.x (LTS) | Runtime environment |
-| **Package Manager** | npm 10.x | Dependency management |
+| Layer               | Technology                                                | Purpose                                 |
+| ------------------- | --------------------------------------------------------- | --------------------------------------- |
+| **Frontend**        | [Vue 3](https://vuejs.org/) + [Vite](https://vitejs.dev/) | UI components and routing               |
+| **Styling**         | Tailwind CSS                                              | Rapid, responsive styling               |
+| **Deployment**      | GitHub Pages                                              | Hosting and CI/CD via `gh-pages` branch |
+| **Version Control** | Git + GitHub                                              | Source control and collaboration        |
+| **Node.js Version** | 20.x (LTS)                                                | Runtime environment                     |
+| **Package Manager** | npm 10.x                                                  | Dependency management                   |
 
 ---
 
@@ -47,3 +48,4 @@ CRM-Project/
 │   └── README.md              # This file
 ├── .gitignore
 └── docs/                      # Additional documentation (future use)
+```
