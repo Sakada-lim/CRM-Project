@@ -238,7 +238,7 @@ if (original.value) {
 
 // breadcrumbs
 const breadcrumbs = computed(() => [
-  { title: 'Existing customers', to: { name: 'existing-customers' } },
+  { title: 'Existing customers', to: { name: 'customers' } },
   { title: editable.value.name || 'Customer details', disabled: true },
 ])
 

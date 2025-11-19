@@ -1,11 +1,12 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import { createRouter, createWebHistory } from 'vue-router';
+import HomeView from '../views/HomeView.vue';
 
-import ExistingCustomersView from '../views/CustomersView.vue'
-import CustomerDetailView from '../views/CustomerDetailView.vue'
+import CustomersView from '../views/CustomersView.vue';
+import CustomersModernView from '../views/CustomersModernView.vue';
+import CustomerDetailView from '../views/CustomerDetailView.vue';
 
-import PropertiesView from '../views/PropertiesView.vue'
-import PropertyDetailsView from '../views/PropertyDetailsView.vue'
+import PropertiesView from '../views/PropertiesView.vue';
+import PropertyDetailsView from '../views/PropertyDetailsView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,9 +17,15 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/existing-customers',
-      name: 'existing-customers',
-      component: ExistingCustomersView,
+      path: '/customers',
+      name: 'customers',
+      component: CustomersModernView,
+      alias: ['/customers-modern'],
+    },
+    {
+      path: '/customers-legacy',
+      name: 'customers-legacy',
+      component: CustomersView,
     },
     {
       path: '/properties',
