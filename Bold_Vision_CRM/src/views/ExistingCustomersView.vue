@@ -2,7 +2,22 @@
   <div>
     <!-- Existing customers table -->
     <v-card elevation="2">
-      <v-card-title>Existing Customers</v-card-title>
+
+      <!-- Header row -->
+      <div class="d-flex justify-space-between align-center mr-4 ml-4 mt-4">
+        <h2 class="text-h5 font-weight-medium">Existing Customers</h2>
+
+        <v-btn
+          color="primary"
+          variant="elevated"
+          prepend-icon="mdi-account-plus"
+          class="text-capitalize"
+          @click="openAddCustomer"
+        >
+          Add New Customer
+        </v-btn>
+      </div>
+
       <v-card-text>
         <v-data-table
           :headers="headers"
@@ -37,24 +52,67 @@
           </template>
         </v-data-table>
       </v-card-text>
-
-      <v-card-subtitle class="text-body-2 pa-4">
-        <strong>Demo note:</strong> In production, this table will drive automation:
-        <ul class="ma-0 pl-4">
-          <li>Hot → follow up every 3 months (SMS initially)</li>
-          <li>Warm → every 6 months</li>
-          <li>Cold → every 12 months</li>
-        </ul>
-      </v-card-subtitle>
+      <BaseDialog
+        v-model="showAddCustomer"
+        title="Add new customer"
+        confirm-text="Add customer"
+        @confirm="handleAddCustomer"
+        @cancel="resetNewCustomer"
+      >
+        <CustomerForm v-model="newCustomer" />
+      </BaseDialog>
     </v-card>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useCustomerStore } from '../stores/customerStore';
+import BaseDialog from '../components/base/BaseDialog.vue';
+import CustomerForm from '../components/customer/CustomerForm.vue';
 
 const store = useCustomerStore();
+const customers = computed(() => store.customers);
+
+const showAddCustomer = ref(false);
+
+const newCustomer = ref({
+  name: '',
+  phone: '',
+  email: '',
+  channel: 'Call',
+  category: 'Cold',
+  interestedProperty: '',
+  notes: '',
+});
+
+function openAddCustomer() {
+  resetNewCustomer();
+  showAddCustomer.value = true;
+}
+
+function resetNewCustomer() {
+  newCustomer.value = {
+    name: '',
+    phone: '',
+    email: '',
+    channel: 'Call',
+    category: 'Cold',
+    interestedProperty: '',
+    notes: '',
+  };
+}
+ 
+function handleAddCustomer() {
+  if (!newCustomer.value.name || !newCustomer.value.phone || !newCustomer.value.category) {
+    alert('Please fill in name, phone, and category.');
+    return;
+  }
+
+  store.addCustomer({ ...newCustomer.value });
+  showAddCustomer.value = false;
+  resetNewCustomer();
+}
 
 const headers = [
   { title: 'Name', key: 'name' },
@@ -66,8 +124,6 @@ const headers = [
   { title: 'Created', key: 'createdAt' },
   { title: 'Actions', key: 'actions', sortable: false },
 ];
-
-const customers = computed(() => store.customers);
 
 function categoryColor(cat) {
   switch (cat) {
