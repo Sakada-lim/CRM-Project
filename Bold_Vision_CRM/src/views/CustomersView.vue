@@ -2,7 +2,6 @@
   <div>
     <!-- Existing customers table -->
     <v-card elevation="4">
-
       <!-- Header row -->
       <div class="d-flex justify-space-between align-center mr-4 ml-4 mt-4">
         <h2 class="text-h5 font-weight-medium">Existing Customers</h2>
@@ -22,7 +21,7 @@
         <v-data-table
           :headers="headers"
           :items="customers"
-          :items-per-page="5"
+          :items-per-page="10"
           class="elevation-1"
         >
           <template #item.category="{ item }">
@@ -41,14 +40,7 @@
             {{ formatDate(item.createdAt) }}
           </template>
           <template #item.actions="{ item }">
-            <v-btn
-                  :to="`/customers/${item.id}`"
-                  text
-                  small
-                  color="primary"
-                >
-                  View / Edit
-            </v-btn>
+            <v-btn :to="`/customers/${item.id}`" text small color="primary"> View / Edit </v-btn>
           </template>
         </v-data-table>
       </v-card-text>
@@ -66,15 +58,15 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
-import { useCustomerStore } from '../stores/customerStore';
-import BaseDialog from '../components/base/BaseDialog.vue';
-import CustomerForm from '../components/customer/CustomerForm.vue';
+import { computed, ref } from 'vue'
+import { useCustomerStore } from '../stores/customerStore'
+import BaseDialog from '../components/base/BaseDialog.vue'
+import CustomerForm from '../components/customer/CustomerForm.vue'
 
-const store = useCustomerStore();
-const customers = computed(() => store.customers);
+const store = useCustomerStore()
+const customers = computed(() => store.customers)
 
-const showAddCustomer = ref(false);
+const showAddCustomer = ref(false)
 
 const newCustomer = ref({
   name: '',
@@ -84,11 +76,11 @@ const newCustomer = ref({
   category: 'Cold',
   interestedProperty: '',
   notes: '',
-});
+})
 
 function openAddCustomer() {
-  resetNewCustomer();
-  showAddCustomer.value = true;
+  resetNewCustomer()
+  showAddCustomer.value = true
 }
 
 function resetNewCustomer() {
@@ -100,18 +92,18 @@ function resetNewCustomer() {
     category: 'Cold',
     interestedProperty: '',
     notes: '',
-  };
+  }
 }
- 
+
 function handleAddCustomer() {
   if (!newCustomer.value.name || !newCustomer.value.phone || !newCustomer.value.category) {
-    alert('Please fill in name, phone, and category.');
-    return;
+    alert('Please fill in name, phone, and category.')
+    return
   }
 
-  store.addCustomer({ ...newCustomer.value });
-  showAddCustomer.value = false;
-  resetNewCustomer();
+  store.addCustomer({ ...newCustomer.value })
+  showAddCustomer.value = false
+  resetNewCustomer()
 }
 
 const headers = [
@@ -123,21 +115,21 @@ const headers = [
   { title: 'Follow-up cadence', key: 'followUpCadence' },
   { title: 'Created', key: 'createdAt' },
   { title: 'Actions', key: 'actions', sortable: false },
-];
+]
 
 function categoryColor(cat) {
   switch (cat) {
     case 'Hot':
-      return 'red';
+      return 'red'
     case 'Warm':
-      return 'orange';
+      return 'orange'
     default:
-      return 'blue';
+      return 'blue'
   }
 }
 
 function formatDate(iso) {
-  const d = new Date(iso);
-  return d.toLocaleDateString();
+  const d = new Date(iso)
+  return d.toLocaleDateString()
 }
 </script>

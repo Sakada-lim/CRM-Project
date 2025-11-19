@@ -202,7 +202,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useCustomerStore } from '../stores/customerStore'
 
 // routing + store
@@ -238,7 +238,7 @@ if (original.value) {
 
 // breadcrumbs
 const breadcrumbs = computed(() => [
-  { title: 'Existing customers', to: { name: 'existing-customers' } },
+  { title: 'Existing customers', to: { name: 'customers' } },
   { title: editable.value.name || 'Customer details', disabled: true },
 ])
 

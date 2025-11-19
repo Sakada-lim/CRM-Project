@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 
 export const useCustomerStore = defineStore('customers', {
   state: () => ({
-    customers: Array.from({ length: 50 }).map((_, i) => {
+    customers: Array.from({ length: 70 }).map((_, i) => {
       const id = i + 1
 
       const names = [
@@ -56,6 +56,16 @@ export const useCustomerStore = defineStore('customers', {
         'Zoe Harper',
         'Jonas Pike',
         'Rina Storm',
+        'Caleb Ortiz',
+        'Delia Brooks',
+        'Emilio Navarro',
+        'Freya Lang',
+        'Grayson Pierce',
+        'Helena Marsh',
+        'Imani Talbot',
+        'Jorge Salas',
+        'Kara West',
+        'Lennox Park',
       ]
 
       const name = names[i % names.length]

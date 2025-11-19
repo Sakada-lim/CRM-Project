@@ -4,10 +4,10 @@
       <v-app-bar-title>Bold Vision CRM</v-app-bar-title>
     </v-app-bar>
 
-    <v-navigation-drawer app permanent width="220">
+    <v-navigation-drawer app permanent width="220" color="grey-lighten-3">
       <v-list nav dense>
         <v-list-item
-          :to="{ name: 'existing-customers' }"
+          :to="{ name: 'customers' }"
           link
           prepend-icon="mdi-account-group"
           title="Customers"
