@@ -49,24 +49,24 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+    import { computed } from 'vue';
 
-const props = defineProps({
-  modelValue: {
-    type: Object,
-    required: true,
-  },
-});
+    const props = defineProps({
+    modelValue: {
+        type: Object,
+        required: true,
+    },
+    });
 
-const emit = defineEmits(['update:modelValue']);
+    const emit = defineEmits(['update:modelValue']);
 
-// bridge prop <-> v-model in this component
-const form = computed({
-  get() {
-    return props.modelValue;
-  },
-  set(val) {
-    emit('update:modelValue', val);
-  },
-});
+    // bridge prop <-> v-model in this component
+    const form = computed({
+    get() {
+        return props.modelValue;
+    },
+    set(val) {
+        emit('update:modelValue', val);
+    },
+    });
 </script>

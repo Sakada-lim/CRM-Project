@@ -17,7 +17,7 @@
         <!-- form / content goes here -->
         <slot />
       </v-card-text>
-
+      
       <v-card-actions class="justify-end mb-4 mr-4">
         <!-- allow overriding actions if needed -->
         <slot name="actions">
