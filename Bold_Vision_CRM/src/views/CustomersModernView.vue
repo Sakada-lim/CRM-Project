@@ -1,12 +1,9 @@
 <template>
   <div class="customers-modern">
     <div class="header-row">
-      <div>
-        <p class="eyebrow">Customers view</p>
-        <h2 class="text-h5 font-weight-medium mb-1">Existing Customers (Alt)</h2>
-        <p class="text-body-2 text-medium-emphasis">
-          Lightweight table without the surrounding card so data can breathe.
-        </p>
+      <div class="heading">
+        <v-icon size="38" color="black" class="heading-icon">mdi-account</v-icon>
+        <h1 class="text-h4 font-weight-bold mb-1">Customers</h1>
       </div>
 
       <v-btn
@@ -21,7 +18,7 @@
     </div>
 
     <div class="customers-list mt-6">
-      <div class="list-header text-body-2 text-uppercase text-medium-emphasis" >
+      <div class="list-header text-body-2 text-uppercase text-medium-emphasis">
         <span>Name</span>
         <span>Phone</span>
         <span>Channel</span>
@@ -31,11 +28,7 @@
       </div>
 
       <template v-if="paginatedCustomers.length">
-        <div
-          v-for="customer in paginatedCustomers"
-          :key="customer.id"
-          class="list-row"
-        >
+        <div v-for="customer in paginatedCustomers" :key="customer.id" class="list-row">
           <div class="cell name">
             <p class="title">{{ customer.name }}</p>
             <p class="muted">{{ customer.email }}</p>
@@ -62,7 +55,12 @@
           </div>
           <div class="cell actions">
             <span class="cell-label">Actions</span>
-            <v-btn :to="`/customers/${customer.id}`" variant="tonal" color="primary" class="text-capitalize">
+            <v-btn
+              :to="`/customers/${customer.id}`"
+              variant="tonal"
+              color="primary"
+              class="text-capitalize"
+            >
               View / Edit
             </v-btn>
           </div>
@@ -95,18 +93,18 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
-import { useCustomerStore } from '../stores/customerStore';
-import BaseDialog from '../components/base/BaseDialog.vue';
-import CustomerForm from '../components/customer/CustomerForm.vue';
-import BasePaginationFooter from '../components/base/BasePaginationFooter.vue';
+import { computed, ref, watch } from 'vue'
+import { useCustomerStore } from '../stores/customerStore'
+import BaseDialog from '../components/base/BaseDialog.vue'
+import CustomerForm from '../components/customer/CustomerForm.vue'
+import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 
-const store = useCustomerStore();
-const customers = computed(() => store.customers);
+const store = useCustomerStore()
+const customers = computed(() => store.customers)
 
-const showAddCustomer = ref(false);
-const page = ref(1);
-const itemsPerPage = 10;
+const showAddCustomer = ref(false)
+const page = ref(1)
+const itemsPerPage = 10
 
 const newCustomer = ref({
   name: '',
@@ -116,11 +114,11 @@ const newCustomer = ref({
   category: 'Cold',
   interestedProperty: '',
   notes: '',
-});
+})
 
 function openAddCustomer() {
-  resetNewCustomer();
-  showAddCustomer.value = true;
+  resetNewCustomer()
+  showAddCustomer.value = true
 }
 
 function resetNewCustomer() {
@@ -132,67 +130,66 @@ function resetNewCustomer() {
     category: 'Cold',
     interestedProperty: '',
     notes: '',
-  };
+  }
 }
 
 function handleAddCustomer() {
   if (!newCustomer.value.name || !newCustomer.value.phone || !newCustomer.value.category) {
-    alert('Please fill in name, phone, and category.');
-    return;
+    alert('Please fill in name, phone, and category.')
+    return
   }
 
-  store.addCustomer({ ...newCustomer.value });
-  showAddCustomer.value = false;
-  resetNewCustomer();
+  store.addCustomer({ ...newCustomer.value })
+  showAddCustomer.value = false
+  resetNewCustomer()
 }
 
-const pageCount = computed(() => Math.max(1, Math.ceil(customers.value.length / itemsPerPage) || 1));
+const pageCount = computed(() => Math.max(1, Math.ceil(customers.value.length / itemsPerPage) || 1))
 
 const currentPage = computed({
   get() {
-    return Math.min(Math.max(page.value, 1), pageCount.value);
+    return Math.min(Math.max(page.value, 1), pageCount.value)
   },
   set(value) {
-    const parsed = Number(value) || 1;
-    page.value = Math.min(Math.max(parsed, 1), pageCount.value);
+    const parsed = Number(value) || 1
+    page.value = Math.min(Math.max(parsed, 1), pageCount.value)
   },
-});
+})
 
 const paginatedCustomers = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return customers.value.slice(start, start + itemsPerPage);
-});
+  const start = (currentPage.value - 1) * itemsPerPage
+  return customers.value.slice(start, start + itemsPerPage)
+})
 
 const rangeLabel = computed(() => {
   if (!customers.value.length) {
-    return '0 results';
+    return '0 results'
   }
 
-  const start = (currentPage.value - 1) * itemsPerPage + 1;
-  const end = Math.min(currentPage.value * itemsPerPage, customers.value.length);
-  return `${start}-${end} of ${customers.value.length}`;
-});
+  const start = (currentPage.value - 1) * itemsPerPage + 1
+  const end = Math.min(currentPage.value * itemsPerPage, customers.value.length)
+  return `${start}-${end} of ${customers.value.length}`
+})
 
 watch(
   () => customers.value.length,
   () => {
     if (page.value > pageCount.value) {
-      page.value = pageCount.value;
+      page.value = pageCount.value
     }
-  }
-);
+  },
+)
 
 function categoryColor(cat) {
   switch (cat) {
     case 'Hot':
-      return 'red';
+      return 'red'
     case 'Warm':
-      return 'orange';
+      return 'orange'
     default:
-      return 'blue';
+      return 'blue'
   }
 }
-
 </script>
 
 <style scoped>
@@ -202,6 +199,16 @@ function categoryColor(cat) {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.heading-icon {
+  line-height: 1;
 }
 
 .eyebrow {
@@ -230,9 +237,8 @@ function categoryColor(cat) {
 .list-header {
   letter-spacing: 0.08em;
   border-bottom: 1px solid #ebeef4;
-  background-color: #EEEEEE;
+  background-color: #eeeeee;
   border-radius: 10px;
-
 }
 
 .list-row {
@@ -282,6 +288,14 @@ function categoryColor(cat) {
     padding-inline: 16px;
   }
 
+  .heading h1 {
+    font-size: 1.5rem;
+  }
+
+  .heading-icon {
+    font-size: 28px;
+  }
+
   .list-header {
     display: none;
   }
@@ -324,5 +338,4 @@ function categoryColor(cat) {
     justify-content: center;
   }
 }
-
 </style>

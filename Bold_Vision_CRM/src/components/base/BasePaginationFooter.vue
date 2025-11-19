@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, watch } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -35,36 +35,36 @@ const props = defineProps({
     type: String,
     default: '',
   },
-});
+})
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue'])
 
 const clampValue = (value) => {
-  const parsed = Number(value) || 1;
-  const upperBound = Math.max(props.length || 1, 1);
-  if (parsed < 1) return 1;
-  if (parsed > upperBound) return upperBound;
-  return parsed;
-};
+  const parsed = Number(value) || 1
+  const upperBound = Math.max(props.length || 1, 1)
+  if (parsed < 1) return 1
+  if (parsed > upperBound) return upperBound
+  return parsed
+}
 
 const internalPage = computed({
   get() {
-    return clampValue(props.modelValue);
+    return clampValue(props.modelValue)
   },
   set(value) {
-    emit('update:modelValue', clampValue(value));
+    emit('update:modelValue', clampValue(value))
   },
-});
+})
 
 watch(
   () => props.length,
   () => {
-    const clamped = clampValue(props.modelValue);
+    const clamped = clampValue(props.modelValue)
     if (clamped !== props.modelValue) {
-      emit('update:modelValue', clamped);
+      emit('update:modelValue', clamped)
     }
-  }
-);
+  },
+)
 </script>
 
 <style scoped>

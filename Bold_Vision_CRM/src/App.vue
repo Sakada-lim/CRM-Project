@@ -22,7 +22,7 @@
     </v-navigation-drawer>
 
     <v-main>
-      <v-container class="py-6" >
+      <v-container class="py-6">
         <router-view />
       </v-container>
     </v-main>
