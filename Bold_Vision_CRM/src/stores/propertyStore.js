@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+import { defineStore } from 'pinia'
 
 export const usePropertyStore = defineStore('properties', {
   state: () => ({
@@ -13,7 +13,7 @@ export const usePropertyStore = defineStore('properties', {
         notes: 'Great family area, near park.',
         gallery: [
           'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
-          'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg'
+          'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
         ],
         createdAt: new Date().toISOString(),
       },
@@ -27,7 +27,7 @@ export const usePropertyStore = defineStore('properties', {
         notes: 'Good rental yield.',
         gallery: [
           'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
-          'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg'
+          'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
         ],
         createdAt: new Date().toISOString(),
       },
@@ -36,23 +36,22 @@ export const usePropertyStore = defineStore('properties', {
 
   actions: {
     addProperty(payload) {
-      const id = Date.now();
+      const id = Date.now()
       this.properties.push({
         id,
         createdAt: new Date().toISOString(),
         gallery: [],
         ...payload,
-      });
+      })
     },
     updateProperty(id, updates) {
-      const index = this.properties.findIndex((p) => p.id === id);
-      if (index === -1) return;
+      const index = this.properties.findIndex((p) => p.id === id)
+      if (index === -1) return
       this.properties[index] = {
         ...this.properties[index],
         ...updates,
         gallery: updates.gallery ?? this.properties[index].gallery ?? [],
-      };
+      }
     },
   },
-  
-});
+})

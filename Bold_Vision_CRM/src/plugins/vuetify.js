@@ -1,13 +1,13 @@
 // src/plugins/vuetify.js
-import 'vuetify/styles';
-import { createVuetify } from 'vuetify';
+import 'vuetify/styles'
+import { createVuetify } from 'vuetify'
 
 // import all Vuetify components & directives
-import * as components from 'vuetify/components';
-import * as directives from 'vuetify/directives';
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
 
 // icon set (Material Design Icons)
-import { aliases, mdi } from 'vuetify/iconsets/mdi';
+import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
 const vuetify = createVuetify({
   components,
@@ -22,7 +22,6 @@ const vuetify = createVuetify({
   theme: {
     defaultTheme: 'light',
   },
-});
+})
 
-export default vuetify;
-
+export default vuetify

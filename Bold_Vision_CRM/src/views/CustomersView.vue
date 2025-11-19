@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Existing customers table -->
-    <v-card elevation="2">
+    <v-card elevation="4">
 
       <!-- Header row -->
       <div class="d-flex justify-space-between align-center mr-4 ml-4 mt-4">

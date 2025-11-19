@@ -13,7 +13,8 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -b gh-pages -d dist",
     "lint": "eslint . --fix --cache",
-    "format": "prettier --write src/"
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",

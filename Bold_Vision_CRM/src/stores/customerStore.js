@@ -1,9 +1,9 @@
-import { defineStore } from 'pinia';
+import { defineStore } from 'pinia'
 
 export const useCustomerStore = defineStore('customers', {
   state: () => ({
     customers: Array.from({ length: 50 }).map((_, i) => {
-      const id = i + 1;
+      const id = i + 1
 
       const names = [
         'Alice Buyer',
@@ -56,19 +56,19 @@ export const useCustomerStore = defineStore('customers', {
         'Zoe Harper',
         'Jonas Pike',
         'Rina Storm',
-      ];
+      ]
 
-      const name = names[i % names.length];
+      const name = names[i % names.length]
 
-      const categoryPool = ['Cold', 'Warm', 'Hot'];
-      const category = categoryPool[Math.floor(Math.random() * 3)];
+      const categoryPool = ['Cold', 'Warm', 'Hot']
+      const category = categoryPool[Math.floor(Math.random() * 3)]
 
       const followUp =
         category === 'Hot'
           ? 'Every 3 months'
           : category === 'Warm'
-          ? 'Every 6 months'
-          : 'Every 12 months';
+            ? 'Every 6 months'
+            : 'Every 12 months'
 
       return {
         id,
@@ -90,20 +90,19 @@ export const useCustomerStore = defineStore('customers', {
         followUpCadence: followUp,
         lastContactedAt: null,
         feedback: [],
-      };
+      }
     }),
   }),
 
-
   actions: {
     addCustomer(payload) {
-      const id = Date.now();
+      const id = Date.now()
       const followUpCadence =
         payload.category === 'Hot'
           ? 'Every 3 months'
           : payload.category === 'Warm'
-          ? 'Every 6 months'
-          : 'Every 12 months';
+            ? 'Every 6 months'
+            : 'Every 12 months'
 
       this.customers.push({
         id,
@@ -112,30 +111,30 @@ export const useCustomerStore = defineStore('customers', {
         ...payload,
         lastContactedAt: null,
         feedback: [], // [{ id, date, note }]
-      });
+      })
     },
     updateCustomer(id, updates) {
-      const index = this.customers.findIndex((c) => c.id === id);
-      if (index === -1) return;
+      const index = this.customers.findIndex((c) => c.id === id)
+      if (index === -1) return
       this.customers[index] = {
         ...this.customers[index],
         ...updates,
-      };
+      }
     },
     setLastContacted(id, dateIso) {
-      const c = this.customers.find((c) => c.id === id);
-      if (!c) return;
-      c.lastContactedAt = dateIso;
+      const c = this.customers.find((c) => c.id === id)
+      if (!c) return
+      c.lastContactedAt = dateIso
     },
     addFeedback(id, note, dateIso = new Date().toISOString()) {
-      const c = this.customers.find((c) => c.id === id);
-      if (!c) return;
-      if (!c.feedback) c.feedback = [];
+      const c = this.customers.find((c) => c.id === id)
+      if (!c) return
+      if (!c.feedback) c.feedback = []
       c.feedback.unshift({
         id: Date.now(),
         date: dateIso,
         note,
-      });
+      })
     },
   },
-});
+})

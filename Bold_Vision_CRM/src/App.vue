@@ -7,16 +7,10 @@
     <v-navigation-drawer app permanent width="220">
       <v-list nav dense>
         <v-list-item
-          :to="{ name: 'new-customers' }"
-          link
-          prepend-icon="mdi-account-group"
-          title="New Customers"
-        />
-        <v-list-item
           :to="{ name: 'existing-customers' }"
           link
           prepend-icon="mdi-account-group"
-          title="Existing Customers"
+          title="Customers"
         />
         <v-list-item
           :to="{ name: 'properties' }"

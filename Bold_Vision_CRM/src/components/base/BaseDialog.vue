@@ -1,9 +1,5 @@
 <template>
-  <v-dialog
-    v-model="internalModel"
-    :max-width="maxWidth"
-    :persistent="persistent"
-  >
+  <v-dialog v-model="internalModel" :max-width="maxWidth" :persistent="persistent">
     <v-card>
       <v-card-title class="d-flex align-center justify-space-between">
         <span class="text-h6">{{ title }}</span>
@@ -17,16 +13,11 @@
         <!-- form / content goes here -->
         <slot />
       </v-card-text>
-      
+
       <v-card-actions class="justify-end mb-4 mr-4">
         <!-- allow overriding actions if needed -->
         <slot name="actions">
-          <v-btn
-            variant="outlined"
-            color="grey-darken-1"
-            class="mr-2"
-            @click="onCancel"
-          >
+          <v-btn variant="outlined" color="grey-darken-1" class="mr-2" @click="onCancel">
             {{ cancelText }}
           </v-btn>
 
@@ -40,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
@@ -50,29 +41,29 @@ const props = defineProps({
   cancelText: { type: String, default: 'Cancel' },
   confirmText: { type: String, default: 'Save' },
   confirmColor: { type: String, default: 'primary' },
-});
+})
 
-const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);
+const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
 
-const internalModel = ref(props.modelValue);
+const internalModel = ref(props.modelValue)
 
 watch(
   () => props.modelValue,
   (val) => {
-    internalModel.value = val;
+    internalModel.value = val
   },
-);
+)
 
 watch(internalModel, (val) => {
-  emit('update:modelValue', val);
-});
+  emit('update:modelValue', val)
+})
 
 function onCancel() {
-  internalModel.value = false;
-  emit('cancel');
+  internalModel.value = false
+  emit('cancel')
 }
 
 function onConfirm() {
-  emit('confirm');
+  emit('confirm')
 }
 </script>
