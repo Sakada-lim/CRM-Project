@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 
 import CustomersView from '../views/CustomersView.vue'
-import CustomersModernView from '../views/CustomersModernView.vue'
 import CustomerDetailView from '../views/CustomerDetailView.vue'
 
 import PropertiesView from '../views/PropertiesView.vue'
@@ -19,12 +18,6 @@ const router = createRouter({
     {
       path: '/customers',
       name: 'customers',
-      component: CustomersModernView,
-      alias: ['/customers-modern'],
-    },
-    {
-      path: '/customers-legacy',
-      name: 'customers-legacy',
       component: CustomersView,
     },
     {
