@@ -1,27 +1,13 @@
 <template>
   <div class="customers">
-    <div class="header-row">
-      <div class="heading">
-        <v-icon size="38" color="black" class="heading-icon">mdi-account</v-icon>
-        <h1 class="text-h4 font-weight-bold mb-1">Customers</h1>
-      </div>
-
-      <v-btn
-        color="primary"
-        variant="elevated"
-        prepend-icon="mdi-account-plus"
-        class="text-capitalize"
-        @click="openAddCustomer"
-      >
-        Add New Customer
-      </v-btn>
-    </div>
-
-    <BaseSearchBar
-      v-model="searchQuery"
-      class="mt-6"
-      label="Search customers"
-      placeholder="Search name, email, phone..."
+    <CustomersToolbar
+      v-model:search="searchQuery"
+      v-model:filters="activeFilters"
+      :available-filters="filterDefinitions"
+      title="Customers"
+      icon="mdi-account"
+      action-icon="mdi-account-plus"
+      @add="openAddCustomer"
     />
 
     <div class="customers-list mt-4">
@@ -76,7 +62,8 @@
 
       <div v-else class="empty-state">
         <p v-if="!customers.length">No customers yet.</p>
-        <p v-else>No customers match your search.</p>
+        <p v-else-if="isFilteredView">No customers match your current filters.</p>
+        <p v-else>No customers available.</p>
       </div>
     </div>
 
@@ -101,20 +88,88 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useCustomerStore } from '../stores/customerStore'
 import BaseDialog from '../components/base/BaseDialog.vue'
 import CustomerForm from '../components/customer/CustomerForm.vue'
 import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
-import BaseSearchBar from '../components/base/BaseSearchBar.vue'
+import CustomersToolbar from '../components/customer/CustomersToolbar.vue'
+import { useCustomerFilters } from '../composables/useCustomerFilters'
 
 const store = useCustomerStore()
 const customers = computed(() => store.customers)
 
 const showAddCustomer = ref(false)
-const page = ref(1)
 const itemsPerPage = 10
 const searchQuery = ref('')
+const activeFilters = ref([])
+
+const filterDefinitions = [
+  {
+    key: 'category',
+    label: 'Category',
+    type: 'select',
+    allowMultiple: true,
+    operators: [
+      { label: 'is', value: 'is' },
+      { label: 'is not', value: 'is_not' },
+    ],
+    options: [
+      { title: 'Hot', value: 'Hot' },
+      { title: 'Warm', value: 'Warm' },
+      { title: 'Cold', value: 'Cold' },
+    ],
+  },
+  {
+    key: 'channel',
+    label: 'Channel',
+    type: 'select',
+    allowMultiple: true,
+    operators: [
+      { label: 'is', value: 'is' },
+      { label: 'is not', value: 'is_not' },
+    ],
+    options: [
+      { title: 'Call', value: 'Call' },
+      { title: 'SMS', value: 'SMS' },
+      { title: 'Email', value: 'Email' },
+    ],
+  },
+]
+
+const filterPredicates = {
+  category: (customer, filter) => {
+    const currentValue = (customer.category || '').toLowerCase()
+    const targetValue = String(filter?.value ?? '').toLowerCase()
+    if (!targetValue) return true
+    return filter?.operator === 'is_not'
+      ? currentValue !== targetValue
+      : currentValue === targetValue
+  },
+  channel: (customer, filter) => {
+    const currentValue = (customer.channel || '').toLowerCase()
+    const targetValue = String(filter?.value ?? '').toLowerCase()
+    if (!targetValue) return true
+    return filter?.operator === 'is_not'
+      ? currentValue !== targetValue
+      : currentValue === targetValue
+  },
+}
+
+const {
+  currentPage,
+  pageCount,
+  paginatedCustomers,
+  filteredCustomers,
+  rangeLabel,
+  isFilteredView,
+} = useCustomerFilters({
+  customers,
+  searchQuery,
+  activeFilters,
+  filterPredicates,
+  itemsPerPage,
+})
 
 //Customer form data
 const newCustomer = ref({
@@ -155,86 +210,6 @@ function handleAddCustomer() {
   resetNewCustomer()
 }
 
-//haystack search logic
-const searchTokens = computed(() =>
-  normalizedSearch.value
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter(Boolean),
-)
-
-const filteredCustomers = computed(() => {
-  if (!searchTokens.value.length) {
-    return customers.value
-  }
-
-  return customers.value.filter((customer) => {
-    const haystack = [
-      customer.name,
-      customer.email,
-      customer.phone,
-      customer.channel,
-      customer.category,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-
-    return searchTokens.value.every((token) => haystack.includes(token))
-  })
-})
-
-// pagination logic
-const normalizedSearch = computed(() => searchQuery.value.trim().toLowerCase())
-
-
-const pageCount = computed(() => Math.max(1, Math.ceil(filteredCustomers.value.length / itemsPerPage) || 1))
-
-// clamp current page within valid range
-const currentPage = computed({
-  get() {
-    return Math.min(Math.max(page.value, 1), pageCount.value)
-  },
-  set(value) {
-    const parsed = Number(value) || 1
-    page.value = Math.min(Math.max(parsed, 1), pageCount.value)
-  },
-})
-
-//slice customers for current page
-const paginatedCustomers = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return filteredCustomers.value.slice(start, start + itemsPerPage)
-})
-
-const rangeLabel = computed(() => {
-  const total = filteredCustomers.value.length
-  if (!total) {
-    return normalizedSearch.value ? 'No matches' : '0 results'
-  }
-
-  const start = (currentPage.value - 1) * itemsPerPage + 1
-  const end = Math.min(currentPage.value * itemsPerPage, total)
-  const baseLabel = `${start}-${end} of ${total}`
-  return normalizedSearch.value ? `${baseLabel} • filtered` : baseLabel
-})
-
-watch(
-  () => filteredCustomers.value.length,
-  () => {
-    if (page.value > pageCount.value) {
-      page.value = pageCount.value
-    }
-  },
-)
-
-watch(
-  () => searchQuery.value,
-  () => {
-    page.value = 1
-  },
-)
-
 function categoryColor(cat) {
   switch (cat) {
     case 'Hot':
@@ -248,32 +223,6 @@ function categoryColor(cat) {
 </script>
 
 <style scoped>
-.header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.heading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.heading-icon {
-  line-height: 1;
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  font-size: 0.8rem;
-  margin-bottom: 4px;
-  color: #7c7c7c;
-}
-
 .customers-list {
   border-radius: 0;
   background: transparent;
@@ -292,7 +241,7 @@ function categoryColor(cat) {
 .list-header {
   letter-spacing: 0.08em;
   border-bottom: 1px solid #ebeef4;
-  background-color: #E1F5FE;
+  background-color: #e1f5fe;
   border-radius: 10px;
 }
 
@@ -341,14 +290,6 @@ function categoryColor(cat) {
 @media (max-width: 1024px) {
   .customers {
     padding-inline: 16px;
-  }
-
-  .heading h1 {
-    font-size: 1.5rem;
-  }
-
-  .heading-icon {
-    font-size: 28px;
   }
 
   .list-header {
