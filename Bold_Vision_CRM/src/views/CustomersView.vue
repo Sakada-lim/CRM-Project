@@ -31,7 +31,7 @@
         <span>Channel</span>
         <span>Category</span>
         <span>Follow-up cadence</span>
-        <span class="text-right">Actions</span>
+        <span class="text-center">Actions</span>
       </div>
 
       <template v-if="paginatedCustomers.length">
@@ -116,6 +116,7 @@ const page = ref(1)
 const itemsPerPage = 10
 const searchQuery = ref('')
 
+//Customer form data
 const newCustomer = ref({
   name: '',
   phone: '',
@@ -154,11 +155,16 @@ function handleAddCustomer() {
   resetNewCustomer()
 }
 
-// pagination logic
-const normalizedSearch = computed(() => searchQuery.value.trim().toLowerCase())
+//haystack search logic
+const searchTokens = computed(() =>
+  normalizedSearch.value
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean),
+)
 
 const filteredCustomers = computed(() => {
-  if (!normalizedSearch.value) {
+  if (!searchTokens.value.length) {
     return customers.value
   }
 
@@ -174,12 +180,17 @@ const filteredCustomers = computed(() => {
       .join(' ')
       .toLowerCase()
 
-    return haystack.includes(normalizedSearch.value)
+    return searchTokens.value.every((token) => haystack.includes(token))
   })
 })
 
+// pagination logic
+const normalizedSearch = computed(() => searchQuery.value.trim().toLowerCase())
+
+
 const pageCount = computed(() => Math.max(1, Math.ceil(filteredCustomers.value.length / itemsPerPage) || 1))
 
+// clamp current page within valid range
 const currentPage = computed({
   get() {
     return Math.min(Math.max(page.value, 1), pageCount.value)
@@ -190,6 +201,7 @@ const currentPage = computed({
   },
 })
 
+//slice customers for current page
 const paginatedCustomers = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   return filteredCustomers.value.slice(start, start + itemsPerPage)
