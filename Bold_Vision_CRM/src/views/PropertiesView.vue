@@ -3,7 +3,7 @@
     <!-- Existing properties table -->
     <v-card elevation="4">
       <!-- Header row -->
-      <div class="d-flex justify-space-between align-center mr-4 ml-4 mt-4">
+      <div class="d-flex justify-space-between align-center mr-4 ml-4 mt-4 flex-wrap gap-4">
         <h2 class="text-h5 font-weight-medium">Existing Properties</h2>
 
         <v-btn
@@ -16,11 +16,19 @@
           Add New Property
         </v-btn>
       </div>
+      <div class="mr-4 ml-4 mt-2">
+        <BaseSearchBar
+          v-model="propertySearch"
+          label="Search properties"
+          placeholder="Search address, code, or status..."
+        />
+      </div>
       <v-card-text>
         <v-data-table
           :headers="headers"
           :items="properties"
           :items-per-page="5"
+          :search="propertySearch"
           class="elevation-1"
         >
           <template #item.status="{ item }">
@@ -57,11 +65,13 @@ import { ref, computed } from 'vue'
 import { usePropertyStore } from '../stores/propertyStore'
 import BaseDialog from '../components/base/BaseDialog.vue'
 import PropertyForm from '../components/properties/PropertiesForm.vue'
+import BaseSearchBar from '../components/base/BaseSearchBar.vue'
 
 const propertyStore = usePropertyStore()
 const properties = computed(() => propertyStore.properties)
 
 const showAddProperty = ref(false)
+const propertySearch = ref('')
 
 const newProperty = ref({
   address: '',
