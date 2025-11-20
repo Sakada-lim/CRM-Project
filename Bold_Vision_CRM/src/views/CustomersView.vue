@@ -278,7 +278,7 @@ function categoryColor(cat) {
 }
 
 .actions {
-  text-align: right;
+  text-align: center;
 }
 
 .empty-state {
