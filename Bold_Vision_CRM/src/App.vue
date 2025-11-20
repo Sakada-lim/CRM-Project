@@ -15,13 +15,7 @@
             <p class="brand-name">Bold Vision</p>
             <p class="brand-tagline">Customer Hub</p>
           </div>
-          <v-btn
-            icon
-            variant="text"
-            color="primary"
-            class="brand-toggle"
-            @click="toggleDrawer"
-          >
+          <v-btn icon variant="text" color="primary" class="brand-toggle" @click="toggleDrawer">
             <v-icon>{{ drawerOpen ? 'mdi-chevron-double-left' : 'mdi-menu-open' }}</v-icon>
           </v-btn>
         </div>
