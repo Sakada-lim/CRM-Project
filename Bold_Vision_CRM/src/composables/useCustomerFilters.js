@@ -1,4 +1,4 @@
-import { computed, ref, watch } from 'vue'
+import { computed, ref, unref, watch } from 'vue'
 
 export function useCustomerFilters({
   customers,
@@ -8,6 +8,10 @@ export function useCustomerFilters({
   itemsPerPage = 10,
 }) {
   const page = ref(1)
+  const pageSize = computed(() => {
+    const size = Number(unref(itemsPerPage)) || 10
+    return Math.max(1, size)
+  })
 
   const normalizedSearch = computed(() => (searchQuery?.value || '').trim().toLowerCase())
 
@@ -58,7 +62,7 @@ export function useCustomerFilters({
   })
 
   const pageCount = computed(() =>
-    Math.max(1, Math.ceil(filteredCustomers.value.length / itemsPerPage) || 1),
+    Math.max(1, Math.ceil(filteredCustomers.value.length / pageSize.value) || 1),
   )
 
   const currentPage = computed({
@@ -72,8 +76,8 @@ export function useCustomerFilters({
   })
 
   const paginatedCustomers = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage
-    return filteredCustomers.value.slice(start, start + itemsPerPage)
+    const start = (currentPage.value - 1) * pageSize.value
+    return filteredCustomers.value.slice(start, start + pageSize.value)
   })
 
   const rangeLabel = computed(() => {
@@ -82,8 +86,8 @@ export function useCustomerFilters({
       return isFilteredView.value ? 'No matches' : '0 results'
     }
 
-    const start = (currentPage.value - 1) * itemsPerPage + 1
-    const end = Math.min(currentPage.value * itemsPerPage, total)
+    const start = (currentPage.value - 1) * pageSize.value + 1
+    const end = Math.min(currentPage.value * pageSize.value, total)
     const baseLabel = `${start}-${end} of ${total}`
     return isFilteredView.value ? `${baseLabel} • filtered` : baseLabel
   })
@@ -112,6 +116,13 @@ export function useCustomerFilters({
     { deep: true },
   )
 
+  watch(
+    () => pageSize.value,
+    () => {
+      page.value = 1
+    },
+  )
+
   return {
     page,
     currentPage,
@@ -124,5 +135,6 @@ export function useCustomerFilters({
     hasActiveFilters,
     isFilteredView,
     rangeLabel,
+    pageSize,
   }
 }

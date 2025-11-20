@@ -1,34 +1,202 @@
 <template>
-  <v-app>
-    <v-app-bar app color="primary" dark>
-      <v-app-bar-title>Bold Vision CRM</v-app-bar-title>
-    </v-app-bar>
+  <v-app class="bv-app-shell">
+    <v-navigation-drawer
+      v-model="drawerOpen"
+      class="bv-drawer"
+      :width="drawerWidth"
+      :scrim="false"
+      floating
+      elevation="0"
+    >
+      <div class="bv-drawer__body">
+        <div class="bv-drawer__brand">
+          <div class="brand-mark">BV</div>
+          <div class="brand-text">
+            <p class="brand-name">Bold Vision</p>
+            <p class="brand-tagline">Customer Hub</p>
+          </div>
+          <v-btn icon variant="text" color="primary" class="brand-toggle" @click="toggleDrawer">
+            <v-icon>{{ drawerOpen ? 'mdi-chevron-double-left' : 'mdi-menu-open' }}</v-icon>
+          </v-btn>
+        </div>
 
-    <v-navigation-drawer app permanent width="220" color="grey-lighten-3">
-      <v-list nav dense>
-        <v-list-item
-          :to="{ name: 'customers' }"
-          link
-          prepend-icon="mdi-account-group"
-          title="Customers"
-        />
-        <v-list-item
-          :to="{ name: 'properties' }"
-          link
-          prepend-icon="mdi-home-city"
-          title="Properties"
-        />
-      </v-list>
+        <v-divider class="my-6" />
+
+        <v-list nav density="comfortable" class="bv-drawer__list">
+          <v-list-item
+            :to="{ name: 'customers' }"
+            prepend-icon="mdi-account-group"
+            title="Customers"
+            rounded="lg"
+          />
+          <v-list-item
+            :to="{ name: 'properties' }"
+            prepend-icon="mdi-home-city"
+            title="Properties"
+            rounded="lg"
+          />
+        </v-list>
+      </div>
     </v-navigation-drawer>
 
-    <v-main>
-      <v-container class="py-6">
+    <v-main class="bv-main">
+      <div class="bv-content">
+        <div class="bv-content__header">
+          <div class="bv-content__left">
+            <v-btn
+              v-if="!drawerOpen"
+              icon="mdi-menu"
+              variant="tonal"
+              color="primary"
+              class="collapse-toggle"
+              @click="toggleDrawer"
+            />
+          </div>
+          <div class="bv-content__actions">
+            <v-btn icon variant="tonal" color="primary" class="lang-btn">
+              <v-icon>mdi-earth</v-icon>
+            </v-btn>
+            <v-avatar size="44" class="profile-chip" color="primary" variant="tonal">
+              <v-icon>mdi-account</v-icon>
+            </v-avatar>
+          </div>
+        </div>
         <router-view />
-      </v-container>
+      </div>
     </v-main>
   </v-app>
 </template>
 
 <script setup>
-// no script needed yet
+import { computed, ref } from 'vue'
+
+const drawerOpen = ref(true)
+const drawerWidth = computed(() => 320)
+
+function toggleDrawer() {
+  drawerOpen.value = !drawerOpen.value
+}
 </script>
+
+<style scoped>
+.bv-app-shell {
+  background: #f8fafc;
+}
+
+.bv-drawer {
+  position: relative;
+  padding: 24px;
+  background: #e0e0e0;
+  border-right: 1px solid #e2e8f0;
+  overflow: visible;
+}
+
+.bv-drawer__body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+}
+
+.bv-drawer__brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4f46e5, #9333ea);
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-name {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.brand-tagline {
+  margin: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #94a3b8;
+}
+
+.brand-toggle {
+  margin-left: auto;
+}
+
+.bv-drawer__list {
+  flex: 1;
+}
+
+.bv-main {
+  background: #f8fafc;
+  min-height: 100vh;
+  padding-block: 32px;
+}
+
+.bv-content {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-inline: clamp(12px, 4vw, 64px);
+}
+
+.bv-content__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 12px;
+  padding-bottom: 32px;
+}
+
+.bv-content__left {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.bv-content__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collapse-toggle,
+.lang-btn {
+  width: 48px;
+  height: 48px;
+}
+
+.profile-chip {
+  font-weight: 600;
+  color: rgb(var(--v-theme-primary));
+}
+
+@media (max-width: 1024px) {
+  .bv-drawer {
+    width: 280px !important;
+  }
+
+  .bv-main {
+    padding: 24px;
+  }
+}
+</style>

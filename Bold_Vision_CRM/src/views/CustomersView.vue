@@ -16,7 +16,7 @@
         <span>Phone</span>
         <span>Channel</span>
         <span>Category</span>
-        <span>Follow-up cadence</span>
+        <span class="followup-col">Follow-up cadence</span>
         <span class="text-center">Actions</span>
       </div>
 
@@ -26,21 +26,26 @@
             <p class="title">{{ customer.name }}</p>
             <p class="muted">{{ customer.email }}</p>
           </div>
-          <div class="cell">
+          <div class="cell phone">
             <span class="cell-label">Phone</span>
             {{ customer.phone }}
           </div>
-          <div class="cell text-capitalize">
+          <div class="cell channel text-capitalize">
             <span class="cell-label">Channel</span>
             {{ customer.channel }}
           </div>
-          <div class="cell">
+          <div class="cell category">
             <span class="cell-label">Category</span>
-            <v-chip :color="categoryColor(customer.category)" text-color="white" size="small">
+            <v-chip
+              :color="categoryColor(customer.category)"
+              text-color="white"
+              size="small"
+              class="category-chip"
+            >
               {{ customer.category }}
             </v-chip>
           </div>
-          <div class="cell">
+          <div class="cell followup-col">
             <span class="cell-label">Follow-up Cadence</span>
             <v-chip size="small" variant="outlined" class="text-capitalize">
               {{ customer.followUpCadence }}
@@ -88,7 +93,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useCustomerStore } from '../stores/customerStore'
 import BaseDialog from '../components/base/BaseDialog.vue'
 import CustomerForm from '../components/customer/CustomerForm.vue'
@@ -100,7 +105,7 @@ const store = useCustomerStore()
 const customers = computed(() => store.customers)
 
 const showAddCustomer = ref(false)
-const itemsPerPage = 10
+const itemsPerPage = ref(10)
 const searchQuery = ref('')
 const activeFilters = ref([])
 
@@ -169,6 +174,21 @@ const {
   activeFilters,
   filterPredicates,
   itemsPerPage,
+})
+
+function updateItemsPerPage() {
+  if (typeof window === 'undefined') return
+  itemsPerPage.value = window.innerWidth <= 900 ? 5 : 10
+}
+
+onMounted(() => {
+  updateItemsPerPage()
+  window.addEventListener('resize', updateItemsPerPage)
+})
+
+onBeforeUnmount(() => {
+  if (typeof window === 'undefined') return
+  window.removeEventListener('resize', updateItemsPerPage)
 })
 
 //Customer form data
@@ -277,8 +297,31 @@ function categoryColor(cat) {
   font-size: 0.85rem;
 }
 
+.cell.category .category-chip {
+  font-weight: 600;
+}
+
 .actions {
-  text-align: right;
+  text-align: center;
+}
+
+.followup-col {
+  display: block;
+}
+
+.list-row .followup-col {
+  text-align: left;
+}
+
+@media (max-width: 1200px) {
+  .list-header,
+  .list-row {
+    grid-template-columns: 1.8fr 1fr 1fr 1fr 1fr;
+  }
+
+  .followup-col {
+    display: none;
+  }
 }
 
 .empty-state {
@@ -287,7 +330,7 @@ function categoryColor(cat) {
   color: #7c7c7c;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
   .customers {
     padding-inline: 16px;
   }
@@ -313,16 +356,19 @@ function categoryColor(cat) {
   .cell-label {
     display: block;
   }
-}
 
-@media (max-width: 640px) {
+  .list-header,
   .list-row {
-    grid-template-columns: 1fr;
-    padding: 12px 14px;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    padding-inline: 12px;
   }
 
   .list-row .cell {
-    padding-right: 0;
+    font-size: 0.9rem;
+  }
+
+  .list-row .cell.name .title {
+    font-size: 1rem;
   }
 
   .actions {
@@ -331,6 +377,78 @@ function categoryColor(cat) {
 
   .actions .v-btn {
     width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .customers-list {
+    overflow-x: auto;
+    padding-bottom: 12px;
+  }
+
+  .list-row {
+    position: relative;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 12px 14px 16px;
+    min-width: 320px;
+    gap: 12px;
+  }
+
+  .list-row .cell {
+    padding-right: 0;
+    grid-column: 1 / -1;
+  }
+
+  .list-row .cell.name {
+    padding-right: 80px;
+  }
+
+  .list-row .cell.phone,
+  .list-row .cell.channel,
+  .list-row .cell.actions {
+    grid-column: span 1;
+  }
+
+  .list-row .cell.channel {
+    text-transform: capitalize;
+  }
+
+  .list-row .cell.actions {
+    align-self: flex-start;
+    justify-self: stretch;
+    padding-right: 0;
+  }
+
+  .list-row .cell.actions .cell-label {
+    display: none;
+  }
+
+  .list-row .cell.category {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    grid-column: auto;
+    padding-right: 0;
+    text-align: right;
+    z-index: 1;
+  }
+
+  .list-row .cell.category .cell-label {
+    display: none;
+  }
+
+  .list-row .cell.category .category-chip {
+    font-size: 0.75rem;
+  }
+
+  .actions {
+    text-align: left;
+  }
+
+  .actions .v-btn {
+    width: 100%;
+    min-width: 0;
     justify-content: center;
   }
 }
