@@ -93,19 +93,26 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useCustomerStore } from '../stores/customerStore'
 import BaseDialog from '../components/base/BaseDialog.vue'
 import CustomerForm from '../components/customer/CustomerForm.vue'
 import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 import CustomersToolbar from '../components/customer/CustomersToolbar.vue'
 import { useCustomerFilters } from '../composables/useCustomerFilters'
+import { useResponsivePageSize } from '../composables/useResponsivePageSize'
 
 const store = useCustomerStore()
 const customers = computed(() => store.customers)
 
 const showAddCustomer = ref(false)
-const itemsPerPage = ref(10)
+const { pageSize: itemsPerPage } = useResponsivePageSize({
+  breakpoints: [
+    { minWidth: 901, size: 10 },
+    { minWidth: 0, size: 5 },
+  ],
+  fallbackSize: 5,
+})
 const searchQuery = ref('')
 const activeFilters = ref([])
 
@@ -174,21 +181,6 @@ const {
   activeFilters,
   filterPredicates,
   itemsPerPage,
-})
-
-function updateItemsPerPage() {
-  if (typeof window === 'undefined') return
-  itemsPerPage.value = window.innerWidth <= 900 ? 5 : 10
-}
-
-onMounted(() => {
-  updateItemsPerPage()
-  window.addEventListener('resize', updateItemsPerPage)
-})
-
-onBeforeUnmount(() => {
-  if (typeof window === 'undefined') return
-  window.removeEventListener('resize', updateItemsPerPage)
 })
 
 //Customer form data

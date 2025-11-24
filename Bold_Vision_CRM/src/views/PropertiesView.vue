@@ -111,6 +111,7 @@ import BaseDialog from '../components/base/BaseDialog.vue'
 import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 import PropertyForm from '../components/properties/PropertiesForm.vue'
 import PropertiesToolbar from '../components/properties/PropertiesToolbar.vue'
+import { useResponsivePageSize } from '../composables/useResponsivePageSize'
 
 const propertyStore = usePropertyStore()
 const properties = computed(() => propertyStore.properties)
@@ -184,15 +185,28 @@ const filteredProperties = computed(() => {
   })
 })
 
-const ITEMS_PER_PAGE = 9
 const currentPage = ref(1)
+const { pageSize: itemsPerPage } = useResponsivePageSize({
+  breakpoints: [
+    { minWidth: 1600, size: 12 },
+    { minWidth: 1200, size: 9 },
+    { minWidth: 900, size: 6 },
+    { minWidth: 0, size: 4 },
+  ],
+  fallbackSize: 4,
+})
 
 const pageCount = computed(() => {
   const total = filteredProperties.value.length
-  return total ? Math.ceil(total / ITEMS_PER_PAGE) : 1
+  const perPage = itemsPerPage.value || 1
+  return total ? Math.ceil(total / perPage) : 1
 })
 
 watch(filteredProperties, () => {
+  currentPage.value = 1
+})
+
+watch(itemsPerPage, () => {
   currentPage.value = 1
 })
 
@@ -203,8 +217,9 @@ watch(pageCount, (count) => {
 })
 
 const paginatedProperties = computed(() => {
-  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
-  return filteredProperties.value.slice(start, start + ITEMS_PER_PAGE)
+  const perPage = itemsPerPage.value
+  const start = (currentPage.value - 1) * perPage
+  return filteredProperties.value.slice(start, start + perPage)
 })
 
 const paginationLabel = computed(() => {
@@ -212,8 +227,9 @@ const paginationLabel = computed(() => {
   if (!total) {
     return 'No properties found'
   }
-  const start = (currentPage.value - 1) * ITEMS_PER_PAGE + 1
-  const end = Math.min(start + ITEMS_PER_PAGE - 1, total)
+  const perPage = itemsPerPage.value
+  const start = (currentPage.value - 1) * perPage + 1
+  const end = Math.min(start + perPage - 1, total)
   return `Showing ${start}-${end} of ${total}`
 })
 
