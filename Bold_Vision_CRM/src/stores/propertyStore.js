@@ -14,29 +14,39 @@ const heroPhotos = [
 ]
 
 const streetPool = [
-  'Oxford St',
-  'Smith Rd',
-  'Victoria Ave',
-  'Pacific Hwy',
-  'Bridge St',
-  'George St',
-  'Queen Rd',
-  'Park Lane',
-  'Highland Dr',
-  'Grove Rd',
+  'Collins St',
+  'Lygon St',
+  'Chapel St',
+  'Toorak Rd',
+  'Exhibition St',
+  'Swanston St',
+  'Flinders Ln',
+  'Brunswick Rd',
+  'Nicholson St',
+  'Clarendon St',
+  'High St',
+  'St Kilda Rd',
+  'Burke Rd',
+  'Glenferrie Rd',
+  'Royal Parade',
 ]
 
 const suburbPool = [
-  'Blacktown',
-  'Parramatta',
-  'Surry Hills',
-  'Cammeray',
-  'Chatswood',
-  'Randwick',
-  'Newtown',
-  'Leichhardt',
-  'Wollongong',
-  'Bondi',
+  'Fitzroy',
+  'Carlton',
+  'Richmond',
+  'South Yarra',
+  'St Kilda',
+  'Hawthorn',
+  'Brunswick',
+  'Footscray',
+  'Coburg',
+  'Prahran',
+  'Collingwood',
+  'Camberwell',
+  'Brighton',
+  'Moonee Ponds',
+  'Essendon',
 ]
 
 const descriptionPool = [
@@ -44,6 +54,11 @@ const descriptionPool = [
   'Designer finishes throughout with flexible floor plan and private courtyard.',
   'Low maintenance lifestyle moments from cafes, transport, and coastal walks.',
   'Family-friendly proportions with multiple living zones and a rear garden.',
+  'Penthouse-style domain steps from the Yarra River trail.',
+  'Warehouse conversion retaining exposed brick and soaring ceilings.',
+  'Heritage facade with meticulous contemporary extension at the rear.',
+  'Corner allotment capturing uninterrupted city skyline views.',
+  'Quiet cul-de-sac setting moments from Melbourne CBD trams.',
 ]
 
 const highlightPool = [
@@ -53,6 +68,11 @@ const highlightPool = [
   'Ducted air conditioning',
   'Oversized alfresco terrace',
   'Custom joinery and storage',
+  'Integrated Miele appliances',
+  'Hydronic heating throughout',
+  'Double-glazed picture windows',
+  'Butlers pantry with skylight',
+  'Established native landscaping',
 ]
 
 const customerNamePool = [
@@ -66,6 +86,11 @@ const customerNamePool = [
   'Hannah Frost',
   'Ian Hunter',
   'Jasmine Lee',
+  'Keira Bloom',
+  'Lachlan Boyd',
+  'Mila Torres',
+  'Noah Steele',
+  'Olivia Hart',
 ]
 
 const heatOrder = { Hot: 0, Warm: 1, Cold: 2 }
@@ -156,11 +181,10 @@ function createProperty(index) {
 
   const property = {
     id,
-    code: `PROP-${String(id).padStart(3, '0')}`,
     address: `${randomInt(12, 450)} ${pickRandom(streetPool)}, ${suburb}`,
     suburb,
-    state: 'NSW',
-    postcode: randomInt(2000, 2999),
+    state: 'VIC',
+    postcode: randomInt(3000, 3999),
     type: pickRandom(['House', 'Townhouse', 'Apartment', 'Villa']),
     priceGuide: `$${minPrice}k-$${maxPrice}k`,
     status,
@@ -210,7 +234,6 @@ export const usePropertyStore = defineStore('properties', {
 
       this.properties.unshift({
         id,
-        code: payload.code ?? `PROP-${id}`,
         createdAt: payload.createdAt ?? listedAt,
         listedAt,
         statusUpdatedAt: payload.statusUpdatedAt ?? listedAt,
