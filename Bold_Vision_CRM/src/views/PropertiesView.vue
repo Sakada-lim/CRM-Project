@@ -1,11 +1,15 @@
 <template>
-  <div>
-    <!-- Existing properties table -->
-    <v-card elevation="4">
-      <!-- Header row -->
-      <div class="d-flex justify-space-between align-center mr-4 ml-4 mt-4 flex-wrap gap-4">
-        <h2 class="text-h5 font-weight-medium">Existing Properties</h2>
-
+  <div class="properties-view">
+    <PropertiesToolbar
+      class="mb-6"
+      title="Properties"
+      :supporting-text="supportingText"
+      v-model:search="searchQuery"
+      v-model:filters="activeFilters"
+      :available-filters="propertyFilterDefinitions"
+      @add="openAddProperty"
+    >
+      <template #actions>
         <v-btn
           color="primary"
           variant="elevated"
@@ -15,69 +19,232 @@
         >
           Add New Property
         </v-btn>
-      </div>
-      <div class="mr-4 ml-4 mt-2">
-        <BaseSearchBar
-          v-model="propertySearch"
-          label="Search properties"
-          placeholder="Search address, code, or status..."
-        />
-      </div>
-      <v-card-text>
-        <v-data-table
-          :headers="headers"
-          :items="properties"
-          :items-per-page="5"
-          :search="propertySearch"
-          class="elevation-1"
-        >
-          <template #item.status="{ item }">
-            <v-chip :color="statusColor(item.status)" text-color="white" size="small">
-              {{ item.status }}
-            </v-chip>
-          </template>
+      </template>
+    </PropertiesToolbar>
 
-          <template #item.createdAt="{ item }">
-            {{ formatDate(item.createdAt) }}
-          </template>
-          <!-- New: Actions column -->
-          <template #item.actions="{ item }">
-            <v-btn :to="`/properties/${item.id}`" text small color="primary"> View / Edit </v-btn>
-          </template>
-        </v-data-table>
-      </v-card-text>
+    <div class="properties-grid" v-if="paginatedProperties.length">
+      <article v-for="property in paginatedProperties" :key="property.id" class="property-card">
+        <div class="card-photo">
+          <img :src="property.mainPhoto" :alt="property.address" loading="lazy" />
 
-      <BaseDialog
-        v-model="showAddProperty"
-        title="Add new property"
-        confirm-text="Add property"
-        @confirm="handleAddProperty"
-        @cancel="resetNewProperty"
-      >
-        <PropertyForm v-model="newProperty" />
-      </BaseDialog>
-    </v-card>
+          <div v-if="property.statusBadge" class="status-pill" :class="`status-${property.statusBadge.type}`">
+            <span class="status-dot" />
+            {{ property.statusBadge.label }}
+          </div>
+
+          <div class="photo-meta">
+            <span class="price">{{ property.priceGuide }}</span>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="address">{{ property.address }}</div>
+          <div class="suburb">{{ property.suburb }}, {{ property.state }} {{ property.postcode }}</div>
+
+          <div class="property-stats">
+            <div class="stat">
+              <v-icon icon="mdi-bed-outline" size="18" />
+              <span>{{ property.bedrooms }}</span>
+            </div>
+            <div class="stat">
+              <v-icon icon="mdi-shower" size="18" />
+              <span>{{ property.bathrooms }}</span>
+            </div>
+            <div class="stat">
+              <v-icon icon="mdi-car-outline" size="18" />
+              <span>{{ property.carSpaces }}</span>
+            </div>
+            <div class="size-group">
+              <div class="stat">
+                <v-icon icon="mdi-ruler-square" size="18" />
+                <span>{{ property.landSize }}</span>
+              </div>
+              <div class="stat">
+                <v-icon icon="mdi-home-floor-1" size="18" />
+                <span>{{ property.houseSize }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="property-footer">
+            <div class="meta">
+              <span class="type">{{ property.type }}</span>
+            </div>
+
+            <v-btn :to="`/properties/${property.id}`" variant="tonal" color="primary" class="text-capitalize">
+              View details
+            </v-btn>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div v-else class="properties-empty">
+      {{ paginationLabel }}
+    </div>
+
+    <BasePaginationFooter
+      v-if="filteredProperties.length"
+      v-model="currentPage"
+      class="properties-pagination"
+      :length="pageCount"
+      :total-visible="4"
+      :label="paginationLabel"
+    />
+
+    <BaseDialog
+      v-model="showAddProperty"
+      title="Add new property"
+      confirm-text="Add property"
+      @confirm="handleAddProperty"
+      @cancel="resetNewProperty"
+    >
+      <PropertyForm v-model="newProperty" />
+    </BaseDialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { usePropertyStore } from '../stores/propertyStore'
 import BaseDialog from '../components/base/BaseDialog.vue'
+import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 import PropertyForm from '../components/properties/PropertiesForm.vue'
-import BaseSearchBar from '../components/base/BaseSearchBar.vue'
+import PropertiesToolbar from '../components/properties/PropertiesToolbar.vue'
+import { useResponsivePageSize } from '../composables/useResponsivePageSize'
 
 const propertyStore = usePropertyStore()
 const properties = computed(() => propertyStore.properties)
 
+const searchQuery = ref('')
+const activeFilters = ref([])
+
+const propertyFilterDefinitions = [
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'select',
+    allowMultiple: false,
+    operators: [
+      { label: 'is', value: 'is' },
+      { label: 'is not', value: 'is_not' },
+    ],
+    options: [
+      { title: 'On Market', value: 'On Market' },
+      { title: 'Under Offer', value: 'Under Offer' },
+      { title: 'Sold', value: 'Sold' },
+    ],
+  },
+  {
+    key: 'type',
+    label: 'Type',
+    type: 'select',
+    allowMultiple: true,
+    operators: [
+      { label: 'is', value: 'is' },
+      { label: 'is not', value: 'is_not' },
+    ],
+    options: [
+      { title: 'House', value: 'House' },
+      { title: 'Townhouse', value: 'Townhouse' },
+      { title: 'Apartment', value: 'Apartment' },
+      { title: 'Villa', value: 'Villa' },
+    ],
+  },
+]
+
+const filterPredicates = {
+  status: (property, filter) => {
+    const current = (property.status || '').toLowerCase()
+    const target = String(filter?.value ?? '').toLowerCase()
+    if (!target) return true
+    return filter?.operator === 'is_not' ? current !== target : current === target
+  },
+  type: (property, filter) => {
+    const current = (property.type || '').toLowerCase()
+    const target = String(filter?.value ?? '').toLowerCase()
+    if (!target) return true
+    return filter?.operator === 'is_not' ? current !== target : current === target
+  },
+}
+
+const normalizeSearch = (value) => value?.trim().toLowerCase() ?? ''
+
+const filteredProperties = computed(() => {
+  const term = normalizeSearch(searchQuery.value)
+  const filters = activeFilters.value ?? []
+  return properties.value.filter((property) => {
+    const haystack = `${property.address} ${property.suburb} ${property.state} ${property.type}`.toLowerCase()
+    const matchesSearch = !term || haystack.includes(term)
+    if (!matchesSearch) return false
+    if (!filters.length) return true
+    return filters.every((filter) => {
+      const predicate = filterPredicates[filter.key]
+      return predicate ? predicate(property, filter) : true
+    })
+  })
+})
+
+const currentPage = ref(1)
+const { pageSize: itemsPerPage } = useResponsivePageSize({
+  breakpoints: [
+    { minWidth: 1600, size: 12 },
+    { minWidth: 1200, size: 9 },
+    { minWidth: 900, size: 6 },
+    { minWidth: 0, size: 4 },
+  ],
+  fallbackSize: 4,
+})
+
+const pageCount = computed(() => {
+  const total = filteredProperties.value.length
+  const perPage = itemsPerPage.value || 1
+  return total ? Math.ceil(total / perPage) : 1
+})
+
+watch(filteredProperties, () => {
+  currentPage.value = 1
+})
+
+watch(itemsPerPage, () => {
+  currentPage.value = 1
+})
+
+watch(pageCount, (count) => {
+  if (currentPage.value > count) {
+    currentPage.value = count
+  }
+})
+
+const paginatedProperties = computed(() => {
+  const perPage = itemsPerPage.value
+  const start = (currentPage.value - 1) * perPage
+  return filteredProperties.value.slice(start, start + perPage)
+})
+
+const paginationLabel = computed(() => {
+  const total = filteredProperties.value.length
+  if (!total) {
+    return 'No properties found'
+  }
+  const perPage = itemsPerPage.value
+  const start = (currentPage.value - 1) * perPage + 1
+  const end = Math.min(start + perPage - 1, total)
+  return `Showing ${start}-${end} of ${total}`
+})
+
+const supportingText = computed(() => {
+  const total = filteredProperties.value.length
+  const suffix = total === 1 ? '' : 's'
+  return `${total} active listing${suffix}`
+})
+
 const showAddProperty = ref(false)
-const propertySearch = ref('')
 
 const newProperty = ref({
   address: '',
-  code: '',
   type: 'House',
-  status: 'New',
+  status: 'On Market',
   priceGuide: '',
   description: '',
   notes: '',
@@ -85,10 +252,9 @@ const newProperty = ref({
 
 const resetNewProperty = () => {
   newProperty.value = {
-    code: '',
     address: '',
     type: 'House',
-    status: 'New',
+    status: 'On Market',
     priceGuide: '',
     description: '',
     notes: '',
@@ -110,32 +276,26 @@ function handleAddProperty() {
   resetNewProperty()
   showAddProperty.value = false
 }
-
-const headers = [
-  { title: 'Code', key: 'code' },
-  { title: 'Address', key: 'address' },
-  { title: 'Type', key: 'type' },
-  { title: 'Status', key: 'status' },
-  { title: 'Price guide', key: 'priceGuide' },
-  { title: 'Created', key: 'createdAt' },
-  { title: 'Actions', key: 'actions', sortable: false },
-]
-
-function statusColor(status) {
-  switch (status) {
-    case 'New':
-      return 'green'
-    case 'On Market':
-      return 'blue'
-    case 'Sold':
-      return 'grey'
-    default:
-      return 'blue'
-  }
-}
-
-function formatDate(iso) {
-  const d = new Date(iso)
-  return d.toLocaleDateString()
-}
 </script>
+
+<style scoped>
+.properties-view {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-right: 0;
+  padding-top: 0;
+  padding-bottom: clamp(16px, 2vw, 32px);
+}
+
+.properties-empty {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--bv-text-secondary, #64748b);
+  font-size: 1rem;
+}
+
+.properties-pagination {
+  margin-top: 32px;
+}
+</style>

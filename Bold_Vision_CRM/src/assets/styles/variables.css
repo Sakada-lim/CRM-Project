@@ -1,0 +1,14 @@
+:root {
+  --bv-font-family: 'Arial', 'Helvetica', sans-serif;
+  --bv-page-bg: #f8fafc;
+  --bv-surface-bg: #ffffff;
+  --bv-surface-muted: #e0e0e0;
+  --bv-border-muted: #e2e8f0;
+  --bv-text-primary: #0f172a;
+  --bv-text-subtle: #475569;
+  --bv-text-muted: #94a3b8;
+  --bv-text-secondary: #64748b;
+  --bv-gradient-start: #4f46e5;
+  --bv-gradient-end: #9333ea;
+  --bv-card-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}

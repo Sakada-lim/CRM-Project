@@ -1,11 +1,11 @@
 <template>
-  <div class="customers-toolbar">
+  <div class="properties-toolbar">
     <div class="header-row">
       <div class="heading">
         <v-icon :size="iconSize" :color="iconColor" class="heading-icon">{{ icon }}</v-icon>
         <div>
-          <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
           <h1 class="title-text">{{ title }}</h1>
+          <p v-if="supportingText" class="supporting">{{ supportingText }}</p>
         </div>
       </div>
 
@@ -57,15 +57,15 @@ import BaseFilterBar from '../base/BaseFilterBar.vue'
 const props = defineProps({
   title: {
     type: String,
-    default: 'Customers',
+    default: 'Properties',
   },
-  eyebrow: {
+  supportingText: {
     type: String,
     default: '',
   },
   icon: {
     type: String,
-    default: 'mdi-account',
+    default: 'mdi-home-city',
   },
   iconSize: {
     type: [Number, String],
@@ -77,11 +77,11 @@ const props = defineProps({
   },
   actionLabel: {
     type: String,
-    default: 'Add New Customer',
+    default: 'Add New Property',
   },
   actionIcon: {
     type: String,
-    default: 'mdi-account-plus',
+    default: 'mdi-home-plus',
   },
   search: {
     type: String,
@@ -89,11 +89,11 @@ const props = defineProps({
   },
   searchLabel: {
     type: String,
-    default: 'Search customers',
+    default: 'Search properties',
   },
   searchPlaceholder: {
     type: String,
-    default: 'Search name, email, phone...',
+    default: 'Search address, suburb, status…',
   },
   filters: {
     type: Array,
@@ -102,7 +102,7 @@ const props = defineProps({
   availableFilters: {
     type: Array,
     default: () => [],
-  },
+  }
 })
 
 const emit = defineEmits(['update:search', 'update:filters', 'add'])
@@ -120,5 +120,3 @@ const internalFilters = computed({
 const hasActiveFilters = computed(() => (props.filters?.length ?? 0) > 0)
 const canAddFilters = computed(() => props.availableFilters.length > 0)
 </script>
-
-

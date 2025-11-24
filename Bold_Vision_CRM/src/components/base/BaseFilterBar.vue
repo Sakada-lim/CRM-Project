@@ -1,28 +1,6 @@
 <template>
   <div class="filter-bar">
-    <div class="chip-container">
-      <template v-if="modelValue.length">
-        <v-chip
-          v-for="filter in modelValue"
-          :key="filter.id"
-          class="filter-chip"
-          closable
-          size="large"
-          variant="tonal"
-          color="primary"
-          @click:close="removeFilter(filter.id)"
-        >
-          <template v-if="filter.labelParts">
-            <span class="chip-field">{{ getFieldLabel(filter) }}</span>
-            <span class="chip-operator">{{ getOperatorLabel(filter) }}</span>
-            <span class="chip-value">{{ getValueLabel(filter) }}</span>
-          </template>
-          <template v-else>
-            {{ filter.label }}
-          </template>
-        </v-chip>
-      </template>
-
+    <div v-if="showActivator" class="filter-activator">
       <v-menu v-model="menu" :close-on-content-click="false" transition="fade-transition">
         <template #activator="{ props: activatorProps }">
           <v-btn
@@ -80,6 +58,28 @@
         </v-card>
       </v-menu>
     </div>
+
+    <div v-if="showChips && modelValue.length" class="chip-container">
+      <v-chip
+        v-for="filter in modelValue"
+        :key="filter.id"
+        class="filter-chip"
+        closable
+        size="large"
+        variant="tonal"
+        color="primary"
+        @click:close="removeFilter(filter.id)"
+      >
+        <template v-if="filter.labelParts">
+          <span class="chip-field">{{ getFieldLabel(filter) }}</span>
+          <span class="chip-operator">{{ getOperatorLabel(filter) }}</span>
+          <span class="chip-value">{{ getValueLabel(filter) }}</span>
+        </template>
+        <template v-else>
+          {{ filter.label }}
+        </template>
+      </v-chip>
+    </div>
   </div>
 </template>
 
@@ -94,6 +94,14 @@ const props = defineProps({
   availableFilters: {
     type: Array,
     default: () => [],
+  },
+  showActivator: {
+    type: Boolean,
+    default: true,
+  },
+  showChips: {
+    type: Boolean,
+    default: true,
   },
 })
 
@@ -264,7 +272,14 @@ function getValueLabel(filter) {
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  align-items: center;
+}
+
+.filter-activator {
+  display: flex;
+  align-items: center;
+  border-radius: 10px;
+  height: 100%;
 }
 
 .chip-container {
@@ -272,6 +287,7 @@ function getValueLabel(filter) {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  width: 100%;
 }
 
 .filter-chip {
@@ -293,6 +309,7 @@ function getValueLabel(filter) {
 }
 
 .add-filter-btn {
-  height: 36px;
+  height: 100%;
+  align-items: center;
 }
 </style>
