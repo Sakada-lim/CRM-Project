@@ -99,6 +99,7 @@ import BaseDialog from '../components/base/BaseDialog.vue'
 import CustomerForm from '../components/customer/CustomerForm.vue'
 import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 import CustomersToolbar from '../components/customer/CustomersToolbar.vue'
+import { customerFilterDefinitions as filterDefinitions } from '../config/filterDefinitions'
 import { useCustomerFilters } from '../composables/useCustomerFilters'
 import { useResponsivePageSize } from '../composables/useResponsivePageSize'
 
@@ -115,39 +116,6 @@ const { pageSize: itemsPerPage } = useResponsivePageSize({
 })
 const searchQuery = ref('')
 const activeFilters = ref([])
-
-const filterDefinitions = [
-  {
-    key: 'category',
-    label: 'Category',
-    type: 'select',
-    allowMultiple: true,
-    operators: [
-      { label: 'is', value: 'is' },
-      { label: 'is not', value: 'is_not' },
-    ],
-    options: [
-      { title: 'Hot', value: 'Hot' },
-      { title: 'Warm', value: 'Warm' },
-      { title: 'Cold', value: 'Cold' },
-    ],
-  },
-  {
-    key: 'channel',
-    label: 'Channel',
-    type: 'select',
-    allowMultiple: true,
-    operators: [
-      { label: 'is', value: 'is' },
-      { label: 'is not', value: 'is_not' },
-    ],
-    options: [
-      { title: 'Call', value: 'Call' },
-      { title: 'SMS', value: 'SMS' },
-      { title: 'Email', value: 'Email' },
-    ],
-  },
-]
 
 const filterPredicates = {
   category: (customer, filter) => {

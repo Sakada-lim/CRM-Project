@@ -105,12 +105,14 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { usePropertyStore } from '../stores/propertyStore'
 import BaseDialog from '../components/base/BaseDialog.vue'
 import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 import PropertyForm from '../components/properties/PropertiesForm.vue'
 import PropertiesToolbar from '../components/properties/PropertiesToolbar.vue'
+import { propertyFilterDefinitions } from '../config/filterDefinitions'
+import { usePropertyFilters } from '../composables/usePropertyFilters'
 import { useResponsivePageSize } from '../composables/useResponsivePageSize'
 
 const propertyStore = usePropertyStore()
@@ -118,40 +120,6 @@ const properties = computed(() => propertyStore.properties)
 
 const searchQuery = ref('')
 const activeFilters = ref([])
-
-const propertyFilterDefinitions = [
-  {
-    key: 'status',
-    label: 'Status',
-    type: 'select',
-    allowMultiple: false,
-    operators: [
-      { label: 'is', value: 'is' },
-      { label: 'is not', value: 'is_not' },
-    ],
-    options: [
-      { title: 'On Market', value: 'On Market' },
-      { title: 'Under Offer', value: 'Under Offer' },
-      { title: 'Sold', value: 'Sold' },
-    ],
-  },
-  {
-    key: 'type',
-    label: 'Type',
-    type: 'select',
-    allowMultiple: true,
-    operators: [
-      { label: 'is', value: 'is' },
-      { label: 'is not', value: 'is_not' },
-    ],
-    options: [
-      { title: 'House', value: 'House' },
-      { title: 'Townhouse', value: 'Townhouse' },
-      { title: 'Apartment', value: 'Apartment' },
-      { title: 'Villa', value: 'Villa' },
-    ],
-  },
-]
 
 const filterPredicates = {
   status: (property, filter) => {
@@ -168,24 +136,6 @@ const filterPredicates = {
   },
 }
 
-const normalizeSearch = (value) => value?.trim().toLowerCase() ?? ''
-
-const filteredProperties = computed(() => {
-  const term = normalizeSearch(searchQuery.value)
-  const filters = activeFilters.value ?? []
-  return properties.value.filter((property) => {
-    const haystack = `${property.address} ${property.suburb} ${property.state} ${property.type}`.toLowerCase()
-    const matchesSearch = !term || haystack.includes(term)
-    if (!matchesSearch) return false
-    if (!filters.length) return true
-    return filters.every((filter) => {
-      const predicate = filterPredicates[filter.key]
-      return predicate ? predicate(property, filter) : true
-    })
-  })
-})
-
-const currentPage = ref(1)
 const { pageSize: itemsPerPage } = useResponsivePageSize({
   breakpoints: [
     { minWidth: 1600, size: 12 },
@@ -196,41 +146,18 @@ const { pageSize: itemsPerPage } = useResponsivePageSize({
   fallbackSize: 4,
 })
 
-const pageCount = computed(() => {
-  const total = filteredProperties.value.length
-  const perPage = itemsPerPage.value || 1
-  return total ? Math.ceil(total / perPage) : 1
-})
-
-watch(filteredProperties, () => {
-  currentPage.value = 1
-})
-
-watch(itemsPerPage, () => {
-  currentPage.value = 1
-})
-
-watch(pageCount, (count) => {
-  if (currentPage.value > count) {
-    currentPage.value = count
-  }
-})
-
-const paginatedProperties = computed(() => {
-  const perPage = itemsPerPage.value
-  const start = (currentPage.value - 1) * perPage
-  return filteredProperties.value.slice(start, start + perPage)
-})
-
-const paginationLabel = computed(() => {
-  const total = filteredProperties.value.length
-  if (!total) {
-    return 'No properties found'
-  }
-  const perPage = itemsPerPage.value
-  const start = (currentPage.value - 1) * perPage + 1
-  const end = Math.min(start + perPage - 1, total)
-  return `Showing ${start}-${end} of ${total}`
+const {
+  currentPage,
+  pageCount,
+  filteredProperties,
+  paginatedProperties,
+  paginationLabel,
+} = usePropertyFilters({
+  properties,
+  searchQuery,
+  activeFilters,
+  filterPredicates,
+  itemsPerPage,
 })
 
 const supportingText = computed(() => {
