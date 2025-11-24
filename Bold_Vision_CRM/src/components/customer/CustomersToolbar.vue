@@ -111,40 +111,4 @@ const showFilters = computed(
 )
 </script>
 
-<style scoped>
-.customers-toolbar {
-  width: 100%;
-}
 
-.header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.heading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.heading-icon {
-  line-height: 1;
-}
-
-.title-text {
-  margin: 0;
-  font-size: clamp(1.5rem, 2vw, 2rem);
-  font-weight: 600;
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  font-size: 0.8rem;
-  margin-bottom: 4px;
-  color: #7c7c7c;
-}
-</style>

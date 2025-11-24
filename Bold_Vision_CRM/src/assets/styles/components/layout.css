@@ -1,0 +1,142 @@
+.bv-app-shell {
+  background: var(--bv-page-bg, #f8fafc);
+}
+
+.bv-drawer {
+  position: relative;
+  padding: 24px;
+  background: var(--bv-surface-muted, #e0e0e0);
+  border-right: 1px solid var(--bv-border-muted, #e2e8f0);
+  overflow: visible;
+}
+
+.bv-drawer__body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+}
+
+.bv-drawer__brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--bv-gradient-start, #4f46e5), var(--bv-gradient-end, #9333ea));
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-name {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.brand-tagline {
+  margin: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--bv-text-muted, #94a3b8);
+}
+
+.brand-toggle {
+  margin-left: auto;
+}
+
+.bv-drawer__list {
+  flex: 1;
+}
+
+.bv-main {
+  background: var(--bv-page-bg, #f8fafc);
+  min-height: 100vh;
+  padding-block: 32px;
+}
+
+.bv-content {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-inline: clamp(12px, 4vw, 64px);
+}
+
+.bv-content__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 12px;
+  padding-bottom: 32px;
+}
+
+.bv-content__left {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.bv-content__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collapse-toggle,
+.lang-btn {
+  width: 48px;
+  height: 48px;
+}
+
+.profile-chip {
+  font-weight: 600;
+  color: rgb(var(--v-theme-primary));
+}
+
+@media (max-width: 1024px) {
+  .bv-drawer {
+    width: 280px !important;
+  }
+
+  .bv-main {
+    padding: 24px;
+  }
+}
+
+.customers-toolbar {
+  width: 100%;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.heading-icon {
+  line-height: 1;
+}
