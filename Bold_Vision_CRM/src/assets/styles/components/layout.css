@@ -119,7 +119,8 @@
   }
 }
 
-.customers-toolbar {
+.customers-toolbar,
+.properties-toolbar {
   width: 100%;
 }
 

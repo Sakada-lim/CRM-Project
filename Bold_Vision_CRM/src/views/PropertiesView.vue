@@ -1,25 +1,29 @@
 <template>
   <div class="properties-view">
-    <div class="properties-toolbar">
-      <div>
-        <p class="eyebrow">Portfolio overview</p>
-        <h2 class="title">Properties</h2>
-        <p class="supporting">{{ properties.length }} active listings</p>
-      </div>
+    <PropertiesToolbar
+      class="mb-6"
+      title="Properties"
+      :supporting-text="supportingText"
+      v-model:search="searchQuery"
+      v-model:filters="activeFilters"
+      :available-filters="propertyFilterDefinitions"
+      @add="openAddProperty"
+    >
+      <template #actions>
+        <v-btn
+          color="primary"
+          variant="elevated"
+          prepend-icon="mdi-home-plus"
+          class="text-capitalize"
+          @click="openAddProperty"
+        >
+          Add New Property
+        </v-btn>
+      </template>
+    </PropertiesToolbar>
 
-      <v-btn
-        color="primary"
-        variant="elevated"
-        prepend-icon="mdi-home-plus"
-        class="text-capitalize"
-        @click="openAddProperty"
-      >
-        Add New Property
-      </v-btn>
-    </div>
-
-    <div class="properties-grid">
-      <article v-for="property in properties" :key="property.id" class="property-card">
+    <div class="properties-grid" v-if="paginatedProperties.length">
+      <article v-for="property in paginatedProperties" :key="property.id" class="property-card">
         <div class="card-photo">
           <img :src="property.mainPhoto" :alt="property.address" loading="lazy" />
 
@@ -69,6 +73,19 @@
       </article>
     </div>
 
+    <div v-else class="properties-empty">
+      {{ paginationLabel }}
+    </div>
+
+    <BasePaginationFooter
+      v-if="filteredProperties.length"
+      v-model="currentPage"
+      class="properties-pagination"
+      :length="pageCount"
+      :total-visible="4"
+      :label="paginationLabel"
+    />
+
     <BaseDialog
       v-model="showAddProperty"
       title="Add new property"
@@ -82,13 +99,123 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { usePropertyStore } from '../stores/propertyStore'
 import BaseDialog from '../components/base/BaseDialog.vue'
+import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 import PropertyForm from '../components/properties/PropertiesForm.vue'
+import PropertiesToolbar from '../components/properties/PropertiesToolbar.vue'
 
 const propertyStore = usePropertyStore()
 const properties = computed(() => propertyStore.properties)
+
+const searchQuery = ref('')
+const activeFilters = ref([])
+
+const propertyFilterDefinitions = [
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'select',
+    allowMultiple: false,
+    operators: [
+      { label: 'is', value: 'is' },
+      { label: 'is not', value: 'is_not' },
+    ],
+    options: [
+      { title: 'On Market', value: 'On Market' },
+      { title: 'Under Offer', value: 'Under Offer' },
+      { title: 'Sold', value: 'Sold' },
+    ],
+  },
+  {
+    key: 'type',
+    label: 'Type',
+    type: 'select',
+    allowMultiple: true,
+    operators: [
+      { label: 'is', value: 'is' },
+      { label: 'is not', value: 'is_not' },
+    ],
+    options: [
+      { title: 'House', value: 'House' },
+      { title: 'Townhouse', value: 'Townhouse' },
+      { title: 'Apartment', value: 'Apartment' },
+      { title: 'Villa', value: 'Villa' },
+    ],
+  },
+]
+
+const filterPredicates = {
+  status: (property, filter) => {
+    const current = (property.status || '').toLowerCase()
+    const target = String(filter?.value ?? '').toLowerCase()
+    if (!target) return true
+    return filter?.operator === 'is_not' ? current !== target : current === target
+  },
+  type: (property, filter) => {
+    const current = (property.type || '').toLowerCase()
+    const target = String(filter?.value ?? '').toLowerCase()
+    if (!target) return true
+    return filter?.operator === 'is_not' ? current !== target : current === target
+  },
+}
+
+const normalizeSearch = (value) => value?.trim().toLowerCase() ?? ''
+
+const filteredProperties = computed(() => {
+  const term = normalizeSearch(searchQuery.value)
+  const filters = activeFilters.value ?? []
+  return properties.value.filter((property) => {
+    const haystack = `${property.address} ${property.suburb} ${property.state} ${property.type}`.toLowerCase()
+    const matchesSearch = !term || haystack.includes(term)
+    if (!matchesSearch) return false
+    if (!filters.length) return true
+    return filters.every((filter) => {
+      const predicate = filterPredicates[filter.key]
+      return predicate ? predicate(property, filter) : true
+    })
+  })
+})
+
+const ITEMS_PER_PAGE = 9
+const currentPage = ref(1)
+
+const pageCount = computed(() => {
+  const total = filteredProperties.value.length
+  return total ? Math.ceil(total / ITEMS_PER_PAGE) : 1
+})
+
+watch(filteredProperties, () => {
+  currentPage.value = 1
+})
+
+watch(pageCount, (count) => {
+  if (currentPage.value > count) {
+    currentPage.value = count
+  }
+})
+
+const paginatedProperties = computed(() => {
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
+  return filteredProperties.value.slice(start, start + ITEMS_PER_PAGE)
+})
+
+const paginationLabel = computed(() => {
+  const total = filteredProperties.value.length
+  if (!total) {
+    return 'No properties found'
+  }
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE + 1
+  const end = Math.min(start + ITEMS_PER_PAGE - 1, total)
+  return `Showing ${start}-${end} of ${total}`
+})
+
+const supportingText = computed(() => {
+  const total = filteredProperties.value.length
+  const suffix = total === 1 ? '' : 's'
+  return `${total} active listing${suffix}`
+})
 
 const showAddProperty = ref(false)
 
@@ -139,19 +266,14 @@ function handleAddProperty() {
   padding-bottom: clamp(16px, 2vw, 32px);
 }
 
-.properties-toolbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  margin-bottom: 24px;
+.properties-empty {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--bv-text-secondary, #64748b);
+  font-size: 1rem;
 }
 
-@media (max-width: 640px) {
-  .properties-toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.properties-pagination {
+  margin-top: 32px;
 }
 </style>
