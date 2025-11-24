@@ -7,6 +7,7 @@
       v-model:search="searchQuery"
       v-model:filters="activeFilters"
       :available-filters="propertyFilterDefinitions"
+      @open-filters="openFilterDialog"
       @add="openAddProperty"
     >
       <template #actions>
@@ -101,6 +102,15 @@
     >
       <PropertyForm v-model="newProperty" />
     </BaseDialog>
+
+    <PropertyFilterDialog
+      v-model="showFilterDialog"
+      :criteria="filterCriteria"
+      :status-options="statusOptions"
+      :type-options="typeOptions"
+      @apply="handleFilterApply"
+      @clear="handleFilterClear"
+    />
   </div>
 </template>
 
@@ -114,6 +124,7 @@ import PropertiesToolbar from '../components/properties/PropertiesToolbar.vue'
 import { propertyFilterDefinitions } from '../config/filterDefinitions'
 import { usePropertyFilters } from '../composables/usePropertyFilters'
 import { useResponsivePageSize } from '../composables/useResponsivePageSize'
+import PropertyFilterDialog from '../components/properties/PropertyFilterDialog.vue'
 
 const propertyStore = usePropertyStore()
 const properties = computed(() => propertyStore.properties)
@@ -167,6 +178,7 @@ const supportingText = computed(() => {
 })
 
 const showAddProperty = ref(false)
+const showFilterDialog = ref(false)
 
 const newProperty = ref({
   address: '',
@@ -191,6 +203,79 @@ const resetNewProperty = () => {
 function openAddProperty() {
   resetNewProperty()
   showAddProperty.value = true
+}
+
+const filterDefinitionMap = computed(() => {
+  return propertyFilterDefinitions.reduce((map, definition) => {
+    map[definition.key] = definition
+    return map
+  }, {})
+})
+
+const filterCriteria = computed(() => {
+  const statusFilter = activeFilters.value.find((filter) => filter.key === 'status')
+  const typeFilters = activeFilters.value.filter((filter) => filter.key === 'type')
+  return {
+    status: statusFilter?.value ?? '',
+    types: typeFilters.map((filter) => filter.value),
+  }
+})
+
+const statusOptions = computed(() => filterDefinitionMap.value.status?.options ?? [])
+const typeOptions = computed(() => filterDefinitionMap.value.type?.options ?? [])
+
+function openFilterDialog() {
+  showFilterDialog.value = true
+}
+
+function buildFilterFromValue(key, value) {
+  const definition = filterDefinitionMap.value[key]
+  if (!definition || !value) return null
+
+  const operatorValue = definition.operators?.[0]?.value ?? 'is'
+  const operatorLabel =
+    definition.operators?.find((op) => op.value === operatorValue)?.label ?? operatorValue
+  const optionLabel =
+    definition.options?.find((option) => option.value === value)?.title ?? value
+
+  return {
+    id: `${key}-${operatorValue}-${value}-${Date.now()}`,
+    key,
+    operator: operatorValue,
+    value,
+    label: `${definition.label} ${operatorLabel} ${optionLabel}`,
+    labelParts: {
+      field: definition.label,
+      operator: operatorLabel,
+      value: optionLabel,
+    },
+  }
+}
+
+function handleFilterApply(criteria) {
+  const nextFilters = []
+
+  if (criteria?.status) {
+    const built = buildFilterFromValue('status', criteria.status)
+    if (built) {
+      nextFilters.push(built)
+    }
+  }
+
+  const typeValues = criteria?.types ?? []
+  typeValues.forEach((typeValue) => {
+    const built = buildFilterFromValue('type', typeValue)
+    if (built) {
+      nextFilters.push(built)
+    }
+  })
+
+  activeFilters.value = nextFilters
+  showFilterDialog.value = false
+}
+
+function handleFilterClear() {
+  activeFilters.value = []
 }
 
 function handleAddProperty() {

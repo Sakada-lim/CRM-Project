@@ -3,6 +3,7 @@ export const propertyFilterDefinitions = [
   {
     key: 'status',
     label: 'Status',
+    allLabel: 'All statuses',
     type: 'select',
     allowMultiple: false,
     operators: [
@@ -18,6 +19,7 @@ export const propertyFilterDefinitions = [
   {
     key: 'type',
     label: 'Type',
+    allLabel: 'All types',
     type: 'select',
     allowMultiple: true,
     operators: [
@@ -37,6 +39,7 @@ export const customerFilterDefinitions = [
   {
     key: 'category',
     label: 'Category',
+    allLabel: 'All categories',
     type: 'select',
     allowMultiple: true,
     operators: [
@@ -52,6 +55,7 @@ export const customerFilterDefinitions = [
   {
     key: 'channel',
     label: 'Channel',
+    allLabel: 'All channels',
     type: 'select',
     allowMultiple: true,
     operators: [
