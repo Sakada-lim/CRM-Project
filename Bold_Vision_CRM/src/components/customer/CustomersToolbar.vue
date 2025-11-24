@@ -22,18 +22,29 @@
       </slot>
     </div>
 
-    <BaseSearchBar
-      v-model="internalSearch"
-      class="mt-6"
-      :label="searchLabel"
-      :placeholder="searchPlaceholder"
-    />
+    <div class="toolbar-search-filter-row">
+      <BaseSearchBar
+        v-model="internalSearch"
+        class="toolbar-search-control"
+        :label="searchLabel"
+        :placeholder="searchPlaceholder"
+      />
+
+      <BaseFilterBar
+        v-if="canAddFilters"
+        v-model="internalFilters"
+        :available-filters="availableFilters"
+        class="toolbar-filter-activator"
+        :show-chips="false"
+      />
+    </div>
 
     <BaseFilterBar
-      v-if="showFilters"
+      v-if="hasActiveFilters"
       v-model="internalFilters"
       :available-filters="availableFilters"
-      class="mt-4"
+      class="toolbar-filter-chips"
+      :show-activator="false"
     />
   </div>
 </template>
@@ -106,9 +117,8 @@ const internalFilters = computed({
   set: (value) => emit('update:filters', value ?? []),
 })
 
-const showFilters = computed(
-  () => props.availableFilters.length > 0 || (props.filters?.length ?? 0) > 0,
-)
+const hasActiveFilters = computed(() => (props.filters?.length ?? 0) > 0)
+const canAddFilters = computed(() => props.availableFilters.length > 0)
 </script>
 
 

@@ -1,0 +1,47 @@
+.toolbar-search-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  align-items: stretch;
+  background-color: var(--bv-surface-bg, #fff);
+}
+
+.toolbar-search-control {
+  flex: 3 1;
+  min-width: 200px;
+  height: 100%;
+}
+
+.toolbar-search-control .SearchBar-control {
+  height: 100%;
+}
+
+.toolbar-filter-activator {
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-filter-activator .filter-bar,
+.toolbar-filter-activator .filter-activator {
+  display: flex;
+  align-items: center;
+
+}
+
+.toolbar-filter-activator .add-filter-btn {
+  width: 100%;
+}
+
+.toolbar-filter-chips {
+  margin-top: 16px;
+}
+
+.toolbar-filter-chips .filter-bar {
+  padding-left: 4px;
+}
+
+.toolbar-filter-chips .chip-container {
+  width: 100%;
+}

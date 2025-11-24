@@ -12,6 +12,7 @@ import './assets/styles/utilities.css'
 import './assets/styles/components/layout.css'
 import './assets/styles/components/cards.css'
 import './assets/styles/components/forms.css'
+import './assets/styles/components/toolbars.css'
 
 const app = createApp(App)
 
