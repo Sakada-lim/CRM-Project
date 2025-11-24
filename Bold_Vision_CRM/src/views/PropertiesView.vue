@@ -54,15 +54,21 @@
               <v-icon icon="mdi-car-outline" size="18" />
               <span>{{ property.carSpaces }}</span>
             </div>
-            <span class="dot">•</span>
-            <div class="stat type">{{ property.type }}</div>
+            <div class="size-group">
+              <div class="stat">
+                <v-icon icon="mdi-ruler-square" size="18" />
+                <span>{{ property.landSize }}</span>
+              </div>
+              <div class="stat">
+                <v-icon icon="mdi-home-floor-1" size="18" />
+                <span>{{ property.houseSize }}</span>
+              </div>
+            </div>
           </div>
 
           <div class="property-footer">
             <div class="meta">
-              <span>{{ property.landSize }}</span>
-              <span class="dot">•</span>
-              <span>{{ property.daysOnMarket }} days on market</span>
+              <span class="type">{{ property.type }}</span>
             </div>
 
             <v-btn :to="`/properties/${property.id}`" variant="tonal" color="primary" class="text-capitalize">

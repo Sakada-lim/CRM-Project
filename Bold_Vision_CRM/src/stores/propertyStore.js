@@ -156,6 +156,8 @@ function createProperty(index) {
   const highlights = Array.from({ length: 3 }).map((_, idx) => highlightPool[(index + idx) % highlightPool.length])
   const minPrice = randomInt(55, 130) * 10
   const maxPrice = minPrice + randomInt(5, 20) * 10
+  const landSizeSqm = randomInt(120, 820)
+  const houseSizeSqm = Math.max(60, landSizeSqm - randomInt(20, 180))
 
   const timeline = {
     listedAt: listedAtDate.toISOString(),
@@ -194,7 +196,10 @@ function createProperty(index) {
     carSpaces,
     carparkSpaces: carSpaces,
     carparkType: carSpaces ? pickRandom(['Single garage', 'Double garage', 'Basement parking']) : 'Street parking',
-    landSize: `${randomInt(120, 820)} sqm`,
+    landSize: `${landSizeSqm} m²`,
+    landSizeSqm,
+    houseSize: `${houseSizeSqm} m²`,
+    houseSizeSqm,
     mainPhoto,
     gallery: buildGallery(mainPhoto),
     description: pickRandom(descriptionPool),
@@ -232,6 +237,11 @@ export const usePropertyStore = defineStore('properties', {
       const mainPhoto = payload.mainPhoto ?? heroPhotos[id % heroPhotos.length]
       const gallery = payload.gallery && payload.gallery.length ? payload.gallery : buildGallery(mainPhoto)
 
+      const landSizeSqm = payload.landSizeSqm ?? null
+      const landSizeLabel = payload.landSize ?? (landSizeSqm ? `${landSizeSqm}m²` : '')
+      const houseSizeSqm = payload.houseSizeSqm ?? null
+      const houseSizeLabel = payload.houseSize ?? (houseSizeSqm ? `${houseSizeSqm}m²` : '')
+
       this.properties.unshift({
         id,
         createdAt: payload.createdAt ?? listedAt,
@@ -242,6 +252,10 @@ export const usePropertyStore = defineStore('properties', {
         gallery,
         carSpaces: payload.carSpaces ?? 1,
         carparkSpaces: payload.carparkSpaces ?? payload.carSpaces ?? 1,
+        landSizeSqm,
+        landSize: landSizeLabel,
+        houseSizeSqm,
+        houseSize: houseSizeLabel,
         interestedCustomers: payload.interestedCustomers ?? [],
         amenities: payload.amenities ?? [],
         highlights: payload.highlights ?? [],
