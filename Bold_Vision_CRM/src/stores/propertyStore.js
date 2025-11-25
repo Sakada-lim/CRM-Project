@@ -153,7 +153,9 @@ function createProperty(index) {
   const carSpaces = randomInt(0, 3)
   const suburb = pickRandom(suburbPool)
   const mainPhoto = heroPhotos[index % heroPhotos.length]
-  const highlights = Array.from({ length: 3 }).map((_, idx) => highlightPool[(index + idx) % highlightPool.length])
+  const highlights = Array.from({ length: 3 }).map(
+    (_, idx) => highlightPool[(index + idx) % highlightPool.length],
+  )
   const minPrice = randomInt(55, 130) * 10
   const maxPrice = minPrice + randomInt(5, 20) * 10
   const landSizeSqm = randomInt(120, 820)
@@ -176,9 +178,9 @@ function createProperty(index) {
 
   const statusUpdatedAtIso =
     status === 'Sold'
-      ? timeline.soldAt ?? timeline.offerReceivedAt ?? timeline.listedAt
+      ? (timeline.soldAt ?? timeline.offerReceivedAt ?? timeline.listedAt)
       : status === 'Under Offer'
-        ? timeline.offerReceivedAt ?? timeline.listedAt
+        ? (timeline.offerReceivedAt ?? timeline.listedAt)
         : timeline.listedAt
 
   const property = {
@@ -195,7 +197,9 @@ function createProperty(index) {
     bathrooms,
     carSpaces,
     carparkSpaces: carSpaces,
-    carparkType: carSpaces ? pickRandom(['Single garage', 'Double garage', 'Basement parking']) : 'Street parking',
+    carparkType: carSpaces
+      ? pickRandom(['Single garage', 'Double garage', 'Basement parking'])
+      : 'Street parking',
     landSize: `${landSizeSqm} m²`,
     landSizeSqm,
     houseSize: `${houseSizeSqm} m²`,
@@ -212,7 +216,8 @@ function createProperty(index) {
     daysOnMarket: Math.max(
       1,
       Math.round(
-        ((timeline.soldAt ? new Date(timeline.soldAt).getTime() : Date.now()) - listedAtDate.getTime()) /
+        ((timeline.soldAt ? new Date(timeline.soldAt).getTime() : Date.now()) -
+          listedAtDate.getTime()) /
           DAY_MS,
       ),
     ),
@@ -235,7 +240,8 @@ export const usePropertyStore = defineStore('properties', {
       const listedAt = payload.listedAt ?? new Date().toISOString()
       const status = payload.status ?? 'On Market'
       const mainPhoto = payload.mainPhoto ?? heroPhotos[id % heroPhotos.length]
-      const gallery = payload.gallery && payload.gallery.length ? payload.gallery : buildGallery(mainPhoto)
+      const gallery =
+        payload.gallery && payload.gallery.length ? payload.gallery : buildGallery(mainPhoto)
 
       const landSizeSqm = payload.landSizeSqm ?? null
       const landSizeLabel = payload.landSize ?? (landSizeSqm ? `${landSizeSqm}m²` : '')

@@ -2,12 +2,13 @@
   <div class="customers">
     <CustomersToolbar
       v-model:search="searchQuery"
-      v-model:filters="activeFilters"
+      v-model:filters="toolbarFilters"
       :available-filters="filterDefinitions"
       title="Customers"
       icon="mdi-account"
       action-icon="mdi-account-plus"
       @add="openAddCustomer"
+      @open-filters="openFilterDialog"
     />
 
     <div class="customers-list mt-4">
@@ -89,6 +90,15 @@
     >
       <CustomerForm v-model="newCustomer" />
     </BaseDialog>
+
+    <CustomerFilterDialog
+      v-model="showFilterDialog"
+      :criteria="filterCriteria"
+      :category-options="categoryOptions"
+      :channel-options="channelOptions"
+      @apply="handleFilterApply"
+      @clear="handleFilterClear"
+    />
   </div>
 </template>
 
@@ -99,8 +109,11 @@ import BaseDialog from '../components/base/BaseDialog.vue'
 import CustomerForm from '../components/customer/CustomerForm.vue'
 import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 import CustomersToolbar from '../components/customer/CustomersToolbar.vue'
+import { customerFilterDefinitions as filterDefinitions } from '../config/filterDefinitions'
 import { useCustomerFilters } from '../composables/useCustomerFilters'
 import { useResponsivePageSize } from '../composables/useResponsivePageSize'
+import CustomerFilterDialog from '../components/customer/CustomerFilterDialog.vue'
+import { useFilterChips } from '../composables/useFilterChips'
 
 const store = useCustomerStore()
 const customers = computed(() => store.customers)
@@ -115,39 +128,8 @@ const { pageSize: itemsPerPage } = useResponsivePageSize({
 })
 const searchQuery = ref('')
 const activeFilters = ref([])
-
-const filterDefinitions = [
-  {
-    key: 'category',
-    label: 'Category',
-    type: 'select',
-    allowMultiple: true,
-    operators: [
-      { label: 'is', value: 'is' },
-      { label: 'is not', value: 'is_not' },
-    ],
-    options: [
-      { title: 'Hot', value: 'Hot' },
-      { title: 'Warm', value: 'Warm' },
-      { title: 'Cold', value: 'Cold' },
-    ],
-  },
-  {
-    key: 'channel',
-    label: 'Channel',
-    type: 'select',
-    allowMultiple: true,
-    operators: [
-      { label: 'is', value: 'is' },
-      { label: 'is not', value: 'is_not' },
-    ],
-    options: [
-      { title: 'Call', value: 'Call' },
-      { title: 'SMS', value: 'SMS' },
-      { title: 'Email', value: 'Email' },
-    ],
-  },
-]
+const { toolbarFilters } = useFilterChips({ manualFilters: activeFilters })
+const showFilterDialog = ref(false)
 
 const filterPredicates = {
   category: (customer, filter) => {
@@ -231,6 +213,81 @@ function categoryColor(cat) {
     default:
       return 'blue'
   }
+}
+
+const filterDefinitionMap = computed(() => {
+  return filterDefinitions.reduce((map, definition) => {
+    map[definition.key] = definition
+    return map
+  }, {})
+})
+
+const filterCriteria = computed(() => {
+  const categoryFilters = activeFilters.value.filter((filter) => filter.key === 'category')
+  const channelFilters = activeFilters.value.filter((filter) => filter.key === 'channel')
+  return {
+    categories: categoryFilters.map((filter) => filter.value),
+    channels: channelFilters.map((filter) => filter.value),
+  }
+})
+
+const categoryOptions = computed(() => filterDefinitionMap.value.category?.options ?? [])
+const channelOptions = computed(() => filterDefinitionMap.value.channel?.options ?? [])
+
+function openFilterDialog() {
+  showFilterDialog.value = true
+}
+
+function buildFilterFromValue(key, value) {
+  const definition = filterDefinitionMap.value[key]
+  if (!definition || !value) return null
+
+  const operatorValue = definition.operators?.[0]?.value ?? 'is'
+  const operatorLabel =
+    definition.operators?.find((op) => op.value === operatorValue)?.label ?? operatorValue
+  const optionLabel = definition.options?.find((option) => option.value === value)?.title ?? value
+
+  return {
+    id: `${key}-${operatorValue}-${value}-${Date.now()}`,
+    key,
+    operator: operatorValue,
+    value,
+    label: `${definition.label} ${operatorLabel} ${optionLabel}`,
+    labelParts: {
+      field: definition.label,
+      operator: operatorLabel,
+      value: optionLabel,
+    },
+  }
+}
+
+function handleFilterApply(criteria) {
+  const nextFilters = []
+
+  const categoryValues = Array.isArray(criteria?.categories) ? criteria.categories : []
+  const uniqueCategories = [...new Set(categoryValues.filter(Boolean))]
+  uniqueCategories.forEach((categoryValue) => {
+    const built = buildFilterFromValue('category', categoryValue)
+    if (built) {
+      nextFilters.push(built)
+    }
+  })
+
+  const channelValues = Array.isArray(criteria?.channels) ? criteria.channels : []
+  const uniqueChannels = [...new Set(channelValues.filter(Boolean))]
+  uniqueChannels.forEach((channelValue) => {
+    const built = buildFilterFromValue('channel', channelValue)
+    if (built) {
+      nextFilters.push(built)
+    }
+  })
+
+  activeFilters.value = nextFilters
+  showFilterDialog.value = false
+}
+
+function handleFilterClear() {
+  activeFilters.value = []
 }
 </script>
 

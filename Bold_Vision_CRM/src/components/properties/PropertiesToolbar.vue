@@ -30,13 +30,17 @@
         :placeholder="searchPlaceholder"
       />
 
-      <BaseFilterBar
-        v-if="canAddFilters"
-        v-model="internalFilters"
-        :available-filters="availableFilters"
-        class="toolbar-filter-activator"
-        :show-chips="false"
-      />
+      <div class="filter-trigger-wrapper" v-if="showFilterButton && canAddFilters">
+        <v-btn
+          class="filter-trigger text-capitalize"
+          variant="tonal"
+          color="primary"
+          prepend-icon="mdi-tune"
+          @click="$emit('open-filters')"
+        >
+          {{ filterButtonLabel }}
+        </v-btn>
+      </div>
     </div>
 
     <BaseFilterBar
@@ -102,10 +106,18 @@ const props = defineProps({
   availableFilters: {
     type: Array,
     default: () => [],
-  }
+  },
+  filterButtonLabel: {
+    type: String,
+    default: 'Filters',
+  },
+  showFilterButton: {
+    type: Boolean,
+    default: true,
+  },
 })
 
-const emit = defineEmits(['update:search', 'update:filters', 'add'])
+const emit = defineEmits(['update:search', 'update:filters', 'add', 'open-filters'])
 
 const internalSearch = computed({
   get: () => props.search,
@@ -120,3 +132,30 @@ const internalFilters = computed({
 const hasActiveFilters = computed(() => (props.filters?.length ?? 0) > 0)
 const canAddFilters = computed(() => props.availableFilters.length > 0)
 </script>
+
+<style scoped>
+.toolbar-search-filter-row {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.toolbar-search-control {
+  flex: 1 1 260px;
+}
+
+.filter-trigger-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  align-self: center;
+  min-width: fit-content;
+  margin-right: clamp(8px, 1vw, 24px);
+}
+
+.filter-trigger {
+  white-space: nowrap;
+}
+</style>

@@ -10,7 +10,15 @@ body,
 
 body {
   margin: 0;
-  font-family: var(--bv-font-family, 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif);
+  font-family: var(
+    --bv-font-family,
+    'Inter',
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif
+  );
   background-color: var(--bv-page-bg, #f8fafc);
   color: var(--bv-text-primary, #0f172a);
 }

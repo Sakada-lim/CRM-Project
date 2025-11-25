@@ -77,5 +77,3 @@ function toggleDrawer() {
   drawerOpen.value = !drawerOpen.value
 }
 </script>
-
-
