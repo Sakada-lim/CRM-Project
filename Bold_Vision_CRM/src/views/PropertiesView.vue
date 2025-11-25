@@ -28,7 +28,11 @@
         <div class="card-photo">
           <img :src="property.mainPhoto" :alt="property.address" loading="lazy" />
 
-          <div v-if="property.statusBadge" class="status-pill" :class="`status-${property.statusBadge.type}`">
+          <div
+            v-if="property.statusBadge"
+            class="status-pill"
+            :class="`status-${property.statusBadge.type}`"
+          >
             <span class="status-dot" />
             {{ property.statusBadge.label }}
           </div>
@@ -40,7 +44,9 @@
 
         <div class="card-body">
           <div class="address">{{ property.address }}</div>
-          <div class="suburb">{{ property.suburb }}, {{ property.state }} {{ property.postcode }}</div>
+          <div class="suburb">
+            {{ property.suburb }}, {{ property.state }} {{ property.postcode }}
+          </div>
 
           <div class="property-stats">
             <div class="stat">
@@ -72,7 +78,12 @@
               <span class="type">{{ property.type }}</span>
             </div>
 
-            <v-btn :to="`/properties/${property.id}`" variant="tonal" color="primary" class="text-capitalize">
+            <v-btn
+              :to="`/properties/${property.id}`"
+              variant="tonal"
+              color="primary"
+              class="text-capitalize"
+            >
               View details
             </v-btn>
           </div>
@@ -124,6 +135,7 @@ import { propertyFilterDefinitions } from '../config/filterDefinitions'
 import { usePropertyFilters } from '../composables/usePropertyFilters'
 import { useResponsivePageSize } from '../composables/useResponsivePageSize'
 import PropertyFilterDialog from '../components/properties/PropertyFilterDialog.vue'
+import { useFilterChips } from '../composables/useFilterChips'
 
 const propertyStore = usePropertyStore()
 const properties = computed(() => propertyStore.properties)
@@ -131,33 +143,11 @@ const properties = computed(() => propertyStore.properties)
 const searchQuery = ref('')
 const activeFilters = ref([])
 const advancedCriteria = ref(createDefaultAdvancedCriteria())
-const advancedFilterChips = computed(() => buildAdvancedFilterChips(advancedCriteria.value))
 
-const toolbarFilters = computed({
-  get() {
-    const manualFilters = activeFilters.value.filter((filter) => filter.meta?.source !== 'advanced')
-    return [...manualFilters, ...advancedFilterChips.value]
-  },
-  set(nextFilters) {
-    const currentFilters = [
-      ...activeFilters.value.filter((filter) => filter.meta?.source !== 'advanced'),
-      ...advancedFilterChips.value,
-    ]
-    const nextIds = new Set(nextFilters.map((filter) => filter.id))
-    const removed = currentFilters.filter((filter) => !nextIds.has(filter.id))
-
-    if (!removed.length) {
-      return
-    }
-
-    removed.forEach((filter) => {
-      if (filter.meta?.source === 'advanced') {
-        clearAdvancedField(filter.meta.field)
-      } else {
-        activeFilters.value = activeFilters.value.filter((item) => item.id !== filter.id)
-      }
-    })
-  },
+const { toolbarFilters } = useFilterChips({
+  manualFilters: activeFilters,
+  buildAdvancedChips: () => buildAdvancedFilterChips(advancedCriteria.value),
+  clearAdvancedChip: clearAdvancedField,
 })
 
 const filterPredicates = {
@@ -185,21 +175,17 @@ const { pageSize: itemsPerPage } = useResponsivePageSize({
   fallbackSize: 4,
 })
 
-const {
-  currentPage,
-  pageCount,
-  filteredProperties,
-  paginatedProperties,
-  paginationLabel,
-} = usePropertyFilters({
-  properties,
-  searchQuery,
-  activeFilters,
-  filterPredicates,
-  itemsPerPage,
-  criteria: advancedCriteria,
-  criteriaPredicate: matchesAdvancedCriteria,
-})
+const { currentPage, pageCount, filteredProperties, paginatedProperties, paginationLabel } =
+  usePropertyFilters({
+    properties,
+    searchQuery,
+    activeFilters,
+    filterPredicates,
+    itemsPerPage,
+    criteria: advancedCriteria,
+    criteriaPredicate: matchesAdvancedCriteria,
+    criteriaIsActive: isAdvancedCriteriaActive,
+  })
 
 const supportingText = computed(() => {
   const total = filteredProperties.value.length
@@ -262,8 +248,7 @@ function buildFilterFromValue(key, value) {
   const operatorValue = definition.operators?.[0]?.value ?? 'is'
   const operatorLabel =
     definition.operators?.find((op) => op.value === operatorValue)?.label ?? operatorValue
-  const optionLabel =
-    definition.options?.find((option) => option.value === value)?.title ?? value
+  const optionLabel = definition.options?.find((option) => option.value === value)?.title ?? value
 
   return {
     id: `${key}-${operatorValue}-${value}-${Date.now()}`,
@@ -399,6 +384,34 @@ function matchesAdvancedCriteria(property, criteria) {
   }
 
   return true
+}
+
+function isAdvancedCriteriaActive(criteria) {
+  if (!criteria) {
+    return false
+  }
+
+  if (criteria.priceHasValue) {
+    return true
+  }
+
+  if (criteria.propertyAge && criteria.propertyAge !== 'all') {
+    return true
+  }
+
+  const rangeFields = [
+    'priceMin',
+    'priceMax',
+    'bedroomsMin',
+    'bedroomsMax',
+    'bathroomsMin',
+    'bathroomsMax',
+    'carSpacesMin',
+    'landSizeMin',
+    'landSizeMax',
+  ]
+
+  return rangeFields.some((field) => criteria[field] != null)
 }
 
 function matchesRange(value, min, max) {
@@ -644,7 +657,8 @@ function formatCurrencyShort(value) {
   }
 
   if (value >= 1_000_000) {
-    const formatted = value % 1_000_000 === 0 ? (value / 1_000_000).toFixed(0) : (value / 1_000_000).toFixed(1)
+    const formatted =
+      value % 1_000_000 === 0 ? (value / 1_000_000).toFixed(0) : (value / 1_000_000).toFixed(1)
     return `$${formatted}m`
   }
 

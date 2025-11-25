@@ -5,7 +5,7 @@
     transition="dialog-transition"
     :scrim="'rgba(15,23,42,0.65)'"
   >
-    <v-card class="property-filter-dialog">
+    <v-card class="filter-dialog-card">
       <header class="dialog-header">
         <h2 class="dialog-title">Filter</h2>
         <v-btn icon variant="text" density="comfortable" class="dialog-close" @click="close">
@@ -227,17 +227,21 @@
             </v-btn>
           </div>
           <v-radio-group v-model="draft.propertyAge" inline class="age-radios">
-            <v-radio v-for="option in propertyAgeOptions" :key="option.value" :label="option.label" :value="option.value" color="primary" density="comfortable" hide-details />
+            <v-radio
+              v-for="option in propertyAgeOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+              color="primary"
+              density="comfortable"
+              hide-details
+            />
           </v-radio-group>
         </section>
-
-        
       </div>
 
       <footer class="dialog-footer">
-        <v-btn variant="text" class="text-capitalize" @click="handleClear">
-          Clear all
-        </v-btn>
+        <v-btn variant="text" class="text-capitalize" @click="handleClear"> Clear all </v-btn>
         <v-spacer />
         <v-btn variant="text" class="text-capitalize" @click="close">Cancel</v-btn>
         <v-btn color="primary" class="text-capitalize" @click="handleApply">Apply</v-btn>
@@ -247,7 +251,8 @@
 </template>
 
 <script setup>
-import { computed, reactive, watch } from 'vue'
+import { computed } from 'vue'
+import { useFilterDialogState } from '../../composables/useFilterDialogState'
 
 const props = defineProps({
   modelValue: {
@@ -279,33 +284,55 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'apply', 'clear'])
 
-const isOpen = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+const { draft, isOpen, close } = useFilterDialogState({
+  props,
+  emit,
+  createEmptyDraft: () => ({
+    priceMin: null,
+    priceMax: null,
+    priceHasValue: false,
+    bedroomsMin: null,
+    bedroomsMax: null,
+    bathroomsMin: null,
+    bathroomsMax: null,
+    carSpacesMin: null,
+    landSizeMin: null,
+    landSizeMax: null,
+    propertyAge: 'all',
+    types: [],
+  }),
+  mapCriteriaToDraft: (criteria = {}) => ({
+    priceMin: criteria?.priceMin ?? null,
+    priceMax: criteria?.priceMax ?? null,
+    priceHasValue: Boolean(criteria?.priceHasValue),
+    bedroomsMin: criteria?.bedroomsMin ?? null,
+    bedroomsMax: criteria?.bedroomsMax ?? null,
+    bathroomsMin: criteria?.bathroomsMin ?? null,
+    bathroomsMax: criteria?.bathroomsMax ?? null,
+    carSpacesMin: criteria?.carSpacesMin ?? null,
+    landSizeMin: criteria?.landSizeMin ?? null,
+    landSizeMax: criteria?.landSizeMax ?? null,
+    propertyAge: criteria?.propertyAge ?? 'all',
+    types: Array.isArray(criteria?.types) ? [...criteria.types] : [],
+  }),
 })
 
-const draft = reactive({
-  priceMin: null,
-  priceMax: null,
-  priceHasValue: false,
-  bedroomsMin: null,
-  bedroomsMax: null,
-  bathroomsMin: null,
-  bathroomsMax: null,
-  carSpacesMin: null,
-  landSizeMin: null,
-  landSizeMax: null,
-  propertyAge: 'all',
-  types: [],
-})
-
-const priceStops = [200000, 300000, 400000, 500000, 600000, 800000, 1000000, 1200000, 1500000, 2000000]
-const priceOptions = computed(() => [{ label: 'Any', value: null }, ...priceStops.map((value) => ({ label: formatCurrency(value), value }))])
+const priceStops = [
+  200000, 300000, 400000, 500000, 600000, 800000, 1000000, 1200000, 1500000, 2000000,
+]
+const priceOptions = computed(() => [
+  { label: 'Any', value: null },
+  ...priceStops.map((value) => ({ label: formatCurrency(value), value })),
+])
 
 const bedroomOptions = computed(() => buildCountOptions(5))
 const bathroomOptions = computed(() => buildCountOptions(4))
 const carSpaceOptions = computed(() => buildCountOptions(4, 0))
-const landSizeOptions = computed(() => [{ label: 'Any', value: null }, 200, 300, 400, 600, 800, 1000, 1500, 2000].map((value) => (typeof value === 'number' ? { label: `${value} m²`, value } : value)))
+const landSizeOptions = computed(() =>
+  [{ label: 'Any', value: null }, 200, 300, 400, 600, 800, 1000, 1500, 2000].map((value) =>
+    typeof value === 'number' ? { label: `${value} m²`, value } : value,
+  ),
+)
 const propertyAgeOptions = [
   { label: 'All types', value: 'all' },
   { label: 'New', value: 'new' },
@@ -330,31 +357,6 @@ function buildCountOptions(max, start = 1) {
     items[1] = { label: '0', value: 0 }
   }
   return items
-}
-
-function syncDraft(criteria) {
-  draft.priceMin = criteria?.priceMin ?? null
-  draft.priceMax = criteria?.priceMax ?? null
-  draft.priceHasValue = Boolean(criteria?.priceHasValue)
-  draft.bedroomsMin = criteria?.bedroomsMin ?? null
-  draft.bedroomsMax = criteria?.bedroomsMax ?? null
-  draft.bathroomsMin = criteria?.bathroomsMin ?? null
-  draft.bathroomsMax = criteria?.bathroomsMax ?? null
-  draft.carSpacesMin = criteria?.carSpacesMin ?? null
-  draft.landSizeMin = criteria?.landSizeMin ?? null
-  draft.landSizeMax = criteria?.landSizeMax ?? null
-  draft.propertyAge = criteria?.propertyAge ?? 'all'
-  draft.types = Array.isArray(criteria?.types) ? [...criteria.types] : []
-}
-
-watch(
-  () => props.criteria,
-  (value) => syncDraft(value || {}),
-  { immediate: true, deep: true },
-)
-
-function close() {
-  isOpen.value = false
 }
 
 function clearTypes() {
@@ -432,126 +434,4 @@ function handleApply() {
 }
 </script>
 
-<style scoped>
-.property-filter-dialog {
-  border-radius: 18px;
-  padding: 8px 8px 16px;
-  display: flex;
-  flex-direction: column;
-  max-height: 75vh;
-}
-
-.dialog-header {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 12px 16px 12px;
-  border-bottom: 1.5px solid #edf1f5;
-}
-
-.dialog-eyebrow {
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #94a3b8;
-  margin-bottom: 4px;
-}
-
-.dialog-title {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 600;
-  text-align: center;
-}
-
-.dialog-close {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-}
-
-.dialog-body {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  padding: 0 16px 8px;
-}
-
-.filter-section {
-  position: relative;
-  padding: 16px 16px 20px;
-}
-
-.filter-section::after {
-  content: '';
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 0;
-  height: 1.5px;
-  background-color: #edf1f5;
-}
-
-.filter-section:last-of-type::after {
-  display: none;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.section-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-
-.type-grid {
-  display: grid;
-  gap: 4px;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-
-.range-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.range-field,
-.single-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field-label {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #475569;
-  margin: 0;
-}
-
-.single-field {
-  max-width: 240px;
-}
-
-.age-radios {
-  display: flex;
-  gap: 12px;
-}
-
-.dialog-footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px 4px;
-  border-top: 1.5px solid #edf1f5;
-}
-</style>
+<style scoped src="../../assets/styles/components/filterDialog.css"></style>

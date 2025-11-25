@@ -163,5 +163,3 @@ const canAddFilters = computed(() => props.availableFilters.length > 0)
   margin-top: 12px;
 }
 </style>
-
-

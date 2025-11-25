@@ -1,4 +1,4 @@
-import { computed, ref, unref, watch } from 'vue'
+import { useCollectionFilters } from './useCollectionFilters'
 
 export function useCustomerFilters({
   customers,
@@ -7,150 +7,63 @@ export function useCustomerFilters({
   filterPredicates = {},
   itemsPerPage = 10,
 }) {
-  const page = ref(1)
-  const pageSize = computed(() => {
-    const size = Number(unref(itemsPerPage)) || 10
-    return Math.max(1, size)
-  })
-
-  const normalizedSearch = computed(() => (searchQuery?.value || '').trim().toLowerCase())
-
-  const searchTokens = computed(() =>
-    normalizedSearch.value
-      .split(/\s+/)
-      .map((token) => token.trim())
-      .filter(Boolean),
-  )
-
-  const hasSearchTokens = computed(() => searchTokens.value.length > 0)
-  const hasActiveFilters = computed(() => (activeFilters?.value?.length ?? 0) > 0)
-  const isFilteredView = computed(() => hasSearchTokens.value || hasActiveFilters.value)
-
-  const filteredCustomers = computed(() => {
-    const source = customers?.value ?? []
-    if (!hasSearchTokens.value && !hasActiveFilters.value) {
-      return source
+  const customerSearchComparator = (customer, _term, tokens) => {
+    if (!tokens?.length) {
+      return true
     }
 
-    return source.filter((customer) => {
-      const haystack = [
-        customer.name,
-        customer.email,
-        customer.phone,
-        customer.channel,
-        customer.category,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
+    const haystack = [
+      customer?.name,
+      customer?.email,
+      customer?.phone,
+      customer?.channel,
+      customer?.category,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
 
-      const matchesSearch =
-        !hasSearchTokens.value || searchTokens.value.every((token) => haystack.includes(token))
+    return tokens.every((token) => haystack.includes(token))
+  }
 
-      let matchesFilters = true
-
-      if (hasActiveFilters.value) {
-        const groupedFilters = activeFilters.value.reduce((acc, filter) => {
-          if (!filter?.key) {
-            return acc
-          }
-          acc[filter.key] = acc[filter.key] || []
-          acc[filter.key].push(filter)
-          return acc
-        }, {})
-
-        matchesFilters = Object.entries(groupedFilters).every(([key, group]) => {
-          const predicate = filterPredicates[key]
-          if (typeof predicate !== 'function') {
-            return true
-          }
-
-          const positiveFilters = group.filter((filter) => filter.operator !== 'is_not')
-          const negativeFilters = group.filter((filter) => filter.operator === 'is_not')
-
-          const matchesPositives =
-            !positiveFilters.length || positiveFilters.some((filter) => predicate(customer, filter))
-
-          const matchesNegatives =
-            !negativeFilters.length ||
-            negativeFilters.every((filter) => predicate(customer, filter))
-
-          return matchesPositives && matchesNegatives
-        })
-      }
-
-      return matchesSearch && matchesFilters
-    })
-  })
-
-  const pageCount = computed(() =>
-    Math.max(1, Math.ceil(filteredCustomers.value.length / pageSize.value) || 1),
-  )
-
-  const currentPage = computed({
-    get() {
-      return Math.min(Math.max(page.value, 1), pageCount.value)
-    },
-    set(value) {
-      const parsed = Number(value) || 1
-      page.value = Math.min(Math.max(parsed, 1), pageCount.value)
-    },
-  })
-
-  const paginatedCustomers = computed(() => {
-    const start = (currentPage.value - 1) * pageSize.value
-    return filteredCustomers.value.slice(start, start + pageSize.value)
-  })
-
-  const rangeLabel = computed(() => {
-    const total = filteredCustomers.value.length
+  const rangeLabelFormatter = ({ start, end, total, isFiltered }) => {
     if (!total) {
-      return isFilteredView.value ? 'No matches' : '0 results'
+      return isFiltered ? 'No matches' : '0 results'
     }
 
-    const start = (currentPage.value - 1) * pageSize.value + 1
-    const end = Math.min(currentPage.value * pageSize.value, total)
     const baseLabel = `${start}-${end} of ${total}`
-    return isFilteredView.value ? `${baseLabel} • filtered` : baseLabel
+    return isFiltered ? `${baseLabel} • filtered` : baseLabel
+  }
+
+  const {
+    page,
+    pageSize,
+    currentPage,
+    pageCount,
+    filteredItems,
+    paginatedItems,
+    rangeLabel,
+    normalizedSearch,
+    searchTokens,
+    hasSearchTokens,
+    hasActiveFilters,
+    isFilteredView,
+  } = useCollectionFilters({
+    collection: customers,
+    searchQuery,
+    activeFilters,
+    filterPredicates,
+    itemsPerPage,
+    searchComparator: customerSearchComparator,
+    rangeLabelFormatter,
   })
-
-  watch(
-    () => filteredCustomers.value.length,
-    () => {
-      if (page.value > pageCount.value) {
-        page.value = pageCount.value
-      }
-    },
-  )
-
-  watch(
-    () => searchQuery?.value,
-    () => {
-      page.value = 1
-    },
-  )
-
-  watch(
-    () => activeFilters?.value,
-    () => {
-      page.value = 1
-    },
-    { deep: true },
-  )
-
-  watch(
-    () => pageSize.value,
-    () => {
-      page.value = 1
-    },
-  )
 
   return {
     page,
     currentPage,
     pageCount,
-    paginatedCustomers,
-    filteredCustomers,
+    paginatedCustomers: paginatedItems,
+    filteredCustomers: filteredItems,
     normalizedSearch,
     searchTokens,
     hasSearchTokens,

@@ -2,7 +2,7 @@
   <div class="customers">
     <CustomersToolbar
       v-model:search="searchQuery"
-      v-model:filters="activeFilters"
+      v-model:filters="toolbarFilters"
       :available-filters="filterDefinitions"
       title="Customers"
       icon="mdi-account"
@@ -113,6 +113,7 @@ import { customerFilterDefinitions as filterDefinitions } from '../config/filter
 import { useCustomerFilters } from '../composables/useCustomerFilters'
 import { useResponsivePageSize } from '../composables/useResponsivePageSize'
 import CustomerFilterDialog from '../components/customer/CustomerFilterDialog.vue'
+import { useFilterChips } from '../composables/useFilterChips'
 
 const store = useCustomerStore()
 const customers = computed(() => store.customers)
@@ -127,6 +128,7 @@ const { pageSize: itemsPerPage } = useResponsivePageSize({
 })
 const searchQuery = ref('')
 const activeFilters = ref([])
+const { toolbarFilters } = useFilterChips({ manualFilters: activeFilters })
 const showFilterDialog = ref(false)
 
 const filterPredicates = {
@@ -243,8 +245,7 @@ function buildFilterFromValue(key, value) {
   const operatorValue = definition.operators?.[0]?.value ?? 'is'
   const operatorLabel =
     definition.operators?.find((op) => op.value === operatorValue)?.label ?? operatorValue
-  const optionLabel =
-    definition.options?.find((option) => option.value === value)?.title ?? value
+  const optionLabel = definition.options?.find((option) => option.value === value)?.title ?? value
 
   return {
     id: `${key}-${operatorValue}-${value}-${Date.now()}`,
