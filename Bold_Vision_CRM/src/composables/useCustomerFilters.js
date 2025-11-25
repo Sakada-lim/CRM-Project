@@ -47,15 +47,37 @@ export function useCustomerFilters({
       const matchesSearch =
         !hasSearchTokens.value || searchTokens.value.every((token) => haystack.includes(token))
 
-      const matchesFilters =
-        !hasActiveFilters.value ||
-        activeFilters.value.every((filter) => {
-          const predicate = filterPredicates[filter.key]
+      let matchesFilters = true
+
+      if (hasActiveFilters.value) {
+        const groupedFilters = activeFilters.value.reduce((acc, filter) => {
+          if (!filter?.key) {
+            return acc
+          }
+          acc[filter.key] = acc[filter.key] || []
+          acc[filter.key].push(filter)
+          return acc
+        }, {})
+
+        matchesFilters = Object.entries(groupedFilters).every(([key, group]) => {
+          const predicate = filterPredicates[key]
           if (typeof predicate !== 'function') {
             return true
           }
-          return predicate(customer, filter)
+
+          const positiveFilters = group.filter((filter) => filter.operator !== 'is_not')
+          const negativeFilters = group.filter((filter) => filter.operator === 'is_not')
+
+          const matchesPositives =
+            !positiveFilters.length || positiveFilters.some((filter) => predicate(customer, filter))
+
+          const matchesNegatives =
+            !negativeFilters.length ||
+            negativeFilters.every((filter) => predicate(customer, filter))
+
+          return matchesPositives && matchesNegatives
         })
+      }
 
       return matchesSearch && matchesFilters
     })
