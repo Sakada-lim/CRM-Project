@@ -5,7 +5,7 @@
       title="Properties"
       :supporting-text="supportingText"
       v-model:search="searchQuery"
-      v-model:filters="activeFilters"
+      v-model:filters="toolbarFilters"
       :available-filters="propertyFilterDefinitions"
       @open-filters="openFilterDialog"
       @add="openAddProperty"
@@ -106,7 +106,6 @@
     <PropertyFilterDialog
       v-model="showFilterDialog"
       :criteria="filterCriteria"
-      :status-options="statusOptions"
       :type-options="typeOptions"
       @apply="handleFilterApply"
       @clear="handleFilterClear"
@@ -131,6 +130,35 @@ const properties = computed(() => propertyStore.properties)
 
 const searchQuery = ref('')
 const activeFilters = ref([])
+const advancedCriteria = ref(createDefaultAdvancedCriteria())
+const advancedFilterChips = computed(() => buildAdvancedFilterChips(advancedCriteria.value))
+
+const toolbarFilters = computed({
+  get() {
+    const manualFilters = activeFilters.value.filter((filter) => filter.meta?.source !== 'advanced')
+    return [...manualFilters, ...advancedFilterChips.value]
+  },
+  set(nextFilters) {
+    const currentFilters = [
+      ...activeFilters.value.filter((filter) => filter.meta?.source !== 'advanced'),
+      ...advancedFilterChips.value,
+    ]
+    const nextIds = new Set(nextFilters.map((filter) => filter.id))
+    const removed = currentFilters.filter((filter) => !nextIds.has(filter.id))
+
+    if (!removed.length) {
+      return
+    }
+
+    removed.forEach((filter) => {
+      if (filter.meta?.source === 'advanced') {
+        clearAdvancedField(filter.meta.field)
+      } else {
+        activeFilters.value = activeFilters.value.filter((item) => item.id !== filter.id)
+      }
+    })
+  },
+})
 
 const filterPredicates = {
   status: (property, filter) => {
@@ -169,6 +197,8 @@ const {
   activeFilters,
   filterPredicates,
   itemsPerPage,
+  criteria: advancedCriteria,
+  criteriaPredicate: matchesAdvancedCriteria,
 })
 
 const supportingText = computed(() => {
@@ -213,15 +243,12 @@ const filterDefinitionMap = computed(() => {
 })
 
 const filterCriteria = computed(() => {
-  const statusFilter = activeFilters.value.find((filter) => filter.key === 'status')
   const typeFilters = activeFilters.value.filter((filter) => filter.key === 'type')
   return {
-    status: statusFilter?.value ?? '',
+    ...advancedCriteria.value,
     types: typeFilters.map((filter) => filter.value),
   }
 })
-
-const statusOptions = computed(() => filterDefinitionMap.value.status?.options ?? [])
 const typeOptions = computed(() => filterDefinitionMap.value.type?.options ?? [])
 
 function openFilterDialog() {
@@ -253,28 +280,50 @@ function buildFilterFromValue(key, value) {
 }
 
 function handleFilterApply(criteria) {
-  const nextFilters = []
+  const typeValues = Array.isArray(criteria?.types) ? criteria.types : []
+  const uniqueTypes = [...new Set(typeValues.filter(Boolean))]
+  const typeFilters = uniqueTypes
+    .map((typeValue) => buildFilterFromValue('type', typeValue))
+    .filter(Boolean)
 
-  if (criteria?.status) {
-    const built = buildFilterFromValue('status', criteria.status)
-    if (built) {
-      nextFilters.push(built)
-    }
+  const preservedFilters = activeFilters.value.filter(
+    (filter) => filter.key !== 'type' && filter.meta?.source !== 'advanced',
+  )
+  activeFilters.value = [...preservedFilters, ...typeFilters]
+
+  const {
+    priceMin = null,
+    priceMax = null,
+    priceHasValue = false,
+    bedroomsMin = null,
+    bedroomsMax = null,
+    bathroomsMin = null,
+    bathroomsMax = null,
+    carSpacesMin = null,
+    landSizeMin = null,
+    landSizeMax = null,
+    propertyAge = 'all',
+  } = criteria || {}
+
+  advancedCriteria.value = {
+    priceMin,
+    priceMax,
+    priceHasValue,
+    bedroomsMin,
+    bedroomsMax,
+    bathroomsMin,
+    bathroomsMax,
+    carSpacesMin,
+    landSizeMin,
+    landSizeMax,
+    propertyAge,
   }
 
-  const typeValues = criteria?.types ?? []
-  typeValues.forEach((typeValue) => {
-    const built = buildFilterFromValue('type', typeValue)
-    if (built) {
-      nextFilters.push(built)
-    }
-  })
-
-  activeFilters.value = nextFilters
   showFilterDialog.value = false
 }
 
 function handleFilterClear() {
+  advancedCriteria.value = createDefaultAdvancedCriteria()
   activeFilters.value = []
 }
 
@@ -287,6 +336,330 @@ function handleAddProperty() {
   propertyStore.addProperty({ ...newProperty.value })
   resetNewProperty()
   showAddProperty.value = false
+}
+
+function createDefaultAdvancedCriteria() {
+  return {
+    priceMin: null,
+    priceMax: null,
+    priceHasValue: false,
+    bedroomsMin: null,
+    bedroomsMax: null,
+    bathroomsMin: null,
+    bathroomsMax: null,
+    carSpacesMin: null,
+    landSizeMin: null,
+    landSizeMax: null,
+    propertyAge: 'all',
+  }
+}
+
+function matchesAdvancedCriteria(property, criteria) {
+  if (!criteria) {
+    return true
+  }
+
+  const price = parsePriceGuide(property.priceGuide)
+  if (criteria.priceHasValue && !price.hasValue) {
+    return false
+  }
+  if (criteria.priceMin != null) {
+    const comparableMin = price.min ?? price.max
+    if (comparableMin == null || comparableMin < criteria.priceMin) {
+      return false
+    }
+  }
+  if (criteria.priceMax != null) {
+    const comparableMax = price.max ?? price.min
+    if (comparableMax == null || comparableMax > criteria.priceMax) {
+      return false
+    }
+  }
+
+  if (!matchesRange(property.bedrooms, criteria.bedroomsMin, criteria.bedroomsMax)) {
+    return false
+  }
+  if (!matchesRange(property.bathrooms, criteria.bathroomsMin, criteria.bathroomsMax)) {
+    return false
+  }
+  if (!matchesRange(property.carSpaces, criteria.carSpacesMin, null)) {
+    return false
+  }
+
+  const landSize = getLandSizeSqm(property)
+  if (!matchesRange(landSize, criteria.landSizeMin, criteria.landSizeMax)) {
+    return false
+  }
+
+  if (criteria.propertyAge === 'new' && !isNewProperty(property)) {
+    return false
+  }
+  if (criteria.propertyAge === 'established' && isNewProperty(property)) {
+    return false
+  }
+
+  return true
+}
+
+function matchesRange(value, min, max) {
+  if (value == null) {
+    return min == null && max == null
+  }
+  if (min != null && value < min) {
+    return false
+  }
+  if (max != null && value > max) {
+    return false
+  }
+  return true
+}
+
+function parsePriceGuide(priceGuide) {
+  if (!priceGuide) {
+    return { min: null, max: null, hasValue: false }
+  }
+
+  const matches = [...String(priceGuide).matchAll(/(\d+(?:\.\d+)?)([mk]?)/gi)]
+  if (!matches.length) {
+    return { min: null, max: null, hasValue: false }
+  }
+
+  const values = matches
+    .map(([, rawValue, unit]) => {
+      const parsed = Number(rawValue)
+      if (Number.isNaN(parsed)) {
+        return null
+      }
+      const normalizedUnit = unit?.toLowerCase()
+      const multiplier = normalizedUnit === 'm' ? 1_000_000 : normalizedUnit === 'k' ? 1_000 : 1
+      return parsed * multiplier
+    })
+    .filter((value) => value != null)
+
+  if (!values.length) {
+    return { min: null, max: null, hasValue: false }
+  }
+
+  const [minValue, maxValue] = values
+  return {
+    min: minValue ?? null,
+    max: maxValue ?? minValue ?? null,
+    hasValue: true,
+  }
+}
+
+function getLandSizeSqm(property) {
+  if (typeof property?.landSizeSqm === 'number') {
+    return property.landSizeSqm
+  }
+
+  const match = String(property?.landSize ?? '')
+    .replace(/,/g, '')
+    .match(/\d+(?:\.\d+)?/)
+
+  return match ? Number(match[0]) : null
+}
+
+function isNewProperty(property) {
+  return property?.statusBadge?.type === 'new'
+}
+
+function buildAdvancedFilterChips(criteria) {
+  if (!criteria) {
+    return []
+  }
+
+  const chips = []
+
+  if (criteria.priceMin != null || criteria.priceMax != null) {
+    const chip = createAdvancedChip({
+      id: 'price-range',
+      field: 'priceRange',
+      fieldLabel: 'Price',
+      valueLabel: formatRangeLabel(criteria.priceMin, criteria.priceMax, formatCurrencyShort),
+    })
+    if (chip) {
+      chips.push(chip)
+    }
+  }
+
+  if (criteria.priceHasValue) {
+    const chip = createAdvancedChip({
+      id: 'price-has-value',
+      field: 'priceHasValue',
+      fieldLabel: 'Price',
+      valueLabel: 'Has price',
+    })
+    if (chip) {
+      chips.push(chip)
+    }
+  }
+
+  if (criteria.bedroomsMin != null || criteria.bedroomsMax != null) {
+    const chip = createAdvancedChip({
+      id: 'bedrooms',
+      field: 'bedrooms',
+      fieldLabel: 'Bedrooms',
+      valueLabel: formatCountRange(criteria.bedroomsMin, criteria.bedroomsMax),
+    })
+    if (chip) {
+      chips.push(chip)
+    }
+  }
+
+  if (criteria.bathroomsMin != null || criteria.bathroomsMax != null) {
+    const chip = createAdvancedChip({
+      id: 'bathrooms',
+      field: 'bathrooms',
+      fieldLabel: 'Bathrooms',
+      valueLabel: formatCountRange(criteria.bathroomsMin, criteria.bathroomsMax),
+    })
+    if (chip) {
+      chips.push(chip)
+    }
+  }
+
+  if (criteria.carSpacesMin != null) {
+    const chip = createAdvancedChip({
+      id: 'car-spaces',
+      field: 'carSpaces',
+      fieldLabel: 'Car spaces',
+      valueLabel: `${criteria.carSpacesMin}+`,
+    })
+    if (chip) {
+      chips.push(chip)
+    }
+  }
+
+  if (criteria.landSizeMin != null || criteria.landSizeMax != null) {
+    const chip = createAdvancedChip({
+      id: 'land-size',
+      field: 'landSize',
+      fieldLabel: 'Land size',
+      valueLabel: formatRangeLabel(criteria.landSizeMin, criteria.landSizeMax, formatAreaLabel),
+    })
+    if (chip) {
+      chips.push(chip)
+    }
+  }
+
+  if (criteria.propertyAge && criteria.propertyAge !== 'all') {
+    const valueLabel = criteria.propertyAge === 'new' ? 'New' : 'Established'
+    const chip = createAdvancedChip({
+      id: 'property-age',
+      field: 'propertyAge',
+      fieldLabel: 'Property age',
+      valueLabel,
+    })
+    if (chip) {
+      chips.push(chip)
+    }
+  }
+
+  return chips
+}
+
+function createAdvancedChip({ id, field, fieldLabel, valueLabel }) {
+  if (!valueLabel) {
+    return null
+  }
+
+  return {
+    id: `advanced-${id}`,
+    key: `advanced-${id}`,
+    label: `${fieldLabel}: ${valueLabel}`,
+    labelParts: {
+      field: fieldLabel,
+      operator: '',
+      value: valueLabel,
+    },
+    meta: {
+      source: 'advanced',
+      field,
+    },
+  }
+}
+
+function clearAdvancedField(field) {
+  switch (field) {
+    case 'priceRange':
+      updateAdvancedCriteria({ priceMin: null, priceMax: null })
+      break
+    case 'priceHasValue':
+      updateAdvancedCriteria({ priceHasValue: false })
+      break
+    case 'bedrooms':
+      updateAdvancedCriteria({ bedroomsMin: null, bedroomsMax: null })
+      break
+    case 'bathrooms':
+      updateAdvancedCriteria({ bathroomsMin: null, bathroomsMax: null })
+      break
+    case 'carSpaces':
+      updateAdvancedCriteria({ carSpacesMin: null })
+      break
+    case 'landSize':
+      updateAdvancedCriteria({ landSizeMin: null, landSizeMax: null })
+      break
+    case 'propertyAge':
+      updateAdvancedCriteria({ propertyAge: 'all' })
+      break
+    default:
+      break
+  }
+}
+
+function updateAdvancedCriteria(patch) {
+  advancedCriteria.value = { ...advancedCriteria.value, ...patch }
+}
+
+function formatRangeLabel(min, max, formatter) {
+  if (min != null && max != null) {
+    return `${formatter(min)} - ${formatter(max)}`
+  }
+  if (min != null) {
+    return `${formatter(min)}+`
+  }
+  if (max != null) {
+    return `≤ ${formatter(max)}`
+  }
+  return ''
+}
+
+function formatCountRange(min, max) {
+  if (min != null && max != null) {
+    return `${min}-${max}`
+  }
+  if (min != null) {
+    return `${min}+`
+  }
+  if (max != null) {
+    return `≤ ${max}`
+  }
+  return ''
+}
+
+function formatCurrencyShort(value) {
+  if (value == null) {
+    return ''
+  }
+
+  if (value >= 1_000_000) {
+    const formatted = value % 1_000_000 === 0 ? (value / 1_000_000).toFixed(0) : (value / 1_000_000).toFixed(1)
+    return `$${formatted}m`
+  }
+
+  if (value >= 1_000) {
+    return `$${Math.round(value / 1_000)}k`
+  }
+
+  return `$${value}`
+}
+
+function formatAreaLabel(value) {
+  if (value == null) {
+    return ''
+  }
+  return `${value} m²`
 }
 </script>
 

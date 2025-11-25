@@ -1,4 +1,4 @@
-import { computed, ref, unref, watch } from 'vue'
+import { computed, isRef, ref, unref, watch } from 'vue'
 
 export function usePropertyFilters({
   properties,
@@ -6,6 +6,8 @@ export function usePropertyFilters({
   activeFilters,
   filterPredicates = {},
   itemsPerPage = 4,
+  criteria,
+  criteriaPredicate,
 }) {
   const page = ref(1)
   const pageSize = computed(() => {
@@ -18,6 +20,7 @@ export function usePropertyFilters({
   const filteredProperties = computed(() => {
     const source = properties?.value ?? []
     const filters = activeFilters?.value ?? []
+    const criteriaValue = unref(criteria)
     const term = normalizedSearch.value
 
     return source.filter((property) => {
@@ -31,16 +34,42 @@ export function usePropertyFilters({
         return false
       }
 
+      const matchesAdditionalCriteria =
+        typeof criteriaPredicate !== 'function' || criteriaPredicate(property, criteriaValue)
+      if (!matchesAdditionalCriteria) {
+        return false
+      }
+
       if (!filters.length) {
         return true
       }
 
-      return filters.every((filter) => {
-        const predicate = filterPredicates[filter.key]
+      const groupedFilters = filters.reduce((acc, filter) => {
+        if (!filter?.key) {
+          return acc
+        }
+        acc[filter.key] = acc[filter.key] || []
+        acc[filter.key].push(filter)
+        return acc
+      }, {})
+
+      return Object.entries(groupedFilters).every(([key, group]) => {
+        const predicate = filterPredicates[key]
         if (typeof predicate !== 'function') {
           return true
         }
-        return predicate(property, filter)
+
+        const positiveFilters = group.filter((filter) => filter.operator !== 'is_not')
+        const negativeFilters = group.filter((filter) => filter.operator === 'is_not')
+
+        const matchesPositives =
+          !positiveFilters.length || positiveFilters.some((filter) => predicate(property, filter))
+
+        const matchesNegatives =
+          !negativeFilters.length ||
+          negativeFilters.every((filter) => predicate(property, filter))
+
+        return matchesPositives && matchesNegatives
       })
     })
   })
@@ -100,6 +129,16 @@ export function usePropertyFilters({
     },
     { deep: true },
   )
+
+  if (criteria && isRef(criteria)) {
+    watch(
+      () => criteria.value,
+      () => {
+        page.value = 1
+      },
+      { deep: true },
+    )
+  }
 
   watch(
     () => pageSize.value,
