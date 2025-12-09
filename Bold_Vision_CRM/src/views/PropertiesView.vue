@@ -104,15 +104,11 @@
       :label="paginationLabel"
     />
 
-    <BaseDialog
+    <AddPropertyDialog
       v-model="showAddProperty"
-      title="Add new property"
-      confirm-text="Add property"
+      :model="newProperty"
       @confirm="handleAddProperty"
-      @cancel="resetNewProperty"
-    >
-      <PropertyForm v-model="newProperty" />
-    </BaseDialog>
+    />
 
     <PropertyFilterDialog
       v-model="showFilterDialog"
@@ -127,7 +123,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePropertyStore } from '../stores/propertyStore'
-import BaseDialog from '../components/base/BaseDialog.vue'
+import AddPropertyDialog from '../components/properties/AddPropertyDialog.vue'
 import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 import PropertyForm from '../components/properties/PropertiesForm.vue'
 import PropertiesToolbar from '../components/properties/PropertiesToolbar.vue'

@@ -11,7 +11,7 @@
     <v-col cols="12" md="4">
       <v-select
         v-model="form.type"
-        :items="['House', 'Unit', 'Townhouse', 'Land']"
+        :items="['House', 'Unit', 'Townhouse', 'Land', 'Commercial']"
         label="Type"
         required
       />
