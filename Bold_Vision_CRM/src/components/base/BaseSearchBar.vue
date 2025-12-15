@@ -4,6 +4,10 @@
     :placeholder="inputPlaceholder"
     :hide-details="hideDetails"
     :autofocus="autofocus"
+    :autocomplete="autocomplete"
+    :name="name"
+    :spellcheck="spellcheck"
+    :autocapitalize="autocapitalize"
     density="comfortable"
     variant="outlined"
     clearable
@@ -38,6 +42,22 @@ const props = defineProps({
   autofocus: {
     type: Boolean,
     default: false,
+  },
+  autocomplete: {
+    type: String,
+    default: 'off',
+  },
+  name: {
+    type: String,
+    default: 'search-input',
+  },
+  spellcheck: {
+    type: Boolean,
+    default: false,
+  },
+  autocapitalize: {
+    type: String,
+    default: 'off',
   },
 })
 

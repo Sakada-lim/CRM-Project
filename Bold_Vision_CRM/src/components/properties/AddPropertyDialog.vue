@@ -29,19 +29,13 @@
 <script setup>
 import PropertyForm from './PropertiesForm.vue'
 import { useFilterDialogState } from '../../composables/useFilterDialogState'
+import { createEmptyPropertyDraft } from '../../constants/propertyDefaults'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   model: {
     type: Object,
-    default: () => ({
-      address: '',
-      type: 'House',
-      status: 'On Market',
-      priceGuide: '',
-      description: '',
-      notes: '',
-    }),
+    default: () => createEmptyPropertyDraft(),
   },
 })
 
@@ -51,26 +45,26 @@ const { draft, isOpen, close } = useFilterDialogState({
   props,
   emit,
   // reusing dialog state helper for consistent open/close behavior
-  createEmptyDraft: () => ({
-    address: '',
-    type: 'House',
-    status: 'On Market',
-    priceGuide: '',
-    description: '',
-    notes: '',
-  }),
-  mapCriteriaToDraft: (data = {}) => ({
-    address: data?.address ?? '',
-    type: data?.type ?? 'House',
-    status: data?.status ?? 'On Market',
-    priceGuide: data?.priceGuide ?? '',
-    description: data?.description ?? '',
-    notes: data?.notes ?? '',
-  }),
+  createEmptyDraft: () => createEmptyPropertyDraft(),
+  mapCriteriaToDraft: (data = {}) => {
+    const base = createEmptyPropertyDraft()
+    return {
+      ...base,
+      ...data,
+      gallery: Array.isArray(data?.gallery) ? [...data.gallery] : [...base.gallery],
+      highlights: Array.isArray(data?.highlights) ? [...data.highlights] : [...base.highlights],
+      amenities: Array.isArray(data?.amenities) ? [...data.amenities] : [...base.amenities],
+    }
+  },
 })
 
 function handleConfirm() {
-  emit('confirm', { ...draft })
+  emit('confirm', {
+    ...draft,
+    gallery: Array.isArray(draft.gallery) ? [...draft.gallery] : [],
+    highlights: Array.isArray(draft.highlights) ? [...draft.highlights] : [],
+    amenities: Array.isArray(draft.amenities) ? [...draft.amenities] : [],
+  })
 }
 </script>
 
