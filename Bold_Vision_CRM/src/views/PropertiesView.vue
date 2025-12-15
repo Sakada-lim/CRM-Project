@@ -104,15 +104,11 @@
       :label="paginationLabel"
     />
 
-    <BaseDialog
+    <AddPropertyDialog
       v-model="showAddProperty"
-      title="Add new property"
-      confirm-text="Add property"
+      :model="newProperty"
       @confirm="handleAddProperty"
-      @cancel="resetNewProperty"
-    >
-      <PropertyForm v-model="newProperty" />
-    </BaseDialog>
+    />
 
     <PropertyFilterDialog
       v-model="showFilterDialog"
@@ -127,15 +123,15 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePropertyStore } from '../stores/propertyStore'
-import BaseDialog from '../components/base/BaseDialog.vue'
+import AddPropertyDialog from '../components/properties/AddPropertyDialog.vue'
 import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
-import PropertyForm from '../components/properties/PropertiesForm.vue'
 import PropertiesToolbar from '../components/properties/PropertiesToolbar.vue'
 import { propertyFilterDefinitions } from '../config/filterDefinitions'
 import { usePropertyFilters } from '../composables/usePropertyFilters'
 import { useResponsivePageSize } from '../composables/useResponsivePageSize'
 import PropertyFilterDialog from '../components/properties/PropertyFilterDialog.vue'
 import { useFilterChips } from '../composables/useFilterChips'
+import { createEmptyPropertyDraft } from '../constants/propertyDefaults'
 
 const propertyStore = usePropertyStore()
 const properties = computed(() => propertyStore.properties)
@@ -196,24 +192,10 @@ const supportingText = computed(() => {
 const showAddProperty = ref(false)
 const showFilterDialog = ref(false)
 
-const newProperty = ref({
-  address: '',
-  type: 'House',
-  status: 'On Market',
-  priceGuide: '',
-  description: '',
-  notes: '',
-})
+const newProperty = ref(createEmptyPropertyDraft())
 
 const resetNewProperty = () => {
-  newProperty.value = {
-    address: '',
-    type: 'House',
-    status: 'On Market',
-    priceGuide: '',
-    description: '',
-    notes: '',
-  }
+  newProperty.value = createEmptyPropertyDraft()
 }
 
 function openAddProperty() {
@@ -312,13 +294,15 @@ function handleFilterClear() {
   activeFilters.value = []
 }
 
-function handleAddProperty() {
-  if (!newProperty.value.address || !newProperty.value.type || !newProperty.value.status) {
+function handleAddProperty(payload) {
+  const propertyData = payload || newProperty.value
+
+  if (!propertyData.address || !propertyData.type || !propertyData.status) {
     alert('Please fill in at least address, type, and status.')
     return
   }
 
-  propertyStore.addProperty({ ...newProperty.value })
+  propertyStore.addProperty({ ...propertyData })
   resetNewProperty()
   showAddProperty.value = false
 }

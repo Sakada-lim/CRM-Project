@@ -28,6 +28,10 @@
         class="toolbar-search-control"
         :label="searchLabel"
         :placeholder="searchPlaceholder"
+        name="properties-search"
+        autocomplete="nope"
+        :spellcheck="false"
+        autocapitalize="off"
       />
 
       <div class="filter-trigger-wrapper" v-if="showFilterButton && canAddFilters">

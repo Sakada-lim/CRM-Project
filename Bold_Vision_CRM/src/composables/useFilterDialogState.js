@@ -16,6 +16,8 @@ export function useFilterDialogState({ props, emit, createEmptyDraft, mapCriteri
     set: (value) => emit('update:modelValue', value),
   })
 
+  const criteriaSource = computed(() => props.criteria ?? props.model ?? null)
+
   const draft = reactive(createEmptyDraft())
 
   function assignDraftValues(values) {
@@ -35,7 +37,7 @@ export function useFilterDialogState({ props, emit, createEmptyDraft, mapCriteri
   }
 
   watch(
-    () => props.criteria,
+    criteriaSource,
     (next) => {
       syncDraft(next || {})
     },
