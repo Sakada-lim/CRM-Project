@@ -24,59 +24,7 @@
         <v-card class="mb-4" elevation="4">
           <v-card-title>Overview</v-card-title>
           <v-card-text>
-            <v-row dense>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="editable.address" label="Address" required />
-              </v-col>
-
-              <v-col cols="12" md="3">
-                <v-select
-                  v-model="editable.type"
-                  :items="['House', 'Unit', 'Townhouse', 'Land']"
-                  label="Type"
-                  required
-                />
-              </v-col>
-
-              <v-col cols="12" md="3">
-                <v-select
-                  v-model="editable.status"
-                  :items="['New', 'On Market', 'Sold']"
-                  label="Status"
-                  required
-                />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="editable.priceGuide"
-                  label="Price guide"
-                  hint="e.g. $850k–$900k"
-                />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field v-model="editable.code" label="Internal code" hint="e.g. PROP-001" />
-              </v-col>
-
-              <v-col cols="12">
-                <v-textarea
-                  v-model="editable.description"
-                  label="Description"
-                  rows="3"
-                  hint="Public-friendly description that might appear in alerts"
-                />
-              </v-col>
-
-              <v-col cols="12">
-                <v-textarea
-                  v-model="editable.notes"
-                  label="Internal notes"
-                  rows="3"
-                  hint="Private notes only visible to staff"
-                />
-              </v-col>
-            </v-row>
+            <PropertyForm v-model="editable" />
           </v-card-text>
 
           <v-card-actions class="px-4 pb-4">
@@ -102,6 +50,15 @@
               Created: <strong>{{ createdAtFormatted }}</strong>
             </p>
             <p class="text-body-2 mb-2">
+              Address:
+              <strong>
+                {{ editable.address || 'N/A' }}
+              </strong>
+              <span v-if="editable.suburb">
+                · {{ editable.suburb }}, {{ editable.state }} {{ editable.postcode }}
+              </span>
+            </p>
+            <p class="text-body-2 mb-2">
               Status:
               <v-chip :color="statusColor(editable.status)" text-color="white" size="small">
                 {{ editable.status }}
@@ -110,6 +67,16 @@
             <p class="text-body-2 mb-2">
               Price guide: <strong>{{ editable.priceGuide || 'N/A' }}</strong>
             </p>
+
+            <div class="stats-summary" aria-label="Key property stats">
+              <div v-for="stat in keyStats" :key="stat.label" class="stat-item">
+                <v-icon :icon="stat.icon" size="20" class="mr-2" />
+                <div>
+                  <p class="stat-label">{{ stat.label }}</p>
+                  <p class="stat-value">{{ stat.value }}</p>
+                </div>
+              </div>
+            </div>
 
             <p class="text-body-2">In the full system, alerts sent to customers would include:</p>
             <ul class="text-body-2 pl-4">
@@ -202,9 +169,11 @@
 
 <!-- Scripting -->
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePropertyStore } from '../stores/propertyStore'
+import PropertyForm from '../components/properties/PropertiesForm.vue'
+import { createEmptyPropertyDraft } from '../constants/propertyDefaults'
 
 const route = useRoute()
 const router = useRouter()
@@ -218,19 +187,7 @@ const original = computed(() => propertyStore.properties.find((p) => p.id === id
 const propertyFound = computed(() => !!original.value)
 
 // local editable copy
-const editable = ref({
-  code: '',
-  address: '',
-  type: 'House',
-  status: 'New',
-  priceGuide: '',
-  notes: '',
-  description: '',
-  imageUrl: '',
-  floorPlanUrl: '',
-  createdAt: '',
-  gallery: [],
-})
+const editable = ref(createEmptyPropertyDraft())
 
 const snackbar = ref(false)
 const fileInput = ref(null)
@@ -239,12 +196,22 @@ const fileInput = ref(null)
 const dialogOpen = ref(false)
 const selectedImageIndex = ref(0)
 
-if (original.value) {
-  editable.value = {
-    ...original.value,
-    gallery: original.value.gallery || [],
-  }
-}
+watch(
+  original,
+  (value) => {
+    if (value) {
+      const base = createEmptyPropertyDraft()
+      editable.value = {
+        ...base,
+        ...value,
+        gallery: value.gallery ? [...value.gallery] : [],
+      }
+    } else {
+      editable.value = createEmptyPropertyDraft()
+    }
+  },
+  { immediate: true },
+)
 
 const breadcrumbs = computed(() => [
   { title: 'Properties', to: { name: 'properties' } },
@@ -268,16 +235,29 @@ const hasNext = computed(() => {
   return selectedImageIndex.value < gallery.length - 1
 })
 
+const keyStats = computed(() => {
+  const landSizeLabel = editable.value.landSize || formatAreaDisplay(editable.value.landSizeSqm)
+  const houseSizeLabel = editable.value.houseSize || formatAreaDisplay(editable.value.houseSizeSqm)
+
+  return [
+    { label: 'Bedrooms', icon: 'mdi-bed-outline', value: numberOrDash(editable.value.bedrooms) },
+    { label: 'Bathrooms', icon: 'mdi-shower', value: numberOrDash(editable.value.bathrooms) },
+    { label: 'Car spaces', icon: 'mdi-car-outline', value: numberOrDash(editable.value.carSpaces) },
+    { label: 'Land size', icon: 'mdi-ruler-square', value: textOrDash(landSizeLabel) },
+    { label: 'House size', icon: 'mdi-home-floor-1', value: textOrDash(houseSizeLabel) },
+  ]
+})
+
 function statusColor(status) {
   switch (status) {
-    case 'New':
-      return 'green'
     case 'On Market':
-      return 'blue'
+      return 'primary'
+    case 'Under Offer':
+      return 'amber-darken-2'
     case 'Sold':
-      return 'grey'
+      return 'grey-darken-1'
     default:
-      return 'blue'
+      return 'green-darken-1'
   }
 }
 
@@ -343,4 +323,55 @@ function nextImage() {
     selectedImageIndex.value += 1
   }
 }
+
+function numberOrDash(value) {
+  if (value === 0) {
+    return '0'
+  }
+  if (value == null || value === '') {
+    return '—'
+  }
+  return `${value}`
+}
+
+function textOrDash(value) {
+  return value && value !== '' ? value : '—'
+}
+
+function formatAreaDisplay(value) {
+  if (value == null || value === '') {
+    return ''
+  }
+  return `${value} m²`
+}
 </script>
+
+<style scoped>
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bv-surface-muted, #f1f5f9);
+}
+
+.stat-label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--bv-text-muted, #64748b);
+}
+
+.stat-value {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1rem;
+}
+</style>
