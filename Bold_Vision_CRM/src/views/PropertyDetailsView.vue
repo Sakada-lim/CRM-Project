@@ -1,26 +1,18 @@
 <template>
   <div v-if="propertyFound">
-    <v-breadcrumbs :items="breadcrumbs" class="mb-4" />
+    <v-breadcrumbs :items="breadcrumbs" class="mb-4 page-breadcrumbs" />
+
+    <h2 class="mb-2">
+      {{ editable.address || 'Property details' }}
+    </h2>
+    <div class="property-meta mb-6">
+      <span>Code: <strong>{{ editable.code || 'N/A' }}</strong></span>
+      <span>Type: <strong>{{ editable.type }}</strong></span>
+    </div>
 
     <v-row>
       <!-- Left: main info -->
       <v-col cols="12" md="8">
-        <h2 class="mb-2">
-          {{ editable.address || 'Property details' }}
-        </h2>
-        <p class="text-body-2 mb-4">
-          Code: <strong>{{ editable.code || 'N/A' }}</strong> · Type:
-          <strong>{{ editable.type }}</strong> · Status:
-          <v-chip
-            :color="statusColor(editable.status)"
-            text-color="white"
-            size="small"
-            class="ml-1"
-          >
-            {{ editable.status }}
-          </v-chip>
-        </p>
-
         <v-card class="mb-4" elevation="4">
           <v-card-title>Overview</v-card-title>
           <v-card-text>
@@ -172,8 +164,8 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePropertyStore } from '../stores/propertyStore'
-import PropertyForm from '../components/properties/PropertiesForm.vue'
 import { createEmptyPropertyDraft } from '../constants/propertyDefaults'
+import PropertyForm from '../components/properties/PropertiesForm.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -347,6 +339,28 @@ function formatAreaDisplay(value) {
 </script>
 
 <style scoped>
+.page-breadcrumbs {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.property-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 0.95rem;
+  color: var(--bv-text-muted, #475569);
+}
+
+.property-meta strong {
+  color: var(--bv-text-strong, #0f172a);
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+}
+
 .stats-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
