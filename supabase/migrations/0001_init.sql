@@ -177,3 +177,12 @@ create policy "agent_update_floorplans" on storage.objects
 create policy "agent_delete_floorplans" on storage.objects
   for delete to authenticated
   using (bucket_id = 'property-floorplans' and split_part(name,'/',1) = auth.uid()::text);
+
+-- ───────────────────────────────────────────────
+-- GRANTS — allow the authenticated role to use the tables
+-- (RLS policies alone are not enough without table-level grants)
+-- ───────────────────────────────────────────────
+
+grant select, insert, update, delete on public.properties to authenticated;
+grant select, insert, update, delete on public.property_photos to authenticated;
+grant select, insert, update, delete on public.customers to authenticated;

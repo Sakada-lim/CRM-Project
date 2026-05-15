@@ -294,7 +294,7 @@ function handleFilterClear() {
   activeFilters.value = []
 }
 
-function handleAddProperty(payload) {
+async function handleAddProperty(payload) {
   const propertyData = payload || newProperty.value
 
   if (!propertyData.address || !propertyData.type || !propertyData.status) {
@@ -302,9 +302,13 @@ function handleAddProperty(payload) {
     return
   }
 
-  propertyStore.addProperty({ ...propertyData })
-  resetNewProperty()
-  showAddProperty.value = false
+  try {
+    await propertyStore.addProperty({ ...propertyData })
+    resetNewProperty()
+    showAddProperty.value = false
+  } catch (e) {
+    alert(`Failed to save property: ${e.message}`)
+  }
 }
 
 function createDefaultAdvancedCriteria() {
