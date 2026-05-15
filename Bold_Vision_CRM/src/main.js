@@ -15,9 +15,13 @@ import './assets/styles/components/forms.css'
 import './assets/styles/components/toolbars.css'
 
 const app = createApp(App)
+const pinia = createPinia()
 
-app.use(createPinia())
+app.use(pinia)
 app.use(router)
 app.use(vuetify)
+
+import { useAuthStore } from './stores/authStore'
+useAuthStore().init()
 
 app.mount('#app')

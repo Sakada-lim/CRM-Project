@@ -29,7 +29,7 @@
         </v-card>
 
         <v-snackbar v-model="snackbar" timeout="2000" color="success">
-          Changes saved (demo only, in-memory).
+          Changes saved successfully.
         </v-snackbar>
       </v-col>
 
@@ -171,8 +171,7 @@ const route = useRoute()
 const router = useRouter()
 const propertyStore = usePropertyStore()
 
-const idParam = route.params.id
-const id = Number(idParam)
+const id = route.params.id
 
 const original = computed(() => propertyStore.properties.find((p) => p.id === id))
 
