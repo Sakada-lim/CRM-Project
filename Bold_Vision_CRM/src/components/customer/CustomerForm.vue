@@ -25,14 +25,6 @@
       />
     </v-col>
 
-    <v-col cols="12" md="4">
-      <v-text-field
-        v-model="form.interestedProperty"
-        label="Property of interest"
-        hint="e.g. 123 Smith St, or general area"
-      />
-    </v-col>
-
     <v-col cols="12">
       <v-textarea v-model="form.notes" label="Notes from call/SMS" rows="2" />
     </v-col>

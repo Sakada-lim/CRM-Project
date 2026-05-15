@@ -165,7 +165,7 @@
         </v-card>
 
         <!-- Quick summary card -->
-        <v-card elevation="2">
+        <v-card elevation="2" class="mb-4">
           <v-card-title>Quick summary</v-card-title>
           <v-card-text>
             <p class="text-body-2 mb-1">
@@ -185,31 +185,31 @@
               <strong>{{ lastContactedLabel }}</strong>
             </p>
 
-            <p class="text-body-2 mb-1">
+            <p class="text-body-2">
               Preferred channel:
               <strong>{{ editable.channel || 'N/A' }}</strong>
             </p>
-
-            <p class="text-body-2">
-              This summary will be used later to generate contact schedules and alerts for the team.
-            </p>
           </v-card-text>
         </v-card>
+
       </v-col>
     </v-row>
+
+    <!-- Interested properties (full-width) -->
+    <CustomerInterestsPanel :customer-id="id" class="mt-2" />
   </v-container>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCustomerStore } from '../stores/customerStore'
+import CustomerInterestsPanel from '../components/customer/CustomerInterestsPanel.vue'
 
-// routing + store
 const route = useRoute()
 const store = useCustomerStore()
 
-const id = Number(route.params.id)
+const id = route.params.id
 
 // locate customer from store
 const original = computed(() => store.customers.find((c) => c.id === id))
@@ -275,15 +275,18 @@ const lastContactedLabel = computed(() =>
   editable.value.lastContactedAt ? formatDate(editable.value.lastContactedAt) : 'Not set',
 )
 
-// feedback entries from the Customer store
-const feedbackEntries = computed(() => original.value?.feedback || [])
+const feedbackEntries = computed(() => store.feedback[id] ?? [])
 
 const newFeedback = ref('')
 
-function addFeedback() {
+onMounted(() => {
+  store.fetchFeedback(id)
+})
+
+async function addFeedback() {
   const note = newFeedback.value.trim()
   if (!note || !customerFound.value) return
-  store.addFeedback(id, note)
+  await store.addFeedback(id, note)
   newFeedback.value = ''
 }
 

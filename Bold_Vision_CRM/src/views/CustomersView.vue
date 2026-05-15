@@ -172,7 +172,6 @@ const newCustomer = ref({
   email: '',
   channel: 'Call',
   category: 'Cold',
-  interestedProperty: '',
   notes: '',
 })
 
@@ -188,7 +187,6 @@ function resetNewCustomer() {
     email: '',
     channel: 'Call',
     category: 'Cold',
-    interestedProperty: '',
     notes: '',
   }
 }

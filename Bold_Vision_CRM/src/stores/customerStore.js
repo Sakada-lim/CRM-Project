@@ -5,13 +5,22 @@ import {
   updateCustomer,
   deleteCustomer,
   setLastContacted,
+  listFeedback,
+  addFeedback as addFeedbackService,
 } from '../services/customersService'
+import {
+  listForCustomer,
+  upsertInterest,
+  removeInterest,
+} from '../services/interestsService'
 
 const CADENCE = { Hot: 'Every 3 months', Warm: 'Every 6 months', Cold: 'Every 12 months' }
 
 export const useCustomerStore = defineStore('customers', {
   state: () => ({
     customers: [],
+    feedback: {},
+    propertyInterests: {},
     loading: false,
     error: null,
     loaded: false,
@@ -91,12 +100,30 @@ export const useCustomerStore = defineStore('customers', {
       }
     },
 
-    // Shimmed until Phase 3 wires real persistence
-    addFeedback(id, note, dateIso = new Date().toISOString()) {
-      const c = this.customers.find((c) => c.id === id)
-      if (!c) return
-      if (!c.feedback) c.feedback = []
-      c.feedback.unshift({ id: Date.now(), date: dateIso, note })
+    async fetchFeedback(customerId) {
+      const data = await listFeedback(customerId)
+      this.feedback[customerId] = data
+    },
+
+    async addFeedback(customerId, note) {
+      const entry = await addFeedbackService(customerId, note)
+      if (!this.feedback[customerId]) this.feedback[customerId] = []
+      this.feedback[customerId].unshift(entry)
+    },
+
+    async fetchPropertyInterests(customerId) {
+      const data = await listForCustomer(customerId)
+      this.propertyInterests[customerId] = data
+    },
+
+    async addPropertyInterest(customerId, propertyId, interestLevel = 'Warm') {
+      await upsertInterest(propertyId, customerId, interestLevel)
+      await this.fetchPropertyInterests(customerId)
+    },
+
+    async removePropertyInterest(customerId, propertyId) {
+      await removeInterest(propertyId, customerId)
+      await this.fetchPropertyInterests(customerId)
     },
   },
 })

@@ -11,11 +11,17 @@ import {
   deletePropertyImage,
   reorderPhotos as reorderPhotoRows,
 } from '../services/mediaService'
-import { computeBadge } from '../utils/property'
+import {
+  listForProperty,
+  upsertInterest,
+  removeInterest,
+} from '../services/interestsService'
+import { computeBadge, sortByInterestLevel } from '../utils/property'
 
 export const usePropertyStore = defineStore('properties', {
   state: () => ({
     properties: [],
+    interests: {},
     loading: false,
     error: null,
     loaded: false,
@@ -118,6 +124,26 @@ export const usePropertyStore = defineStore('properties', {
 
     async setMainPhoto(propertyId, storagePath) {
       await this.updateProperty(propertyId, { mainPhoto: storagePath })
+    },
+
+    async fetchInterests(propertyId) {
+      const data = await listForProperty(propertyId)
+      this.interests[propertyId] = sortByInterestLevel(data)
+    },
+
+    async addInterestedCustomer(propertyId, customerId, interestLevel = 'Warm') {
+      await upsertInterest(propertyId, customerId, interestLevel)
+      await this.fetchInterests(propertyId)
+    },
+
+    async updateInterestLevel(propertyId, customerId, interestLevel) {
+      await upsertInterest(propertyId, customerId, interestLevel)
+      await this.fetchInterests(propertyId)
+    },
+
+    async removeInterestedCustomer(propertyId, customerId) {
+      await removeInterest(propertyId, customerId)
+      await this.fetchInterests(propertyId)
     },
   },
 })
