@@ -40,7 +40,14 @@ function mapRowToProperty(row) {
     houseSizeSqm,
     houseSize: houseSizeSqm ? `${houseSizeSqm} m²` : '',
     mainPhoto: row.main_photo_path ?? null,
-    gallery: [],
+    photos: (row.property_photos ?? [])
+      .filter((p) => p.kind === 'photo')
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p) => ({ id: p.id, storagePath: p.storage_path, caption: p.caption })),
+    floorplans: (row.property_photos ?? [])
+      .filter((p) => p.kind === 'floorplan')
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p) => ({ id: p.id, storagePath: p.storage_path, caption: p.caption })),
     description: row.description ?? '',
     notes: row.notes ?? '',
     highlights: row.highlights ?? [],
@@ -101,7 +108,7 @@ export async function listProperties() {
 export async function getProperty(id) {
   const { data, error } = await supabase
     .from('properties')
-    .select('*')
+    .select('*, property_photos(*)')
     .eq('id', id)
     .single()
   if (error) throw error
@@ -121,7 +128,7 @@ export async function updateProperty(id, payload) {
     .from('properties')
     .update(row)
     .eq('id', id)
-    .select()
+    .select('*, property_photos(*)')
     .single()
   if (error) throw error
   return mapRowToProperty(data)
