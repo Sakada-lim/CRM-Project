@@ -6,6 +6,11 @@ import {
   updateProperty,
   deleteProperty,
 } from '../services/propertiesService'
+import {
+  uploadPropertyImage,
+  deletePropertyImage,
+  reorderPhotos as reorderPhotoRows,
+} from '../services/mediaService'
 import { computeBadge } from '../utils/property'
 
 export const usePropertyStore = defineStore('properties', {
@@ -94,6 +99,25 @@ export const usePropertyStore = defineStore('properties', {
         this.error = e.message
         throw e
       }
+    },
+
+    async uploadPhoto(propertyId, file, kind) {
+      await uploadPropertyImage(propertyId, file, { kind })
+      await this.fetchProperty(propertyId)
+    },
+
+    async removePhoto(propertyId, photoId) {
+      await deletePropertyImage(photoId)
+      await this.fetchProperty(propertyId)
+    },
+
+    async reorderPhotos(propertyId, orderedIds) {
+      await reorderPhotoRows(orderedIds)
+      await this.fetchProperty(propertyId)
+    },
+
+    async setMainPhoto(propertyId, storagePath) {
+      await this.updateProperty(propertyId, { mainPhoto: storagePath })
     },
   },
 })
