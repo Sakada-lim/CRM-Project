@@ -11,11 +11,9 @@ function mapRowToCustomer(row) {
     channel: row.channel ?? 'Call',
     category: row.category ?? 'Cold',
     notes: row.notes ?? '',
-    interestedProperty: '',
     createdAt: row.created_at,
     lastContactedAt: row.last_contacted_at ?? null,
     followUpCadence: CADENCE[row.category] ?? CADENCE.Cold,
-    feedback: [],
   }
 }
 
@@ -84,4 +82,24 @@ export async function setLastContacted(id, dateIso) {
     .update({ last_contacted_at: dateIso })
     .eq('id', id)
   if (error) throw error
+}
+
+export async function listFeedback(customerId) {
+  const { data, error } = await supabase
+    .from('customer_feedback')
+    .select('id, note, created_at')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data.map((row) => ({ id: row.id, note: row.note, date: row.created_at }))
+}
+
+export async function addFeedback(customerId, note) {
+  const { data, error } = await supabase
+    .from('customer_feedback')
+    .insert({ customer_id: customerId, note })
+    .select('id, note, created_at')
+    .single()
+  if (error) throw error
+  return { id: data.id, note: data.note, date: data.created_at }
 }
