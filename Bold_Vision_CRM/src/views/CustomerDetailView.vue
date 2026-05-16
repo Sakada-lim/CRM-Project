@@ -190,6 +190,34 @@
             </v-btn>
           </v-card-actions>
         </v-card>
+
+        <!-- Telegram enrollment -->
+        <v-card elevation="2">
+          <v-card-title class="d-flex align-center">
+            <v-icon class="mr-2" color="primary">mdi-send</v-icon>
+            Telegram
+          </v-card-title>
+          <v-card-text>
+            <template v-if="editable.telegramChatId">
+              <v-alert type="success" variant="tonal" density="compact" icon="mdi-check-circle">
+                Enrolled — this customer will receive Telegram broadcasts.
+              </v-alert>
+            </template>
+            <template v-else>
+              <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+                Not enrolled. Share the instruction below with this customer.
+              </v-alert>
+              <p class="text-caption text-medium-emphasis mb-1">Ask them to send this message to <strong>@BoldVisionPropertiesBot</strong>:</p>
+              <v-card variant="tonal" class="pa-3 mb-3 d-flex align-center justify-space-between">
+                <code class="text-body-2">/start {{ editable.telegramEnrollmentToken }}</code>
+                <v-btn size="x-small" variant="text" icon="mdi-content-copy" @click="copyEnrollment" />
+              </v-card>
+              <p class="text-caption text-medium-emphasis">
+                Once they send it, their Telegram will be linked automatically.
+              </p>
+            </template>
+          </v-card-text>
+        </v-card>
       </v-col>
     </v-row>
 
@@ -243,11 +271,13 @@ const editable = ref({
   notes: '',
   lastContactedAt: null,
   nextContactAt: null,
+  telegramChatId: null,
+  telegramEnrollmentToken: null,
 })
 
-if (original.value) {
-  editable.value = { ...editable.value, ...original.value }
-}
+watch(original, (val) => {
+  if (val) editable.value = { ...editable.value, ...val }
+}, { immediate: true })
 
 // ── Derived / display ───────────────────────────────────────────────────────
 
@@ -393,6 +423,13 @@ async function addFeedback() {
   if (!note || !customerFound.value) return
   await store.addFeedback(id, note)
   newFeedback.value = ''
+}
+
+// ── Telegram enrollment ──────────────────────────────────────────────────────
+
+function copyEnrollment() {
+  const text = `/start ${editable.value.telegramEnrollmentToken}`
+  navigator.clipboard.writeText(text)
 }
 
 // ── Basic info save/reset ────────────────────────────────────────────────────
