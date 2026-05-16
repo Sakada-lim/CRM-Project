@@ -17,7 +17,6 @@
         <span>Phone</span>
         <span>Channel</span>
         <span>Category</span>
-        <span class="followup-col">Follow-up cadence</span>
         <span class="text-center">Actions</span>
       </div>
 
@@ -44,12 +43,6 @@
               class="category-chip"
             >
               {{ customer.category }}
-            </v-chip>
-          </div>
-          <div class="cell followup-col">
-            <span class="cell-label">Follow-up Cadence</span>
-            <v-chip size="small" variant="outlined" class="text-capitalize">
-              {{ customer.followUpCadence }}
             </v-chip>
           </div>
           <div class="cell actions">
@@ -299,7 +292,7 @@ function handleFilterClear() {
 .list-header,
 .list-row {
   display: grid;
-  grid-template-columns: 1.8fr 1fr 1fr 1fr 1.2fr 1fr;
+  grid-template-columns: 1.8fr 1fr 1fr 1fr 1fr;
   gap: 16px;
   padding: 16px clamp(12px, 2.5vw, 24px);
   align-items: center;
@@ -350,25 +343,6 @@ function handleFilterClear() {
 
 .actions {
   text-align: center;
-}
-
-.followup-col {
-  display: block;
-}
-
-.list-row .followup-col {
-  text-align: left;
-}
-
-@media (max-width: 1200px) {
-  .list-header,
-  .list-row {
-    grid-template-columns: 1.8fr 1fr 1fr 1fr 1fr;
-  }
-
-  .followup-col {
-    display: none;
-  }
 }
 
 .empty-state {

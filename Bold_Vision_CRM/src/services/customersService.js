@@ -1,7 +1,5 @@
 import { supabase } from './supabase'
 
-const CADENCE = { Hot: 'Every 3 months', Warm: 'Every 6 months', Cold: 'Every 12 months' }
-
 function mapRowToCustomer(row) {
   return {
     id: row.id,
@@ -13,7 +11,7 @@ function mapRowToCustomer(row) {
     notes: row.notes ?? '',
     createdAt: row.created_at,
     lastContactedAt: row.last_contacted_at ?? null,
-    followUpCadence: CADENCE[row.category] ?? CADENCE.Cold,
+    nextContactAt: row.next_contact_at ?? null,
   }
 }
 
@@ -80,6 +78,14 @@ export async function setLastContacted(id, dateIso) {
   const { error } = await supabase
     .from('customers')
     .update({ last_contacted_at: dateIso })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function setNextContactAt(id, dateIso) {
+  const { error } = await supabase
+    .from('customers')
+    .update({ next_contact_at: dateIso })
     .eq('id', id)
   if (error) throw error
 }
