@@ -5,6 +5,7 @@ import {
   updateCustomer,
   deleteCustomer,
   setLastContacted,
+  setNextContactAt as setNextContactAtService,
   listFeedback,
   addFeedback as addFeedbackService,
 } from '../services/customersService'
@@ -14,7 +15,6 @@ import {
   removeInterest,
 } from '../services/interestsService'
 
-const CADENCE = { Hot: 'Every 3 months', Warm: 'Every 6 months', Cold: 'Every 12 months' }
 
 export const useCustomerStore = defineStore('customers', {
   state: () => ({
@@ -58,12 +58,7 @@ export const useCustomerStore = defineStore('customers', {
       const previous = index !== -1 ? { ...this.customers[index] } : null
 
       if (index !== -1) {
-        this.customers[index] = {
-          ...this.customers[index],
-          ...updates,
-          followUpCadence:
-            CADENCE[updates.category ?? this.customers[index].category] ?? CADENCE.Cold,
-        }
+        this.customers[index] = { ...this.customers[index], ...updates }
       }
 
       try {
@@ -98,6 +93,24 @@ export const useCustomerStore = defineStore('customers', {
         if (c) c.lastContactedAt = null
         this.error = e.message
       }
+    },
+
+    async setNextContactAt(id, dateIso) {
+      const c = this.customers.find((c) => c.id === id)
+      const prev = c?.nextContactAt ?? null
+      if (c) c.nextContactAt = dateIso
+      try {
+        await setNextContactAtService(id, dateIso)
+      } catch (e) {
+        if (c) c.nextContactAt = prev
+        this.error = e.message
+      }
+    },
+
+    async logContact(id, lastContactedIso, nextContactIso) {
+      await this.setLastContacted(id, lastContactedIso)
+      await this.setNextContactAt(id, nextContactIso)
+      await this.addFeedback(id, 'Contacted')
     },
 
     async fetchFeedback(customerId) {
