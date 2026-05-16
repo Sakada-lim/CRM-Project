@@ -12,6 +12,8 @@ function mapRowToCustomer(row) {
     createdAt: row.created_at,
     lastContactedAt: row.last_contacted_at ?? null,
     nextContactAt: row.next_contact_at ?? null,
+    telegramChatId: row.telegram_chat_id ?? null,
+    telegramEnrollmentToken: row.telegram_enrollment_token ?? null,
   }
 }
 

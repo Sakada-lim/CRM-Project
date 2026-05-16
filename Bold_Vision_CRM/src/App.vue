@@ -59,6 +59,12 @@
               title="Follow-ups"
               rounded="lg"
             />
+            <v-list-item
+              :to="{ name: 'messages' }"
+              prepend-icon="mdi-message-text-outline"
+              title="Broadcasts"
+              rounded="lg"
+            />
           </v-list>
 
           <v-divider class="my-4" />

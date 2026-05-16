@@ -5,6 +5,7 @@ import CustomerDetailView from '../views/CustomerDetailView.vue'
 import PropertiesView from '../views/PropertiesView.vue'
 import PropertyDetailsView from '../views/PropertyDetailsView.vue'
 import FollowUpsView from '../views/FollowUpsView.vue'
+import MessageHistoryView from '../views/MessageHistoryView.vue'
 import LoginView from '../views/LoginView.vue'
 import { getSession } from '../services/authService'
 
@@ -50,6 +51,12 @@ const router = createRouter({
       path: '/follow-ups',
       name: 'follow-ups',
       component: FollowUpsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/messages',
+      name: 'messages',
+      component: MessageHistoryView,
       meta: { requiresAuth: true },
     },
   ],

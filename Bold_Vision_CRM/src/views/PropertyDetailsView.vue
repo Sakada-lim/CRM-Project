@@ -108,6 +108,9 @@
 
     <!-- Interested customers (full-width Kanban) -->
     <PropertyInterestsPanel :property-id="id" class="mt-2" />
+
+    <!-- Broadcast -->
+    <BroadcastPanel v-if="original" :property="original" class="mt-4" />
   </div>
 
   <div v-else>
@@ -125,6 +128,7 @@ import { createEmptyPropertyDraft } from '../constants/propertyDefaults'
 import PropertyForm from '../components/properties/PropertiesForm.vue'
 import PhotoUploader from '../components/base/PhotoUploader.vue'
 import PropertyInterestsPanel from '../components/properties/PropertyInterestsPanel.vue'
+import BroadcastPanel from '../components/properties/BroadcastPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
