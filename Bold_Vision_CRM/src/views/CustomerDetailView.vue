@@ -66,7 +66,7 @@
               <v-col cols="12" md="3">
                 <v-select
                   v-model="editable.channel"
-                  :items="['Call', 'SMS', 'Email', 'Telegram', 'WhatsApp']"
+                  :items="['Call', 'Telegram', 'SMS', 'Email']"
                   label="Preferred channel"
                 />
               </v-col>

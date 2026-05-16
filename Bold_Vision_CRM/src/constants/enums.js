@@ -1,5 +1,5 @@
 export const PROPERTY_TYPES = ['House', 'Townhouse', 'Apartment', 'Villa']
 export const PROPERTY_STATUSES = ['On Market', 'Under Offer', 'Sold']
 export const CUSTOMER_CATEGORIES = ['Cold', 'Warm', 'Hot']
-export const CUSTOMER_CHANNELS = ['Call', 'SMS', 'Email']
+export const CUSTOMER_CHANNELS = ['Call', 'Telegram', 'SMS', 'Email']
 export const INTEREST_LEVELS = ['Cold', 'Warm', 'Hot']

@@ -13,7 +13,7 @@
     </v-col>
 
     <v-col cols="12" md="4">
-      <v-select v-model="form.channel" :items="['Call', 'SMS']" label="Enquiry channel" required />
+      <v-select v-model="form.channel" :items="['Call', 'Telegram', 'SMS', 'Email']" label="Preferred channel" required />
     </v-col>
 
     <v-col cols="12" md="4">

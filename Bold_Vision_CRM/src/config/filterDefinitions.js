@@ -64,6 +64,7 @@ export const customerFilterDefinitions = [
     ],
     options: [
       { title: 'Call', value: 'Call' },
+      { title: 'Telegram', value: 'Telegram' },
       { title: 'SMS', value: 'SMS' },
       { title: 'Email', value: 'Email' },
     ],
