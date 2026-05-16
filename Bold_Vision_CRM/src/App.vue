@@ -53,6 +53,12 @@
               title="Properties"
               rounded="lg"
             />
+            <v-list-item
+              :to="{ name: 'follow-ups' }"
+              prepend-icon="mdi-bell-ring-outline"
+              title="Follow-ups"
+              rounded="lg"
+            />
           </v-list>
 
           <v-divider class="my-4" />

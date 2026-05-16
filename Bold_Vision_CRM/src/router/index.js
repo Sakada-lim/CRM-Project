@@ -4,6 +4,7 @@ import CustomersView from '../views/CustomersView.vue'
 import CustomerDetailView from '../views/CustomerDetailView.vue'
 import PropertiesView from '../views/PropertiesView.vue'
 import PropertyDetailsView from '../views/PropertyDetailsView.vue'
+import FollowUpsView from '../views/FollowUpsView.vue'
 import LoginView from '../views/LoginView.vue'
 import { getSession } from '../services/authService'
 
@@ -43,6 +44,12 @@ const router = createRouter({
       path: '/customers/:id',
       name: 'customer-details',
       component: CustomerDetailView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/follow-ups',
+      name: 'follow-ups',
+      component: FollowUpsView,
       meta: { requiresAuth: true },
     },
   ],
