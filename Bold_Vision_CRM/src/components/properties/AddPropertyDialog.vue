@@ -18,9 +18,9 @@
       </div>
 
       <footer class="dialog-footer">
-        <v-spacer />
-        <v-btn variant="text" class="text-capitalize" @click="close">Cancel</v-btn>
-        <v-btn color="primary" class="text-capitalize" @click="handleConfirm">Add property</v-btn>
+        <div style="flex:1" />
+        <button class="btn btn-ghost" @click="close">Cancel</button>
+        <button class="btn btn-primary" @click="handleConfirm">Add Property</button>
       </footer>
     </v-card>
   </v-dialog>

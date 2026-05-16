@@ -1,53 +1,68 @@
 <template>
-  <div class="customers-toolbar">
-    <div class="header-row">
-      <div class="heading">
-        <v-icon :size="iconSize" :color="iconColor" class="heading-icon">{{ icon }}</v-icon>
-        <div>
-          <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
-          <h1 class="title-text">{{ title }}</h1>
-        </div>
+  <div class="cust-toolbar">
+    <!-- Title row -->
+    <div class="cust-toolbar__header">
+      <div class="cust-toolbar__title">
+        <h1>Customers</h1>
+        <p v-if="supportingText">{{ supportingText }}</p>
       </div>
-
       <slot name="actions">
-        <v-btn
-          color="primary"
-          variant="elevated"
-          class="text-capitalize"
-          :prepend-icon="actionIcon"
-          @click="$emit('add')"
-        >
-          {{ actionLabel }}
-        </v-btn>
+        <button class="btn btn-primary cust-add-btn" @click="$emit('add')">
+          <AppIcon name="plus" :size="14" />
+          <span class="cust-add-label">Add new customer</span>
+        </button>
       </slot>
     </div>
 
-    <div class="toolbar-search-filter-row">
-      <BaseSearchBar
-        v-model="internalSearch"
-        class="toolbar-search-control"
-        :label="searchLabel"
-        :placeholder="searchPlaceholder"
-      />
+    <!-- Filter strip: 2-row layout -->
+    <div class="cust-toolbar__strip">
+      <!-- Row 1: Category chips -->
+      <div class="cust-toolbar__chips-row">
+        <div class="status-chips" role="tablist">
+          <button
+            v-for="c in CATEGORY_GROUPS"
+            :key="c.label"
+            class="status-chip"
+            :class="{ active: internalCategory === c.label }"
+            role="tab"
+            @click="internalCategory = c.label"
+          >
+            <span v-if="c.dot" class="dot" :style="{ background: c.dot }" />
+            {{ c.label }}
+          </button>
+        </div>
+      </div>
 
-      <div class="filter-trigger-wrapper" v-if="showFilterButton && canAddFilters">
-        <v-btn
-          class="filter-trigger text-capitalize"
-          variant="tonal"
-          color="primary"
-          prepend-icon="mdi-tune"
+      <!-- Row 2: Search + Filters -->
+      <div class="cust-toolbar__controls">
+        <div class="cust-toolbar__search">
+          <AppIcon name="search" :size="15" class="cust-toolbar__search-icon" />
+          <input
+            v-model="internalSearch"
+            type="search"
+            class="cust-toolbar__search-input"
+            placeholder="Search name, email, phone…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <button
+          v-if="canAddFilters"
+          class="btn btn-ghost btn-sm-height"
           @click="$emit('open-filters')"
         >
-          {{ filterButtonLabel }}
-        </v-btn>
+          <AppIcon name="filter" :size="14" />
+          <span class="filter-label">Filters</span>
+        </button>
       </div>
     </div>
 
+    <!-- Active filter chips -->
     <BaseFilterBar
       v-if="hasActiveFilters"
       v-model="internalFilters"
       :available-filters="availableFilters"
-      class="toolbar-filter-chips"
       :show-activator="false"
     />
   </div>
@@ -55,111 +70,125 @@
 
 <script setup>
 import { computed } from 'vue'
-import BaseSearchBar from '../base/BaseSearchBar.vue'
+import AppIcon from '../base/AppIcon.vue'
 import BaseFilterBar from '../base/BaseFilterBar.vue'
 
+const CATEGORY_GROUPS = [
+  { label: 'All',  dot: null },
+  { label: 'Hot',  dot: 'var(--hot)' },
+  { label: 'Warm', dot: 'var(--warm)' },
+  { label: 'Cold', dot: 'var(--cold)' },
+]
+
 const props = defineProps({
-  title: {
-    type: String,
-    default: 'Customers',
-  },
-  eyebrow: {
-    type: String,
-    default: '',
-  },
-  icon: {
-    type: String,
-    default: 'mdi-account',
-  },
-  iconSize: {
-    type: [Number, String],
-    default: 38,
-  },
-  iconColor: {
-    type: String,
-    default: 'black',
-  },
-  actionLabel: {
-    type: String,
-    default: 'Add New Customer',
-  },
-  actionIcon: {
-    type: String,
-    default: 'mdi-account-plus',
-  },
-  search: {
-    type: String,
-    default: '',
-  },
-  searchLabel: {
-    type: String,
-    default: 'Search customers',
-  },
-  searchPlaceholder: {
-    type: String,
-    default: 'Search name, email, phone...',
-  },
-  filters: {
-    type: Array,
-    default: () => [],
-  },
-  availableFilters: {
-    type: Array,
-    default: () => [],
-  },
-  filterButtonLabel: {
-    type: String,
-    default: 'Filters',
-  },
-  showFilterButton: {
-    type: Boolean,
-    default: true,
-  },
+  supportingText:   { type: String, default: '' },
+  search:           { type: String, default: '' },
+  filters:          { type: Array,  default: () => [] },
+  availableFilters: { type: Array,  default: () => [] },
+  quickCategory:    { type: String, default: 'All' },
 })
 
-const emit = defineEmits(['update:search', 'update:filters', 'add', 'open-filters'])
+const emit = defineEmits([
+  'update:search', 'update:filters', 'update:quickCategory',
+  'add', 'open-filters',
+])
 
 const internalSearch = computed({
   get: () => props.search,
-  set: (value) => emit('update:search', value ?? ''),
+  set: (v) => emit('update:search', v ?? ''),
 })
-
 const internalFilters = computed({
   get: () => props.filters,
-  set: (value) => emit('update:filters', value ?? []),
+  set: (v) => emit('update:filters', v ?? []),
+})
+const internalCategory = computed({
+  get: () => props.quickCategory,
+  set: (v) => emit('update:quickCategory', v),
 })
 
-const hasActiveFilters = computed(() => (props.filters?.length ?? 0) > 0)
-const canAddFilters = computed(() => props.availableFilters.length > 0)
+const hasActiveFilters = computed(() => props.filters.length > 0)
+const canAddFilters    = computed(() => props.availableFilters.length > 0)
 </script>
 
 <style scoped>
-.toolbar-search-filter-row {
-  display: flex;
-  align-items: stretch;
-  gap: 16px;
-  flex-wrap: wrap;
-}
+.cust-toolbar { display: flex; flex-direction: column; gap: 14px; }
 
-.toolbar-search-control {
-  flex: 1 1 260px;
-}
-
-.filter-trigger-wrapper {
+.cust-toolbar__header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  align-self: center;
-  min-width: fit-content;
-  margin-right: clamp(8px, 1vw, 24px);
+  justify-content: space-between;
+  gap: 12px;
+}
+.cust-toolbar__title h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.cust-toolbar__title p {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
 }
 
-.filter-trigger {
-  white-space: nowrap;
+.cust-toolbar__strip {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.cust-toolbar__chips-row {
+  padding: 8px 8px 6px;
+}
+.cust-toolbar__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 8px;
+  border-top: 1px solid var(--border);
 }
 
-.toolbar-filter-chips {
-  margin-top: 12px;
+.cust-toolbar__search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.cust-toolbar__search-icon {
+  position: absolute;
+  left: 10px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.cust-toolbar__search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 34px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .12s, background .12s;
+}
+.cust-toolbar__search-input::placeholder { color: var(--text-faint); }
+.cust-toolbar__search-input:hover { border-color: var(--border); }
+.cust-toolbar__search-input:focus { border-color: var(--accent); background: var(--surface-2); }
+.cust-toolbar__search-input::-webkit-search-cancel-button { display: none; }
+
+.btn-sm-height { height: 36px; }
+
+@media (max-width: 600px) {
+  .cust-toolbar__title h1 { font-size: 20px; }
+  .filter-label { display: none; }
+  .cust-toolbar__controls { gap: 6px; padding: 6px; }
+  .cust-add-btn { width: 36px; padding: 0; }
+  .cust-add-label { display: none; }
 }
 </style>

@@ -2,13 +2,14 @@ export function createEmptyPropertyDraft() {
   const today = new Date().toISOString().slice(0, 10)
 
   return {
-    code: '',
     address: '',
     suburb: '',
     state: 'VIC',
     postcode: '',
     type: 'House',
     status: 'On Market',
+    priceMin: null,
+    priceMax: null,
     priceGuide: '',
     listedAt: today,
     bedrooms: null,

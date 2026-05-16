@@ -17,9 +17,7 @@
         <section class="filter-section">
           <div class="section-header">
             <p class="section-title">Property type</p>
-            <v-btn variant="text" size="small" class="text-capitalize" @click="clearTypes">
-              Clear
-            </v-btn>
+            <button class="clear-btn" @click="clearTypes">Clear</button>
           </div>
           <div class="type-grid">
             <v-checkbox
@@ -45,9 +43,7 @@
         <section class="filter-section">
           <div class="section-header">
             <p class="section-title">Price</p>
-            <v-btn variant="text" size="small" class="text-capitalize" @click="clearPriceRange">
-              Clear
-            </v-btn>
+            <button class="clear-btn" @click="clearPriceRange">Clear</button>
           </div>
           <div class="range-grid">
             <div class="range-field">
@@ -89,9 +85,7 @@
         <section class="filter-section">
           <div class="section-header">
             <p class="section-title">Bedrooms</p>
-            <v-btn variant="text" size="small" class="text-capitalize" @click="clearBedrooms">
-              Clear
-            </v-btn>
+            <button class="clear-btn" @click="clearBedrooms">Clear</button>
           </div>
           <div class="range-grid">
             <div class="range-field">
@@ -126,9 +120,7 @@
         <section class="filter-section">
           <div class="section-header">
             <p class="section-title">Bathrooms</p>
-            <v-btn variant="text" size="small" class="text-capitalize" @click="clearBathrooms">
-              Clear
-            </v-btn>
+            <button class="clear-btn" @click="clearBathrooms">Clear</button>
           </div>
           <div class="range-grid">
             <div class="range-field">
@@ -163,9 +155,7 @@
         <section class="filter-section">
           <div class="section-header">
             <p class="section-title">Car spaces</p>
-            <v-btn variant="text" size="small" class="text-capitalize" @click="clearCarSpaces">
-              Clear
-            </v-btn>
+            <button class="clear-btn" @click="clearCarSpaces">Clear</button>
           </div>
           <div class="single-field">
             <p class="field-label">Minimum</p>
@@ -185,9 +175,7 @@
         <section class="filter-section">
           <div class="section-header">
             <p class="section-title">Land size</p>
-            <v-btn variant="text" size="small" class="text-capitalize" @click="clearLandSize">
-              Clear
-            </v-btn>
+            <button class="clear-btn" @click="clearLandSize">Clear</button>
           </div>
           <div class="range-grid">
             <div class="range-field">
@@ -222,9 +210,7 @@
         <section class="filter-section">
           <div class="section-header">
             <p class="section-title">New or established property</p>
-            <v-btn variant="text" size="small" class="text-capitalize" @click="clearPropertyAge">
-              Clear
-            </v-btn>
+            <button class="clear-btn" @click="clearPropertyAge">Clear</button>
           </div>
           <v-radio-group v-model="draft.propertyAge" inline class="age-radios">
             <v-radio
@@ -241,10 +227,10 @@
       </div>
 
       <footer class="dialog-footer">
-        <v-btn variant="text" class="text-capitalize" @click="handleClear"> Clear all </v-btn>
-        <v-spacer />
-        <v-btn variant="text" class="text-capitalize" @click="close">Cancel</v-btn>
-        <v-btn color="primary" class="text-capitalize" @click="handleApply">Apply</v-btn>
+        <button class="btn btn-quiet" @click="handleClear">Clear all</button>
+        <div style="flex:1" />
+        <button class="btn btn-ghost" @click="close">Cancel</button>
+        <button class="btn btn-primary" @click="handleApply">Apply</button>
       </footer>
     </v-card>
   </v-dialog>
