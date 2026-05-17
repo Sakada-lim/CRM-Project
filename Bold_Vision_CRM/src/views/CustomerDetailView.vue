@@ -1,261 +1,729 @@
-﻿<template>
-  <v-container fluid class="py-4">
-    <!-- Breadcrumbs -->
-    <v-breadcrumbs :items="breadcrumbs" class="mb-4" />
+<template>
+  <div class="cd-shell">
+    <!-- Breadcrumb -->
+    <div class="cd-breadcrumb">
+      <RouterLink to="/customers" class="cd-breadcrumb__home">Existing customers</RouterLink>
+      <AppIcon name="chevron" :size="12" />
+      <span class="cd-breadcrumb__name">{{ editable.name || 'Customer details' }}</span>
+    </div>
 
-    <!-- Profile header -->
-    <v-card class="mb-4" elevation="4">
-      <v-card-text>
-        <v-row class="align-center" no-gutters>
-          <v-col cols="auto">
-            <v-avatar size="56" color="primary">
-              <span class="text-h5">
-                {{ initials }}
-              </span>
-            </v-avatar>
-          </v-col>
+    <!-- Hero card -->
+    <section class="cd-card cd-hero">
+      <div class="cd-hero__main">
+        <div class="cd-hero__avatar" :data-tone="avatarTone">{{ initials }}</div>
+        <div class="cd-hero__id">
+          <div class="cd-hero__name-row">
+            <h1 class="cd-hero__name">{{ editable.name || 'Customer details' }}</h1>
+            <span v-if="editable.category" class="pill" :class="categoryToneClass(editable.category)">
+              <span class="dot"></span>{{ editable.category }}
+            </span>
+          </div>
+          <div class="cd-hero__contact">
+            <span class="cd-hero__contact-item">
+              <AppIcon name="phone" :size="13" />
+              {{ editable.phone || '—' }}
+            </span>
+            <span class="cd-hero__contact-item">
+              <AppIcon name="mail" :size="13" />
+              {{ editable.email || '—' }}
+            </span>
+          </div>
+        </div>
+      </div>
 
-          <v-col class="pl-4">
-            <div class="d-flex align-center flex-wrap">
-              <h2 class="mr-3 mb-1">
-                {{ editable.name || 'Customer details' }}
-              </h2>
-              <v-chip
-                v-if="editable.category"
-                :color="categoryColor(editable.category)"
-                text-color="white"
-                size="small"
-                class="mr-2"
-              >
-                {{ editable.category }}
-              </v-chip>
+      <div class="cd-hero__stats">
+        <div class="cd-hero__stat">
+          <div class="cd-hero__stat-eyebrow">Last contact</div>
+          <div class="cd-hero__stat-v">{{ lastContactedShort }}</div>
+          <div class="cd-hero__stat-s">{{ lastContactedSub }}</div>
+        </div>
+        <div class="cd-hero__stat">
+          <div class="cd-hero__stat-eyebrow">Next contact</div>
+          <div class="cd-hero__stat-v" :data-tone="nextContactTone">{{ nextContactShort }}</div>
+          <div class="cd-hero__stat-s" :data-tone="nextContactTone">{{ nextContactSub }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DESKTOP: Two-column body (Basic + tab card on left, Follow-up + Telegram on right) -->
+    <div v-if="!isCompact" class="cd-body">
+      <!-- LEFT column -->
+      <div class="cd-body__main">
+        <!-- Basic information -->
+        <section class="cd-card cd-card--pad">
+          <div class="cd-sec-title">
+            <h3>Basic information</h3>
+            <span class="cd-sec-title__sub">All fields editable</span>
+          </div>
+
+          <div class="cd-form-grid">
+            <div class="field">
+              <label for="cd-name">Full name</label>
+              <input id="cd-name" v-model="editable.name" type="text" class="input" autocomplete="name" />
             </div>
-
-            <div class="text-body-2 text-medium-emphasis">
-              Last contact:
-              <strong>{{ lastContactedLabel }}</strong>
-              · Preferred:
-              <strong>{{ editable.channel || 'N/A' }}</strong>
-            </div>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
-
-    <!-- Main layout -->
-    <v-row>
-      <!-- Left side: basic info + feedback log -->
-      <v-col cols="12" md="8">
-        <!-- Basic info card -->
-        <v-card elevation="4" class="mb-4">
-          <v-card-title>Basic information</v-card-title>
-          <v-card-text>
-            <v-row dense>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="editable.name" label="Name" required />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field v-model="editable.phone" label="Phone" required />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field v-model="editable.email" label="Email" />
-              </v-col>
-
-              <v-col cols="12" md="3">
-                <v-select
-                  v-model="editable.channel"
-                  :items="['Call', 'Telegram', 'SMS', 'Email']"
-                  label="Preferred channel"
-                />
-              </v-col>
-
-              <v-col cols="12" md="3">
-                <v-select
-                  v-model="editable.category"
-                  :items="['Cold', 'Warm', 'Hot']"
-                  label="Category"
-                />
-              </v-col>
-
-              <v-col cols="12">
-                <v-textarea v-model="editable.notes" label="Internal notes" rows="3" />
-              </v-col>
-            </v-row>
-          </v-card-text>
-
-          <v-card-actions class="justify-end mr-2 mb-2">
-            <v-btn variant="outlined" color="grey-darken-1" class="mr-2" @click="resetChanges">
-              Reset
-            </v-btn>
-            <v-btn variant="outlined" color="primary" @click="saveChanges"> Save changes </v-btn>
-          </v-card-actions>
-        </v-card>
-
-        <!-- Feedback / interaction timeline -->
-        <v-card elevation="4">
-          <v-card-title class="justify-space-between align-center">
-            Interaction history
-          </v-card-title>
-
-          <v-card-text>
-            <!-- New feedback input (skeleton only) -->
-            <v-textarea
-              v-model="newFeedback"
-              label="New feedback note"
-              rows="2"
-              class="mb-3"
-              auto-grow
-            />
-
-            <v-divider />
-
-            <v-card-actions class="justify-end pa-0 mb-4">
-              <v-btn variant="outlined" color="primary" @click="addFeedback"> Add feedback </v-btn>
-            </v-card-actions>
-
-            <div v-if="feedbackEntries.length">
-              <div v-for="entry in feedbackEntries" :key="entry.id" class="mb-3">
-                <div class="text-body-2 font-weight-medium">
-                  {{ formatDate(entry.date) }}
-                </div>
-                <div class="text-body-2">
-                  {{ entry.note }}
-                </div>
-                <v-divider class="mt-2" />
+            <div class="field">
+              <label for="cd-phone">Phone</label>
+              <div class="input-affix">
+                <span class="prefix"><AppIcon name="phone" :size="14" /></span>
+                <input id="cd-phone" v-model="editable.phone" type="tel" class="input has-prefix" autocomplete="tel" />
               </div>
             </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
+            <div class="field">
+              <label for="cd-email">Email</label>
+              <div class="input-affix">
+                <span class="prefix"><AppIcon name="mail" :size="14" /></span>
+                <input id="cd-email" v-model="editable.email" type="email" class="input has-prefix" autocomplete="email" />
+              </div>
+            </div>
+            <div class="cd-form-pair">
+              <div class="field">
+                <label for="cd-channel">Preferred channel</label>
+                <select id="cd-channel" v-model="editable.channel" class="select">
+                  <option v-for="ch in CHANNELS" :key="ch" :value="ch">{{ ch }}</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="cd-category">Category</label>
+                <select id="cd-category" v-model="editable.category" class="select">
+                  <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
-      <!-- Right side: follow-up -->
-      <v-col cols="12" md="4">
-        <v-card elevation="2" class="mb-4">
-          <v-card-title class="d-flex align-center justify-space-between">
-            <span>Follow-up</span>
-            <v-chip :color="statusChip.color" size="small" variant="tonal">{{ statusChip.label }}</v-chip>
-          </v-card-title>
+          <div class="cd-form-notes">
+            <div class="field">
+              <div class="field-head">
+                <label for="cd-notes">Internal notes</label>
+                <span class="field-action">Only visible to your team</span>
+              </div>
+              <textarea
+                id="cd-notes"
+                v-model="editable.notes"
+                class="textarea"
+                rows="3"
+                placeholder="Family details, preferences, anything important to remember…"
+              ></textarea>
+            </div>
+          </div>
 
-          <v-card-text>
-            <!-- Last contacted -->
-            <p class="text-caption text-medium-emphasis mb-1">Last contacted</p>
-            <div class="d-flex align-center gap-2 mb-4">
-              <v-text-field
-                :model-value="lastContactedDateInput"
+          <div class="cd-card__actions">
+            <button class="btn btn-ghost" :disabled="!isDirty" @click="resetChanges">Reset</button>
+            <button class="btn btn-primary" :disabled="!isDirty || saving" @click="saveChanges">
+              <AppIcon name="check" :size="14" />
+              {{ saving ? 'Saving…' : 'Save changes' }}
+            </button>
+          </div>
+        </section>
+
+        <!-- Activity + Interests tabbed card -->
+        <section class="cd-card cd-tab-card">
+          <div class="tabs" role="tablist">
+            <button
+              role="tab"
+              :aria-pressed="activeTab === 'interactions'"
+              @click="activeTab = 'interactions'"
+            >
+              Interactions
+              <span v-if="feedbackEntries.length" class="tab-ct">{{ feedbackEntries.length }}</span>
+            </button>
+            <button
+              role="tab"
+              :aria-pressed="activeTab === 'properties'"
+              @click="activeTab = 'properties'"
+            >
+              Interested properties
+              <span v-if="totalInterests" class="tab-ct">{{ totalInterests }}</span>
+            </button>
+          </div>
+
+          <div class="cd-tab-body">
+            <Transition name="tab-fade" mode="out-in">
+              <div v-if="activeTab === 'interactions'" key="interactions" class="tab-panel">
+                <div class="cd-tab-subhead">
+                  <span class="cd-tab-subhead__meta">
+                    {{ feedbackEntries.length }} note{{ feedbackEntries.length === 1 ? '' : 's' }}
+                    <template v-if="firstFeedbackDate"> · since {{ firstFeedbackDate }}</template>
+                  </span>
+                </div>
+
+                <!-- Quick add -->
+                <div class="cd-quickadd">
+                  <textarea
+                    v-model="newFeedback"
+                    class="textarea"
+                    rows="2"
+                    placeholder="Log a quick note from the last interaction…"
+                  ></textarea>
+                  <div class="cd-quickadd__row">
+                    <div class="cd-typepick" role="group">
+                      <button
+                        v-for="t in INTERACTION_TYPES"
+                        :key="t.value"
+                        type="button"
+                        class="cd-typepick__btn"
+                        :data-tone="t.tone"
+                        :aria-pressed="quickType === t.value"
+                        @click="quickType = t.value"
+                      >
+                        <AppIcon :name="t.icon" :size="12" />
+                        {{ t.label }}
+                      </button>
+                    </div>
+                    <button
+                      class="btn btn-primary sm"
+                      :disabled="!newFeedback.trim() || addingFeedback"
+                      @click="addFeedback"
+                    >
+                      <AppIcon name="plus" :size="13" />
+                      Log activity
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Filter tabs -->
+                <div v-if="feedbackEntries.length" class="cd-filters" role="tablist">
+                  <button
+                    v-for="opt in filterOptions"
+                    :key="opt.value"
+                    type="button"
+                    class="cd-filter-tab"
+                    :aria-pressed="filterType === opt.value"
+                    @click="filterType = opt.value"
+                  >
+                    {{ opt.label }}
+                    <span class="cd-filter-tab__count">{{ opt.count }}</span>
+                  </button>
+                </div>
+
+                <!-- Timeline -->
+                <div v-if="filteredFeedback.length" class="cd-timeline">
+                  <div v-for="entry in filteredFeedback" :key="entry.id" class="cd-timeline__entry">
+                    <div class="cd-timeline__bullet" :data-tone="metaFor(entry.type).tone">
+                      <AppIcon :name="metaFor(entry.type).icon" :size="12" />
+                    </div>
+                    <div class="cd-timeline__content">
+                      <div class="cd-timeline__meta">
+                        <span class="cd-timeline__type">{{ metaFor(entry.type).label }}</span>
+                        <span
+                          v-if="entry.type === 'call' && entry.durationMinutes"
+                          class="cd-timeline__duration"
+                        >· {{ entry.durationMinutes }} min</span>
+                        <span class="cd-timeline__when">{{ formatDateTime(entry.date) }}</span>
+                      </div>
+                      <p class="cd-timeline__body">{{ entry.note }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="feedbackEntries.length" class="cd-timeline-empty">
+                  No {{ filterOptions.find((o) => o.value === filterType)?.label.toLowerCase() }} in this customer's history.
+                </div>
+                <div v-else class="cd-timeline-empty">
+                  No interactions logged yet. Add one above to start tracking touchpoints.
+                </div>
+              </div>
+
+              <div v-else key="properties" class="tab-panel">
+                <div class="cd-tab-subhead">
+                  <span class="cd-tab-subhead__meta">
+                    {{ totalInterests }} linked propert{{ totalInterests === 1 ? 'y' : 'ies' }}
+                  </span>
+                  <button class="btn btn-ghost sm" @click="onMatchProperty">
+                    <AppIcon name="plus" :size="13" />
+                    Match property
+                  </button>
+                </div>
+                <CustomerInterestsPanel ref="interestsPanel" :customer-id="id" />
+              </div>
+            </Transition>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT column -->
+      <aside class="cd-body__aside">
+        <!-- Follow-up -->
+        <section class="cd-card cd-card--pad-sm">
+          <div class="cd-sec-title">
+            <h3>Follow-up</h3>
+            <span v-if="statusBadge" class="pill" :class="statusBadge.cls">
+              <span class="dot"></span>{{ statusBadge.label }}
+            </span>
+          </div>
+
+          <div class="field">
+            <label for="cd-last">Last contacted</label>
+            <div class="input-affix">
+              <span class="prefix"><AppIcon name="clock" :size="14" /></span>
+              <input
+                id="cd-last"
+                :value="lastContactedDateInput"
                 type="datetime-local"
-                density="compact"
-                hide-details
-                variant="outlined"
+                class="input has-prefix"
                 @change="onLastContactedChange"
               />
-              <v-btn size="small" variant="tonal" color="primary" @click="setLastContactToNow">Now</v-btn>
             </div>
+          </div>
 
-            <!-- Next contact -->
-            <p class="text-caption text-medium-emphasis mb-1">Next contact</p>
-            <div class="d-flex align-center gap-2 mb-2">
-              <v-text-field
+          <div class="field" style="margin-top: 12px">
+            <label for="cd-next">Next contact</label>
+            <div class="input-affix">
+              <span class="prefix"><AppIcon name="calendar" :size="14" /></span>
+              <input
+                id="cd-next"
                 v-model="nextContactInput"
                 type="datetime-local"
-                density="compact"
-                hide-details
-                variant="outlined"
+                class="input has-prefix"
+                @change="saveNextContact"
               />
-              <v-btn size="small" variant="tonal" color="primary" @click="saveNextContact">Set</v-btn>
-              <v-btn size="small" variant="tonal" color="error" icon="mdi-close" @click="clearNextContact" />
             </div>
-            <v-btn
-              size="small"
-              variant="outlined"
-              color="secondary"
-              class="mb-4"
-              :disabled="!editable.category"
-              @click="applyDefaultCadence"
-            >
-              {{ quickPickLabel }}
-            </v-btn>
-          </v-card-text>
+          </div>
 
-          <v-card-actions class="px-4 pb-4">
-            <v-btn
-              color="primary"
-              variant="flat"
-              prepend-icon="mdi-check-circle-outline"
-              block
-              @click="markContactedDialog = true"
+          <div class="cd-chips">
+            <button v-for="q in quickChips" :key="q.label" class="btn btn-ghost sm" @click="applyQuickChip(q)">
+              {{ q.label }}
+            </button>
+            <button
+              v-if="editable.nextContactAt"
+              class="btn btn-quiet sm cd-chips__clear"
+              @click="clearNextContact"
             >
-              Mark contacted
-            </v-btn>
-          </v-card-actions>
-        </v-card>
+              <AppIcon name="x" :size="11" />
+              Clear
+            </button>
+          </div>
+
+          <button class="btn btn-primary cd-mark-btn" @click="markContactedDialog = true">
+            <AppIcon name="check" :size="14" />
+            Mark contacted now
+          </button>
+        </section>
 
         <!-- Telegram enrollment -->
-        <v-card elevation="2">
-          <v-card-title class="d-flex align-center">
-            <v-icon class="mr-2" color="primary">mdi-send</v-icon>
-            Telegram
-          </v-card-title>
-          <v-card-text>
-            <template v-if="editable.telegramChatId">
-              <v-alert type="success" variant="tonal" density="compact" icon="mdi-check-circle">
-                Enrolled — this customer will receive Telegram broadcasts.
-              </v-alert>
-            </template>
-            <template v-else>
-              <v-alert type="info" variant="tonal" density="compact" class="mb-3">
-                Not enrolled. Share the instruction below with this customer.
-              </v-alert>
-              <p class="text-caption text-medium-emphasis mb-1">Ask them to send this message to <strong>@BoldVisionPropertiesBot</strong>:</p>
-              <v-card variant="tonal" class="pa-3 mb-3 d-flex align-center justify-space-between">
-                <code class="text-body-2">/start {{ editable.telegramEnrollmentToken }}</code>
-                <v-btn size="x-small" variant="text" icon="mdi-content-copy" @click="copyEnrollment" />
-              </v-card>
-              <p class="text-caption text-medium-emphasis">
-                Once they send it, their Telegram will be linked automatically.
-              </p>
-            </template>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+        <section class="cd-card cd-card--pad-sm">
+          <div class="cd-sec-title">
+            <h3>Telegram</h3>
+            <span v-if="editable.telegramChatId" class="pill success">
+              <span class="dot"></span>Enrolled
+            </span>
+            <span v-else class="pill muted">Not enrolled</span>
+          </div>
 
-    <!-- Mark contacted dialog -->
-    <v-dialog v-model="markContactedDialog" max-width="400">
-      <v-card>
-        <v-card-title>Mark as contacted</v-card-title>
-        <v-card-text>
-          <p class="text-body-2 mb-4">Last contacted will be set to now.</p>
-          <p class="text-body-2 font-weight-medium mb-2">When should we contact next?</p>
-          <v-text-field v-model="mcNextDate" label="Date & time" type="datetime-local" class="mb-2" />
-          <v-btn variant="outlined" size="small" color="secondary" class="mb-3" @click="mcApplyDefault">
-            {{ quickPickLabel }}
-          </v-btn>
-          <v-checkbox v-model="mcSkip" label="Skip - don't schedule next contact" density="compact" hide-details />
-        </v-card-text>
-        <v-card-actions class="justify-end">
-          <v-btn variant="text" @click="markContactedDialog = false">Cancel</v-btn>
-          <v-btn color="primary" variant="flat" @click="confirmMarkContacted">Confirm</v-btn>
-        </v-card-actions>
-      </v-card>
+          <template v-if="editable.telegramChatId">
+            <p class="cd-telegram__hint">
+              This customer will receive Telegram broadcasts you send from any property they're interested in.
+            </p>
+          </template>
+          <template v-else>
+            <p class="cd-telegram__hint">
+              Ask them to message <strong>@BoldVisionPropertiesBot</strong> with the command below to enrol.
+            </p>
+            <div class="cd-telegram__token">
+              <code>/start {{ editable.telegramEnrollmentToken }}</code>
+              <button class="btn btn-quiet icon sm" aria-label="Copy command" @click="copyEnrollment">
+                <AppIcon name="check" v-if="copied" :size="13" />
+                <AppIcon name="edit" v-else :size="13" />
+              </button>
+            </div>
+          </template>
+        </section>
+      </aside>
+    </div>
+
+    <!-- COMPACT (iPad / iPhone): single tab card with Profile / Interactions / Properties -->
+    <section v-if="isCompact" class="cd-card cd-tab-card">
+      <div class="tabs" role="tablist">
+        <button role="tab" :aria-pressed="activeTab === 'profile'" @click="activeTab = 'profile'">
+          Profile
+        </button>
+        <button role="tab" :aria-pressed="activeTab === 'interactions'" @click="activeTab = 'interactions'">
+          Interactions
+          <span v-if="feedbackEntries.length" class="tab-ct">{{ feedbackEntries.length }}</span>
+        </button>
+        <button role="tab" :aria-pressed="activeTab === 'properties'" @click="activeTab = 'properties'">
+          Properties
+          <span v-if="totalInterests" class="tab-ct">{{ totalInterests }}</span>
+        </button>
+      </div>
+
+      <div class="cd-tab-body">
+        <Transition name="tab-fade" mode="out-in">
+          <!-- ── Profile tab: Basic info + Follow-up + Telegram stacked ── -->
+          <div v-if="activeTab === 'profile'" key="profile" class="tab-panel">
+            <!-- Basic info section -->
+            <div class="cd-profile-section">
+              <div class="cd-sec-title">
+                <h3>Basic information</h3>
+                <span class="cd-sec-title__sub">All fields editable</span>
+              </div>
+              <div class="cd-form-grid">
+                <div class="field">
+                  <label for="cdm-name">Full name</label>
+                  <input id="cdm-name" v-model="editable.name" type="text" class="input" autocomplete="name" />
+                </div>
+                <div class="field">
+                  <label for="cdm-phone">Phone</label>
+                  <div class="input-affix">
+                    <span class="prefix"><AppIcon name="phone" :size="14" /></span>
+                    <input id="cdm-phone" v-model="editable.phone" type="tel" class="input has-prefix" autocomplete="tel" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="cdm-email">Email</label>
+                  <div class="input-affix">
+                    <span class="prefix"><AppIcon name="mail" :size="14" /></span>
+                    <input id="cdm-email" v-model="editable.email" type="email" class="input has-prefix" autocomplete="email" />
+                  </div>
+                </div>
+                <div class="cd-form-pair">
+                  <div class="field">
+                    <label for="cdm-channel">Preferred channel</label>
+                    <select id="cdm-channel" v-model="editable.channel" class="select">
+                      <option v-for="ch in CHANNELS" :key="ch" :value="ch">{{ ch }}</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="cdm-category">Category</label>
+                    <select id="cdm-category" v-model="editable.category" class="select">
+                      <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="cd-form-notes">
+                <div class="field">
+                  <div class="field-head">
+                    <label for="cdm-notes">Internal notes</label>
+                    <span class="field-action">Only visible to your team</span>
+                  </div>
+                  <textarea
+                    id="cdm-notes"
+                    v-model="editable.notes"
+                    class="textarea"
+                    rows="3"
+                    placeholder="Family details, preferences, anything important to remember…"
+                  ></textarea>
+                </div>
+              </div>
+              <div class="cd-card__actions cd-profile-actions">
+                <button class="btn btn-ghost" :disabled="!isDirty" @click="resetChanges">Reset</button>
+                <button class="btn btn-primary" :disabled="!isDirty || saving" @click="saveChanges">
+                  <AppIcon name="check" :size="14" />
+                  {{ saving ? 'Saving…' : 'Save changes' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Follow-up section -->
+            <div class="cd-profile-section">
+              <div class="cd-sec-title">
+                <h3>Follow-up</h3>
+                <span v-if="statusBadge" class="pill" :class="statusBadge.cls">
+                  <span class="dot"></span>{{ statusBadge.label }}
+                </span>
+              </div>
+              <div class="field">
+                <label for="cdm-last">Last contacted</label>
+                <div class="input-affix">
+                  <span class="prefix"><AppIcon name="clock" :size="14" /></span>
+                  <input
+                    id="cdm-last"
+                    :value="lastContactedDateInput"
+                    type="datetime-local"
+                    class="input has-prefix"
+                    @change="onLastContactedChange"
+                  />
+                </div>
+              </div>
+              <div class="field" style="margin-top: 12px">
+                <label for="cdm-next">Next contact</label>
+                <div class="input-affix">
+                  <span class="prefix"><AppIcon name="calendar" :size="14" /></span>
+                  <input
+                    id="cdm-next"
+                    v-model="nextContactInput"
+                    type="datetime-local"
+                    class="input has-prefix"
+                    @change="saveNextContact"
+                  />
+                </div>
+              </div>
+              <div class="cd-chips">
+                <button v-for="q in quickChips" :key="q.label" class="btn btn-ghost sm" @click="applyQuickChip(q)">
+                  {{ q.label }}
+                </button>
+                <button v-if="editable.nextContactAt" class="btn btn-quiet sm cd-chips__clear" @click="clearNextContact">
+                  <AppIcon name="x" :size="11" />
+                  Clear
+                </button>
+              </div>
+              <button class="btn btn-primary cd-mark-btn" @click="markContactedDialog = true">
+                <AppIcon name="check" :size="14" />
+                Mark contacted now
+              </button>
+            </div>
+
+            <!-- Telegram section -->
+            <div class="cd-profile-section">
+              <div class="cd-sec-title">
+                <h3>Telegram</h3>
+                <span v-if="editable.telegramChatId" class="pill success">
+                  <span class="dot"></span>Enrolled
+                </span>
+                <span v-else class="pill muted">Not enrolled</span>
+              </div>
+              <template v-if="editable.telegramChatId">
+                <p class="cd-telegram__hint">
+                  This customer will receive Telegram broadcasts you send from any property they're interested in.
+                </p>
+              </template>
+              <template v-else>
+                <p class="cd-telegram__hint">
+                  Ask them to message <strong>@BoldVisionPropertiesBot</strong> with the command below to enrol.
+                </p>
+                <div class="cd-telegram__token">
+                  <code>/start {{ editable.telegramEnrollmentToken }}</code>
+                  <button class="btn btn-quiet icon sm" aria-label="Copy command" @click="copyEnrollment">
+                    <AppIcon name="check" v-if="copied" :size="13" />
+                    <AppIcon name="edit" v-else :size="13" />
+                  </button>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- ── Interactions tab (same as desktop) ── -->
+          <div v-else-if="activeTab === 'interactions'" key="interactions" class="tab-panel">
+            <div class="cd-tab-subhead">
+              <span class="cd-tab-subhead__meta">
+                {{ feedbackEntries.length }} note{{ feedbackEntries.length === 1 ? '' : 's' }}
+                <template v-if="firstFeedbackDate"> · since {{ firstFeedbackDate }}</template>
+              </span>
+            </div>
+            <div class="cd-quickadd">
+              <textarea
+                v-model="newFeedback"
+                class="textarea"
+                rows="2"
+                placeholder="Log a quick note from the last interaction…"
+              ></textarea>
+              <div class="cd-quickadd__row">
+                <div class="cd-typepick" role="group">
+                  <button
+                    v-for="t in INTERACTION_TYPES"
+                    :key="t.value"
+                    type="button"
+                    class="cd-typepick__btn"
+                    :data-tone="t.tone"
+                    :aria-pressed="quickType === t.value"
+                    @click="quickType = t.value"
+                  >
+                    <AppIcon :name="t.icon" :size="12" />
+                    {{ t.label }}
+                  </button>
+                </div>
+                <button
+                  class="btn btn-primary sm"
+                  :disabled="!newFeedback.trim() || addingFeedback"
+                  @click="addFeedback"
+                >
+                  <AppIcon name="plus" :size="13" />
+                  Log activity
+                </button>
+              </div>
+            </div>
+            <div v-if="feedbackEntries.length" class="cd-filters" role="tablist">
+              <button
+                v-for="opt in filterOptions"
+                :key="opt.value"
+                type="button"
+                class="cd-filter-tab"
+                :aria-pressed="filterType === opt.value"
+                @click="filterType = opt.value"
+              >
+                {{ opt.label }}
+                <span class="cd-filter-tab__count">{{ opt.count }}</span>
+              </button>
+            </div>
+            <div v-if="filteredFeedback.length" class="cd-timeline">
+              <div v-for="entry in filteredFeedback" :key="entry.id" class="cd-timeline__entry">
+                <div class="cd-timeline__bullet" :data-tone="metaFor(entry.type).tone">
+                  <AppIcon :name="metaFor(entry.type).icon" :size="12" />
+                </div>
+                <div class="cd-timeline__content">
+                  <div class="cd-timeline__meta">
+                    <span class="cd-timeline__type">{{ metaFor(entry.type).label }}</span>
+                    <span
+                      v-if="entry.type === 'call' && entry.durationMinutes"
+                      class="cd-timeline__duration"
+                    >· {{ entry.durationMinutes }} min</span>
+                    <span class="cd-timeline__when">{{ formatDateTime(entry.date) }}</span>
+                  </div>
+                  <p class="cd-timeline__body">{{ entry.note }}</p>
+                </div>
+              </div>
+            </div>
+            <div v-else-if="feedbackEntries.length" class="cd-timeline-empty">
+              No {{ filterOptions.find((o) => o.value === filterType)?.label.toLowerCase() }} in this customer's history.
+            </div>
+            <div v-else class="cd-timeline-empty">
+              No interactions logged yet. Add one above to start tracking touchpoints.
+            </div>
+          </div>
+
+          <!-- ── Properties tab ── -->
+          <div v-else key="properties" class="tab-panel">
+            <div class="cd-tab-subhead">
+              <span class="cd-tab-subhead__meta">
+                {{ totalInterests }} linked propert{{ totalInterests === 1 ? 'y' : 'ies' }}
+              </span>
+              <button class="btn btn-ghost sm" @click="onMatchProperty">
+                <AppIcon name="plus" :size="13" />
+                Match property
+              </button>
+            </div>
+            <CustomerInterestsPanel ref="interestsPanel" :customer-id="id" />
+          </div>
+        </Transition>
+      </div>
+    </section>
+
+    <!-- Mark contacted / Log activity dialog -->
+    <v-dialog v-model="markContactedDialog" :max-width="600" :scrim="'rgba(15,23,42,0.65)'">
+      <div class="modal-card">
+        <header class="modal-head">
+          <span class="ico"><AppIcon name="check" :size="18" /></span>
+          <div class="modal-head__text">
+            <h2>Log activity</h2>
+            <div class="sub">Capture how this customer was contacted and when to follow up next.</div>
+          </div>
+          <button class="close" aria-label="Close" @click="markContactedDialog = false">
+            <AppIcon name="x" :size="16" />
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <!-- Type picker -->
+          <div class="field">
+            <label>How did you contact them?</label>
+            <div class="cd-typepick" role="group">
+              <button
+                v-for="t in INTERACTION_TYPES"
+                :key="t.value"
+                type="button"
+                class="cd-typepick__btn"
+                :data-tone="t.tone"
+                :aria-pressed="mcType === t.value"
+                @click="mcType = t.value"
+              >
+                <AppIcon :name="t.icon" :size="13" />
+                {{ t.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div class="field">
+            <label for="mc-note">Note</label>
+            <textarea
+              id="mc-note"
+              v-model="mcNote"
+              class="textarea"
+              rows="3"
+              placeholder="What was discussed? Any commitments or next steps?"
+            ></textarea>
+          </div>
+
+          <!-- Duration (calls only) -->
+          <div v-if="mcType === 'call'" class="field cd-mc-duration">
+            <label for="mc-duration">Call duration (minutes)</label>
+            <input
+              id="mc-duration"
+              v-model.number="mcDuration"
+              type="number"
+              min="0"
+              max="600"
+              class="input"
+              placeholder="e.g. 12"
+            />
+          </div>
+
+          <!-- Schedule next contact section -->
+          <div class="cd-mc-divider"></div>
+          <div class="cd-mc-section">
+            <div class="cd-mc-section__head">
+              <h4>Schedule next contact</h4>
+              <label class="cd-mc-skip">
+                <input v-model="mcSkip" type="checkbox" />
+                <span>Skip</span>
+              </label>
+            </div>
+            <div class="field">
+              <label for="mc-next">Next contact</label>
+              <div class="input-affix">
+                <span class="prefix"><AppIcon name="calendar" :size="14" /></span>
+                <input
+                  id="mc-next"
+                  v-model="mcNextDate"
+                  type="datetime-local"
+                  class="input has-prefix"
+                  :disabled="mcSkip"
+                />
+              </div>
+            </div>
+            <button
+              class="btn btn-ghost sm cd-mc-default"
+              :disabled="mcSkip || !editable.category"
+              @click="mcApplyDefault"
+            >
+              Use default cadence ({{ cadenceLabel(editable.category) }})
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-foot">
+          <button class="btn btn-ghost" @click="markContactedDialog = false">Cancel</button>
+          <button class="btn btn-primary" :disabled="!mcCanConfirm" @click="confirmMarkContacted">
+            <AppIcon name="check" :size="14" />
+            {{ mcSaving ? 'Saving…' : 'Log activity' }}
+          </button>
+        </div>
+      </div>
     </v-dialog>
-
-    <!-- Interested properties (full-width) -->
-    <CustomerInterestsPanel :customer-id="id" class="mt-2" />
-  </v-container>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCustomerStore } from '../stores/customerStore'
-import { customerStatus, daysUntilContact, cadenceMonths, cadenceLabel } from '../utils/followUp'
+import {
+  customerStatus,
+  daysUntilContact,
+  cadenceMonths,
+  cadenceLabel,
+} from '../utils/followUp'
 import CustomerInterestsPanel from '../components/customer/CustomerInterestsPanel.vue'
+import AppIcon from '../components/base/AppIcon.vue'
+
+const CHANNELS = ['Call', 'Telegram', 'SMS', 'Email']
+const CATEGORIES = ['Hot', 'Warm', 'Cold']
+const AVATAR_TONES = ['accent', 'warm', 'hot', 'cold']
+
+const INTERACTION_TYPES = [
+  { value: 'call',  label: 'Call',  icon: 'phone', tone: 'call'  },
+  { value: 'email', label: 'Email', icon: 'mail',  tone: 'email' },
+  { value: 'sms',   label: 'SMS',   icon: 'chat',  tone: 'sms'   },
+  { value: 'note',  label: 'Note',  icon: 'edit',  tone: 'note'  },
+]
+const TYPE_META = Object.fromEntries(INTERACTION_TYPES.map((t) => [t.value, t]))
+function metaFor(type) {
+  return TYPE_META[type] ?? TYPE_META.note
+}
 
 const route = useRoute()
 const store = useCustomerStore()
-
 const id = route.params.id
 
 const original = computed(() => store.customers.find((c) => c.id === id))
@@ -275,58 +743,134 @@ const editable = ref({
   telegramEnrollmentToken: null,
 })
 
-watch(original, (val) => {
-  if (val) editable.value = { ...editable.value, ...val }
-}, { immediate: true })
+watch(
+  original,
+  (val) => {
+    if (val) editable.value = { ...editable.value, ...val }
+  },
+  { immediate: true },
+)
 
-// ── Derived / display ───────────────────────────────────────────────────────
-
-const breadcrumbs = computed(() => [
-  { title: 'Existing customers', to: { name: 'customers' } },
-  { title: editable.value.name || 'Customer details', disabled: true },
-])
+// ── Derived ─────────────────────────────────────────────────────────────────
 
 const initials = computed(() => {
   if (!editable.value.name) return '?'
   return editable.value.name
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase())
+    .trim()
+    .split(/\s+/)
     .slice(0, 2)
-    .join('')
+    .map((p) => p[0]?.toUpperCase())
+    .join('') || '?'
 })
 
-function categoryColor(category) {
-  if (category === 'Hot') return 'red'
-  if (category === 'Warm') return 'orange'
-  return 'blue'
+const avatarTone = computed(() => {
+  const s = editable.value.name || editable.value.id || ''
+  let hash = 0
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) | 0
+  return AVATAR_TONES[Math.abs(hash) % AVATAR_TONES.length]
+})
+
+function categoryToneClass(cat) {
+  if (cat === 'Hot') return 'hot'
+  if (cat === 'Warm') return 'warm'
+  return 'cold'
 }
 
-function formatDate(iso) {
-  if (!iso) return 'N/A'
+// ── Dirty tracking + save/reset ────────────────────────────────────────────
+
+const EDITABLE_FIELDS = ['name', 'phone', 'email', 'channel', 'category', 'notes']
+const isDirty = computed(() => {
+  if (!original.value) return false
+  return EDITABLE_FIELDS.some((f) => (editable.value[f] ?? '') !== (original.value[f] ?? ''))
+})
+
+const saving = ref(false)
+
+async function saveChanges() {
+  if (!customerFound.value || !isDirty.value) return
+  saving.value = true
+  try {
+    await store.updateCustomer(id, { ...editable.value })
+  } catch (e) {
+    alert(`Failed to save: ${e.message}`)
+  } finally {
+    saving.value = false
+  }
+}
+
+function resetChanges() {
+  if (!original.value) return
+  editable.value = { ...editable.value, ...original.value }
+}
+
+// ── Hero stats ──────────────────────────────────────────────────────────────
+
+function formatShortDate(iso) {
+  if (!iso) return '—'
   const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-AU')
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 }
 
-const lastContactedLabel = computed(() =>
-  editable.value.lastContactedAt ? formatDate(editable.value.lastContactedAt) : 'Not set',
+function formatTime(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function formatDateTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} · ${formatTime(iso)}`
+}
+
+const lastContactedShort = computed(() =>
+  editable.value.lastContactedAt ? formatShortDate(editable.value.lastContactedAt) : 'Never',
 )
+const lastContactedSub = computed(() => {
+  const v = editable.value.lastContactedAt
+  if (!v) return 'No contact logged yet'
+  return `${formatTime(v)} · ${editable.value.channel || 'Call'}`
+})
 
-// ── Follow-up card computeds ────────────────────────────────────────────────
+const nextContactShort = computed(() => {
+  const v = editable.value.nextContactAt
+  if (!v) return 'Not scheduled'
+  const days = daysUntilContact(editable.value)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Tomorrow'
+  if (days < 0) return `${Math.abs(days)}d overdue`
+  return formatShortDate(v)
+})
+const nextContactSub = computed(() => {
+  const v = editable.value.nextContactAt
+  if (!v) return 'Set a date below'
+  const days = daysUntilContact(editable.value)
+  if (days === 0 || days === 1 || days < 0) return formatDateTime(v)
+  return `in ${days} days`
+})
+const nextContactTone = computed(() => {
+  const v = editable.value.nextContactAt
+  if (!v) return 'muted'
+  const days = daysUntilContact(editable.value)
+  if (days < 0) return 'overdue'
+  if (days === 0) return 'today'
+  return ''
+})
 
-const statusChip = computed(() => {
-  const status = customerStatus(editable.value)
-  if (status === 'never-contacted') return { label: 'Never contacted', color: 'error' }
-  if (status === 'unscheduled')     return { label: 'No schedule', color: 'warning' }
-  if (status === 'overdue') {
+// ── Follow-up sidebar ───────────────────────────────────────────────────────
+
+const statusBadge = computed(() => {
+  const s = customerStatus(editable.value)
+  if (s === 'overdue') {
     const d = Math.abs(daysUntilContact(editable.value))
-    return { label: `${d}d overdue`, color: 'error' }
+    return { label: `${d}d overdue`, cls: 'hot' }
   }
-  if (status === 'approaching') {
+  if (s === 'approaching') {
     const d = daysUntilContact(editable.value)
-    return { label: `Due in ${d}d`, color: 'warning' }
+    return { label: `Due in ${d}d`, cls: 'warm' }
   }
-  return { label: 'Up to date', color: 'success' }
+  if (s === 'never-contacted') return { label: 'Never contacted', cls: 'muted' }
+  if (s === 'unscheduled') return { label: 'No schedule', cls: 'muted' }
+  return null
 })
 
 const lastContactedDateInput = computed(() => {
@@ -335,22 +879,36 @@ const lastContactedDateInput = computed(() => {
 })
 
 const nextContactInput = ref(
-  editable.value.nextContactAt ? new Date(editable.value.nextContactAt).toISOString().slice(0, 16) : ''
+  editable.value.nextContactAt ? new Date(editable.value.nextContactAt).toISOString().slice(0, 16) : '',
 )
 
 watch(
   () => editable.value.nextContactAt,
   (val) => {
     nextContactInput.value = val ? new Date(val).toISOString().slice(0, 16) : ''
-  }
+  },
 )
 
-const quickPickLabel = computed(() => {
-  if (!editable.value.category) return 'Set default'
-  return `${cadenceLabel(editable.value.category)} (${editable.value.category} default)`
-})
+const quickChips = computed(() => [
+  { label: '+1 day', kind: 'days', amount: 1 },
+  { label: '+3 days', kind: 'days', amount: 3 },
+  { label: '+1 week', kind: 'days', amount: 7 },
+  {
+    label: `+${cadenceMonths(editable.value.category)} mo · ${editable.value.category || 'default'}`,
+    kind: 'months',
+    amount: cadenceMonths(editable.value.category),
+  },
+])
 
-// ── Follow-up actions ────────────────────────────────────────────────────────
+async function applyQuickChip(q) {
+  const base = editable.value.lastContactedAt ? new Date(editable.value.lastContactedAt) : new Date()
+  if (q.kind === 'days') base.setDate(base.getDate() + q.amount)
+  else if (q.kind === 'months') base.setMonth(base.getMonth() + q.amount)
+  const iso = base.toISOString()
+  editable.value.nextContactAt = iso
+  nextContactInput.value = iso.slice(0, 16)
+  await store.setNextContactAt(id, iso)
+}
 
 async function onLastContactedChange(e) {
   const val = e.target.value
@@ -367,31 +925,38 @@ async function saveNextContact() {
   await store.setNextContactAt(id, iso)
 }
 
-async function setLastContactToNow() {
-  const iso = new Date().toISOString()
-  editable.value.lastContactedAt = iso
-  await store.setLastContacted(id, iso)
-}
-
 async function clearNextContact() {
   editable.value.nextContactAt = null
   nextContactInput.value = ''
   await store.setNextContactAt(id, null)
 }
 
-async function applyDefaultCadence() {
-  const next = new Date()
-  next.setMonth(next.getMonth() + cadenceMonths(editable.value.category))
-  const iso = next.toISOString()
-  editable.value.nextContactAt = iso
-  await store.setNextContactAt(id, iso)
-}
-
-// ── Mark contacted dialog ────────────────────────────────────────────────────
+// ── Mark contacted dialog ──────────────────────────────────────────────────
 
 const markContactedDialog = ref(false)
+const mcType = ref('call')
+const mcNote = ref('')
+const mcDuration = ref(null)
 const mcNextDate = ref('')
 const mcSkip = ref(false)
+const mcSaving = ref(false)
+
+watch(markContactedDialog, (open) => {
+  if (!open) return
+  // Prefill from the customer's preferred channel where it makes sense
+  const ch = (editable.value.channel || 'Call').toLowerCase()
+  mcType.value = ['call', 'email', 'sms'].includes(ch) ? ch : 'call'
+  mcNote.value = ''
+  mcDuration.value = null
+  mcSkip.value = false
+  if (editable.value.category) {
+    const next = new Date()
+    next.setMonth(next.getMonth() + cadenceMonths(editable.value.category))
+    mcNextDate.value = next.toISOString().slice(0, 16)
+  } else {
+    mcNextDate.value = ''
+  }
+})
 
 function mcApplyDefault() {
   const next = new Date()
@@ -400,47 +965,637 @@ function mcApplyDefault() {
   mcSkip.value = false
 }
 
+const mcCanConfirm = computed(() => !!mcNote.value.trim() && !mcSaving.value)
+
 async function confirmMarkContacted() {
+  if (!mcCanConfirm.value) return
+  mcSaving.value = true
   const now = new Date().toISOString()
   const nextIso = mcSkip.value || !mcNextDate.value ? null : new Date(mcNextDate.value).toISOString()
-  await store.logContact(id, now, nextIso)
-  editable.value.lastContactedAt = now
-  editable.value.nextContactAt = nextIso
-  markContactedDialog.value = false
-  mcNextDate.value = ''
-  mcSkip.value = false
+  try {
+    await store.logContact(id, {
+      lastContactedIso: now,
+      nextContactIso: nextIso,
+      type: mcType.value,
+      note: mcNote.value.trim(),
+      durationMinutes: mcType.value === 'call' ? mcDuration.value : null,
+    })
+    editable.value.lastContactedAt = now
+    editable.value.nextContactAt = nextIso
+    markContactedDialog.value = false
+  } catch (e) {
+    alert(`Failed to log: ${e.message}`)
+  } finally {
+    mcSaving.value = false
+  }
 }
 
-// ── Feedback ─────────────────────────────────────────────────────────────────
+// ── Feedback ────────────────────────────────────────────────────────────────
 
 const feedbackEntries = computed(() => store.feedback[id] ?? [])
 const newFeedback = ref('')
+const quickType = ref('note')
+const addingFeedback = ref(false)
+const filterType = ref('all')
 
-onMounted(() => store.fetchFeedback(id))
+const firstFeedbackDate = computed(() => {
+  const entries = feedbackEntries.value
+  if (!entries.length) return null
+  const oldest = entries[entries.length - 1]
+  return new Date(oldest.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+})
+
+const feedbackCounts = computed(() => {
+  const counts = { all: feedbackEntries.value.length, call: 0, email: 0, sms: 0, note: 0 }
+  for (const e of feedbackEntries.value) {
+    const t = e.type ?? 'note'
+    counts[t] = (counts[t] ?? 0) + 1
+  }
+  return counts
+})
+
+const filterOptions = computed(() => [
+  { value: 'all',   label: 'All',    count: feedbackCounts.value.all   },
+  { value: 'call',  label: 'Calls',  count: feedbackCounts.value.call  },
+  { value: 'email', label: 'Emails', count: feedbackCounts.value.email },
+  { value: 'sms',   label: 'SMS',    count: feedbackCounts.value.sms   },
+  { value: 'note',  label: 'Notes',  count: feedbackCounts.value.note  },
+])
+
+const filteredFeedback = computed(() => {
+  if (filterType.value === 'all') return feedbackEntries.value
+  return feedbackEntries.value.filter((e) => (e.type ?? 'note') === filterType.value)
+})
+
+onMounted(() => {
+  store.fetchFeedback(id)
+  store.fetchPropertyInterests(id)
+})
+
+// ── Tab state ───────────────────────────────────────────────────────────────
+
+function useMediaQuery(query) {
+  const matches = ref(false)
+  let mql = null
+  function update() { matches.value = mql?.matches ?? false }
+  onMounted(() => {
+    mql = window.matchMedia(query)
+    matches.value = mql.matches
+    mql.addEventListener('change', update)
+  })
+  onUnmounted(() => mql?.removeEventListener('change', update))
+  return matches
+}
+const isCompact = useMediaQuery('(max-width: 1100px)')
+
+const activeTab = ref(isCompact.value ? 'profile' : 'interactions')
+watch(isCompact, (compact) => {
+  if (!compact && activeTab.value === 'profile') activeTab.value = 'interactions'
+})
+
+const interestsPanel = ref(null)
+const totalInterests = computed(() => store.propertyInterests[id]?.length ?? 0)
+
+function onMatchProperty() {
+  interestsPanel.value?.openAdd()
+}
 
 async function addFeedback() {
   const note = newFeedback.value.trim()
   if (!note || !customerFound.value) return
-  await store.addFeedback(id, note)
-  newFeedback.value = ''
+  addingFeedback.value = true
+  try {
+    await store.addFeedback(id, { note, type: quickType.value })
+    newFeedback.value = ''
+    quickType.value = 'note'
+  } catch (e) {
+    alert(`Failed to log activity: ${e.message}`)
+  } finally {
+    addingFeedback.value = false
+  }
 }
 
-// ── Telegram enrollment ──────────────────────────────────────────────────────
+// ── Telegram enrollment ─────────────────────────────────────────────────────
 
-function copyEnrollment() {
+const copied = ref(false)
+async function copyEnrollment() {
   const text = `/start ${editable.value.telegramEnrollmentToken}`
-  navigator.clipboard.writeText(text)
-}
-
-// ── Basic info save/reset ────────────────────────────────────────────────────
-
-function saveChanges() {
-  if (!customerFound.value) return
-  store.updateCustomer(id, { ...editable.value })
-}
-
-function resetChanges() {
-  if (!original.value) return
-  editable.value = { ...editable.value, ...original.value }
+  try {
+    await navigator.clipboard.writeText(text)
+    copied.value = true
+    setTimeout(() => (copied.value = false), 1500)
+  } catch {
+    // ignore
+  }
 }
 </script>
+
+<style scoped>
+.cd-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 28px 40px;
+}
+
+/* ── Breadcrumb ──────────────────────────────────────── */
+.cd-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.cd-breadcrumb__home {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color .12s;
+}
+.cd-breadcrumb__home:hover { color: var(--text); }
+.cd-breadcrumb__name {
+  color: var(--text);
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Card base ───────────────────────────────────────── */
+.cd-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+.cd-card--pad { padding: 24px; }
+.cd-card--pad-sm { padding: 20px; }
+
+/* ── Hero ────────────────────────────────────────────── */
+.cd-hero {
+  padding: 22px 24px;
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+}
+.cd-hero__main {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+.cd-hero__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  font-size: 20px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  background: var(--surface-sunk);
+  color: var(--text);
+}
+.cd-hero__avatar[data-tone='accent'] { background: color-mix(in oklch, var(--accent) 18%, var(--surface)); color: var(--accent-ink, var(--accent)); }
+.cd-hero__avatar[data-tone='warm']   { background: color-mix(in oklch, var(--warm)   18%, var(--surface)); color: var(--warm); }
+.cd-hero__avatar[data-tone='hot']    { background: color-mix(in oklch, var(--hot)    18%, var(--surface)); color: var(--hot); }
+.cd-hero__avatar[data-tone='cold']   { background: color-mix(in oklch, var(--cold)   18%, var(--surface)); color: var(--cold); }
+.cd-hero__id {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.cd-hero__name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cd-hero__name {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.cd-hero__contact {
+  display: flex;
+  gap: 16px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+.cd-hero__contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.cd-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, auto));
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+.cd-hero__stat {
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cd-hero__stat + .cd-hero__stat { border-left: 1px solid var(--border); }
+.cd-hero__stat-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+.cd-hero__stat-v {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.cd-hero__stat-v[data-tone='overdue'] { color: var(--hot); }
+.cd-hero__stat-v[data-tone='today']   { color: var(--accent); }
+.cd-hero__stat-s {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.cd-hero__stat-s[data-tone='overdue'] { color: var(--hot); }
+
+/* ── Body grid ──────────────────────────────────────── */
+.cd-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+}
+.cd-body__main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.cd-body__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* ── Section title ──────────────────────────────────── */
+.cd-sec-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.cd-sec-title h3 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.cd-sec-title__sub {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* ── Form grid ──────────────────────────────────────── */
+.cd-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.cd-form-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  grid-column: 1 / -1;
+}
+.cd-form-notes { margin-top: 18px; }
+.cd-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Quick add ──────────────────────────────────────── */
+.cd-quickadd {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.cd-quickadd .textarea {
+  background: var(--surface);
+  min-height: 64px;
+}
+.cd-quickadd__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Type picker (used inline + in dialog) ─────────── */
+.cd-typepick {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.cd-typepick__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.cd-typepick__btn:hover { color: var(--text); border-color: var(--border-strong); }
+.cd-typepick__btn[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--text);
+}
+.cd-typepick__btn[aria-pressed='true'][data-tone='call']  { color: var(--accent);   border-color: var(--accent);   background: color-mix(in oklch, var(--accent) 12%, var(--surface)); }
+.cd-typepick__btn[aria-pressed='true'][data-tone='email'] { color: var(--cold);     border-color: var(--cold);     background: color-mix(in oklch, var(--cold)   12%, var(--surface)); }
+.cd-typepick__btn[aria-pressed='true'][data-tone='sms']   { color: var(--warm);     border-color: var(--warm);     background: color-mix(in oklch, var(--warm)   12%, var(--surface)); }
+.cd-typepick__btn[aria-pressed='true'][data-tone='note']  { color: var(--text);     border-color: var(--text);     background: var(--surface-sunk); }
+
+/* ── Filter tabs ────────────────────────────────────── */
+.cd-filters {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  flex-wrap: wrap;
+}
+.cd-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--r-md) - 2px);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.cd-filter-tab:hover { color: var(--text); }
+.cd-filter-tab[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+.cd-filter-tab__count {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.cd-filter-tab[aria-pressed='true'] .cd-filter-tab__count { color: var(--text-muted); }
+
+/* ── Timeline ───────────────────────────────────────── */
+.cd-timeline {
+  position: relative;
+  padding-left: 26px;
+}
+.cd-timeline::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--border);
+}
+.cd-timeline__entry {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 18px;
+}
+.cd-timeline__entry:last-child { padding-bottom: 0; }
+.cd-timeline__bullet {
+  position: absolute;
+  left: -26px;
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1.5px solid var(--text-muted);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+}
+.cd-timeline__bullet[data-tone='call']  { border-color: var(--accent); color: var(--accent); }
+.cd-timeline__bullet[data-tone='email'] { border-color: var(--cold);   color: var(--cold);   }
+.cd-timeline__bullet[data-tone='sms']   { border-color: var(--warm);   color: var(--warm);   }
+.cd-timeline__bullet[data-tone='note']  { border-color: var(--text-muted); color: var(--text-muted); }
+.cd-timeline__content { flex: 1; min-width: 0; }
+.cd-timeline__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cd-timeline__type {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.cd-timeline__duration {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.cd-timeline__when {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+.cd-timeline__body {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.cd-timeline-empty {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-md);
+}
+
+/* ── Follow-up sidebar ──────────────────────────────── */
+.cd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.cd-chips__clear {
+  color: var(--text-muted);
+}
+.cd-mark-btn {
+  width: 100%;
+  height: 42px;
+  margin-top: 16px;
+}
+
+/* ── Telegram ───────────────────────────────────────── */
+.cd-telegram__hint {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.cd-telegram__token {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.cd-telegram__token code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+/* ── Log activity dialog ────────────────────────────── */
+.cd-mc-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.cd-mc-skip input { accent-color: var(--accent); }
+.cd-mc-duration .input { max-width: 160px; }
+.cd-mc-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+.cd-mc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cd-mc-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cd-mc-section__head h4 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+.cd-mc-default { align-self: flex-start; }
+
+/* ── Tabbed card (Interactions + Interested properties) ── */
+.cd-tab-card { overflow: hidden; }
+.cd-tab-body { padding: 22px 24px; }
+.cd-tab-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.cd-tab-subhead__meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Profile tab sections (compact / iPad / iPhone layout) ── */
+.cd-profile-section + .cd-profile-section {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+.cd-profile-actions { padding-top: 14px; margin-top: 14px; }
+
+/* ── Breakpoints ────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .cd-shell { padding: 20px 20px 32px; gap: 16px; }
+  .cd-body { grid-template-columns: 1fr; }
+  .cd-hero { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .cd-hero__stats {
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 720px) {
+  .cd-shell { padding: 14px 12px 24px; gap: 14px; }
+  .cd-card--pad { padding: 18px 16px; }
+  .cd-card--pad-sm { padding: 16px; }
+  .cd-hero { padding: 18px 16px; }
+  .cd-hero__name { font-size: 20px; }
+  .cd-form-grid,
+  .cd-form-pair { grid-template-columns: 1fr; }
+  .cd-card__actions { flex-direction: column-reverse; }
+  .cd-card__actions .btn { width: 100%; justify-content: center; }
+  .cd-tab-body { padding: 18px 16px; }
+}
+@media (max-width: 480px) {
+  .cd-hero__stats { grid-template-columns: 1fr; }
+  .cd-hero__stat + .cd-hero__stat {
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
+</style>

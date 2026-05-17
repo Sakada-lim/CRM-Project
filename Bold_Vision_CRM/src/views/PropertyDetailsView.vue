@@ -160,7 +160,7 @@
       <div class="prop-detail__main">
         <section class="pd-card">
           <!-- Tabs (always visible) -->
-          <div class="pd-tabs" role="tablist">
+          <div class="tabs" role="tablist">
             <button
               role="tab"
               :aria-pressed="activeTab === 'details'"
@@ -172,7 +172,7 @@
               @click="activeTab = 'customers'"
             >
               Customers
-              <span v-if="leadsCount > 0" class="pd-tab-ct">{{ leadsCount }}</span>
+              <span v-if="leadsCount > 0" class="tab-ct">{{ leadsCount }}</span>
             </button>
           </div>
 
@@ -189,7 +189,7 @@
             </header>
 
             <Transition name="tab-fade" mode="out-in">
-              <div :key="activeTab" class="pd-tab-panel">
+              <div :key="activeTab" class="tab-panel">
 
                 <!-- Details tab: the overview form -->
                 <template v-if="activeTab === 'details'">
@@ -660,56 +660,7 @@ async function handleSelect(storagePath) {
   overflow: hidden;
 }
 
-/* Tabs */
-.pd-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  background: var(--surface-sunk);
-  border-bottom: 1px solid var(--border);
-}
-.pd-tabs > button {
-  height: 52px;
-  padding: 0 16px;
-  display: inline-flex; align-items: center; justify-content: center;
-  gap: 8px;
-  font-size: 13.5px; font-weight: 500;
-  color: var(--text-muted);
-  background: none; border: none; cursor: pointer;
-  letter-spacing: 0.005em;
-  transition: background .12s, color .12s;
-  position: relative;
-}
-.pd-tabs > button + button { box-shadow: inset 1px 0 0 var(--border); }
-.pd-tabs > button:hover { color: var(--text); }
-.pd-tabs > button[aria-pressed="true"] {
-  background: var(--surface);
-  color: var(--text); font-weight: 600;
-  box-shadow: inset 0 -1px 0 var(--surface);
-}
-.pd-tabs > button[aria-pressed="true"]::after {
-  content: "";
-  position: absolute;
-  left: 14%; right: 14%; bottom: -1px;
-  height: 3px;
-  background: var(--accent);
-  border-radius: 2px 2px 0 0;
-}
-.pd-tab-ct {
-  display: inline-grid; place-items: center;
-  min-width: 20px; height: 18px;
-  padding: 0 6px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--text-muted);
-  font-size: 10.5px; font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.pd-tabs > button[aria-pressed="true"] .pd-tab-ct {
-  background: var(--accent);
-  border-color: transparent;
-  color: var(--text-on-accent);
-}
+/* Tabs chrome comes from src/styles/components/tabs.css (.tabs / .tab-ct / .tab-panel / .tab-fade-*) */
 
 /* Card body */
 .pd-card__body { padding: 22px 24px; }
@@ -755,14 +706,6 @@ async function handleSelect(storagePath) {
   margin-left: 2px;
   box-shadow: 0 0 0 2px color-mix(in oklch, currentColor 20%, transparent);
 }
-
-.pd-tab-panel { min-height: 200px; }
-
-/* Tab fade transition */
-.tab-fade-enter-active,
-.tab-fade-leave-active { transition: opacity .15s ease, transform .15s ease; }
-.tab-fade-enter-from { opacity: 0; transform: translateY(4px); }
-.tab-fade-leave-to  { opacity: 0; transform: translateY(-4px); }
 
 /* Form footer (Save / Reset) */
 .pd-form-footer {
@@ -844,6 +787,5 @@ async function handleSelect(storagePath) {
   .spec-cell:nth-child(n+3) { border-top: 1px solid var(--border); }
 
   .pd-card__body { padding: 18px 16px; }
-  .pd-tabs > button { font-size: 12.5px; padding: 0 8px; gap: 6px; height: 46px; }
 }
 </style>

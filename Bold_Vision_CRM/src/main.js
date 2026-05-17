@@ -9,6 +9,7 @@ import '@mdi/font/css/materialdesignicons.css'
 import './styles/tokens.css'
 import './styles/typography.css'
 import './styles/components/modals.css'
+import './styles/components/tabs.css'
 import './assets/styles/global.css'
 
 const app = createApp(App)

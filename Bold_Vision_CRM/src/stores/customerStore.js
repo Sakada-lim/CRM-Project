@@ -107,10 +107,17 @@ export const useCustomerStore = defineStore('customers', {
       }
     },
 
-    async logContact(id, lastContactedIso, nextContactIso) {
+    async logContact(id, payload = {}) {
+      const {
+        lastContactedIso = new Date().toISOString(),
+        nextContactIso,
+        type = 'note',
+        note = 'Contacted',
+        durationMinutes = null,
+      } = payload
       await this.setLastContacted(id, lastContactedIso)
-      await this.setNextContactAt(id, nextContactIso)
-      await this.addFeedback(id, 'Contacted')
+      if (nextContactIso !== undefined) await this.setNextContactAt(id, nextContactIso)
+      await this.addFeedback(id, { note, type, durationMinutes })
     },
 
     async fetchFeedback(customerId) {
@@ -118,10 +125,11 @@ export const useCustomerStore = defineStore('customers', {
       this.feedback[customerId] = data
     },
 
-    async addFeedback(customerId, note) {
-      const entry = await addFeedbackService(customerId, note)
+    async addFeedback(customerId, input) {
+      const entry = await addFeedbackService(customerId, input)
       if (!this.feedback[customerId]) this.feedback[customerId] = []
       this.feedback[customerId].unshift(entry)
+      return entry
     },
 
     async fetchPropertyInterests(customerId) {

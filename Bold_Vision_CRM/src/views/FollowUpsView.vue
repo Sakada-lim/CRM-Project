@@ -265,7 +265,7 @@ async function confirmMarkContacted() {
   const { customer, date, time, skip } = markContactedDialog.value
   const now = new Date().toISOString()
   const nextIso = skip || !date ? null : new Date(`${date}T${time || '09:00'}`).toISOString()
-  await store.logContact(customer.id, now, nextIso)
+  await store.logContact(customer.id, { lastContactedIso: now, nextContactIso: nextIso })
   markContactedDialog.value.open = false
 }
 
