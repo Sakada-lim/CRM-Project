@@ -17,6 +17,10 @@
             <span v-if="editable.category" class="pill" :class="categoryToneClass(editable.category)">
               <span class="dot"></span>{{ editable.category }}
             </span>
+            <RouterLink :to="`/customers/${id}/assessment`" class="btn btn-primary cd-hero__assess-btn">
+              {{ assessmentCtaLabel }}
+              <AppIcon name="chevron" :size="12" />
+            </RouterLink>
           </div>
           <div class="cd-hero__contact">
             <span class="cd-hero__contact-item">
@@ -75,19 +79,24 @@
                 <input id="cd-email" v-model="editable.email" type="email" class="input has-prefix" autocomplete="email" />
               </div>
             </div>
-            <div class="cd-form-pair">
-              <div class="field">
-                <label for="cd-channel">Preferred channel</label>
-                <select id="cd-channel" v-model="editable.channel" class="select">
-                  <option v-for="ch in CHANNELS" :key="ch" :value="ch">{{ ch }}</option>
-                </select>
+            <div class="field">
+              <label for="cd-agent">Agent</label>
+              <div class="input-affix">
+                <span class="prefix"><AppIcon name="user" :size="14" /></span>
+                <input id="cd-agent" v-model="editable.agent" type="text" class="input has-prefix" placeholder="e.g. Sarah Liang" />
               </div>
-              <div class="field">
-                <label for="cd-category">Category</label>
-                <select id="cd-category" v-model="editable.category" class="select">
-                  <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
-                </select>
-              </div>
+            </div>
+            <div class="field">
+              <label for="cd-channel">Preferred channel</label>
+              <select id="cd-channel" v-model="editable.channel" class="select">
+                <option v-for="ch in CHANNELS" :key="ch" :value="ch">{{ ch }}</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cd-category">Category</label>
+              <select id="cd-category" v-model="editable.category" class="select">
+                <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
+              </select>
             </div>
           </div>
 
@@ -300,6 +309,9 @@
           </button>
         </section>
 
+        <!-- Buying profile -->
+        <BuyingProfilePanel :customer-id="id" />
+
         <!-- Telegram enrollment -->
         <section class="cd-card cd-card--pad-sm">
           <div class="cd-sec-title">
@@ -376,19 +388,24 @@
                     <input id="cdm-email" v-model="editable.email" type="email" class="input has-prefix" autocomplete="email" />
                   </div>
                 </div>
-                <div class="cd-form-pair">
-                  <div class="field">
-                    <label for="cdm-channel">Preferred channel</label>
-                    <select id="cdm-channel" v-model="editable.channel" class="select">
-                      <option v-for="ch in CHANNELS" :key="ch" :value="ch">{{ ch }}</option>
-                    </select>
+                <div class="field">
+                  <label for="cdm-agent">Agent</label>
+                  <div class="input-affix">
+                    <span class="prefix"><AppIcon name="user" :size="14" /></span>
+                    <input id="cdm-agent" v-model="editable.agent" type="text" class="input has-prefix" placeholder="e.g. Sarah Liang" />
                   </div>
-                  <div class="field">
-                    <label for="cdm-category">Category</label>
-                    <select id="cdm-category" v-model="editable.category" class="select">
-                      <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
-                    </select>
-                  </div>
+                </div>
+                <div class="field">
+                  <label for="cdm-channel">Preferred channel</label>
+                  <select id="cdm-channel" v-model="editable.channel" class="select">
+                    <option v-for="ch in CHANNELS" :key="ch" :value="ch">{{ ch }}</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="cdm-category">Category</label>
+                  <select id="cdm-category" v-model="editable.category" class="select">
+                    <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
+                  </select>
                 </div>
               </div>
               <div class="cd-form-notes">
@@ -462,6 +479,11 @@
                 <AppIcon name="check" :size="14" />
                 Mark contacted now
               </button>
+            </div>
+
+            <!-- Buying profile section -->
+            <div class="cd-profile-section">
+              <BuyingProfilePanel :customer-id="id" />
             </div>
 
             <!-- Telegram section -->
@@ -696,8 +718,9 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, RouterLink } from 'vue-router'
 import { useCustomerStore } from '../stores/customerStore'
+import { useAssessmentStore } from '../stores/assessmentStore'
 import {
   customerStatus,
   daysUntilContact,
@@ -705,6 +728,7 @@ import {
   cadenceLabel,
 } from '../utils/followUp'
 import CustomerInterestsPanel from '../components/customer/CustomerInterestsPanel.vue'
+import BuyingProfilePanel from '../components/customer/BuyingProfilePanel.vue'
 import AppIcon from '../components/base/AppIcon.vue'
 
 const CHANNELS = ['Call', 'Telegram', 'SMS', 'Email']
@@ -712,10 +736,11 @@ const CATEGORIES = ['Hot', 'Warm', 'Cold']
 const AVATAR_TONES = ['accent', 'warm', 'hot', 'cold']
 
 const INTERACTION_TYPES = [
-  { value: 'call',  label: 'Call',  icon: 'phone', tone: 'call'  },
-  { value: 'email', label: 'Email', icon: 'mail',  tone: 'email' },
-  { value: 'sms',   label: 'SMS',   icon: 'chat',  tone: 'sms'   },
-  { value: 'note',  label: 'Note',  icon: 'edit',  tone: 'note'  },
+  { value: 'call',     label: 'Call',     icon: 'phone', tone: 'call'     },
+  { value: 'email',    label: 'Email',    icon: 'mail',  tone: 'email'    },
+  { value: 'sms',      label: 'SMS',      icon: 'chat',  tone: 'sms'      },
+  { value: 'telegram', label: 'Telegram', icon: 'chat',  tone: 'telegram' },
+  { value: 'note',     label: 'Note',     icon: 'edit',  tone: 'note'     },
 ]
 const TYPE_META = Object.fromEntries(INTERACTION_TYPES.map((t) => [t.value, t]))
 function metaFor(type) {
@@ -724,7 +749,16 @@ function metaFor(type) {
 
 const route = useRoute()
 const store = useCustomerStore()
+const assessmentStore = useAssessmentStore()
 const id = route.params.id
+
+const assessment = computed(() => assessmentStore.forCustomer(id))
+const assessmentCtaLabel = computed(() => {
+  const a = assessment.value
+  if (!a) return 'Start assessment'
+  if (a.status === 'submitted') return 'View assessment'
+  return 'Continue assessment'
+})
 
 const original = computed(() => store.customers.find((c) => c.id === id))
 const customerFound = computed(() => !!original.value)
@@ -736,6 +770,7 @@ const editable = ref({
   email: '',
   category: 'Cold',
   channel: 'Call',
+  agent: '',
   notes: '',
   lastContactedAt: null,
   nextContactAt: null,
@@ -778,7 +813,7 @@ function categoryToneClass(cat) {
 
 // ── Dirty tracking + save/reset ────────────────────────────────────────────
 
-const EDITABLE_FIELDS = ['name', 'phone', 'email', 'channel', 'category', 'notes']
+const EDITABLE_FIELDS = ['name', 'phone', 'email', 'channel', 'category', 'agent', 'notes']
 const isDirty = computed(() => {
   if (!original.value) return false
   return EDITABLE_FIELDS.some((f) => (editable.value[f] ?? '') !== (original.value[f] ?? ''))
@@ -1006,7 +1041,7 @@ const firstFeedbackDate = computed(() => {
 })
 
 const feedbackCounts = computed(() => {
-  const counts = { all: feedbackEntries.value.length, call: 0, email: 0, sms: 0, note: 0 }
+  const counts = { all: feedbackEntries.value.length, call: 0, email: 0, sms: 0, telegram: 0, note: 0 }
   for (const e of feedbackEntries.value) {
     const t = e.type ?? 'note'
     counts[t] = (counts[t] ?? 0) + 1
@@ -1015,11 +1050,12 @@ const feedbackCounts = computed(() => {
 })
 
 const filterOptions = computed(() => [
-  { value: 'all',   label: 'All',    count: feedbackCounts.value.all   },
-  { value: 'call',  label: 'Calls',  count: feedbackCounts.value.call  },
-  { value: 'email', label: 'Emails', count: feedbackCounts.value.email },
-  { value: 'sms',   label: 'SMS',    count: feedbackCounts.value.sms   },
-  { value: 'note',  label: 'Notes',  count: feedbackCounts.value.note  },
+  { value: 'all',      label: 'All',       count: feedbackCounts.value.all      },
+  { value: 'call',     label: 'Calls',     count: feedbackCounts.value.call     },
+  { value: 'email',    label: 'Emails',    count: feedbackCounts.value.email    },
+  { value: 'sms',      label: 'SMS',       count: feedbackCounts.value.sms      },
+  { value: 'telegram', label: 'Telegram',  count: feedbackCounts.value.telegram },
+  { value: 'note',     label: 'Notes',     count: feedbackCounts.value.note     },
 ])
 
 const filteredFeedback = computed(() => {
@@ -1030,6 +1066,7 @@ const filteredFeedback = computed(() => {
 onMounted(() => {
   store.fetchFeedback(id)
   store.fetchPropertyInterests(id)
+  assessmentStore.fetchForCustomer(id)
 })
 
 // ── Tab state ───────────────────────────────────────────────────────────────
@@ -1182,6 +1219,20 @@ async function copyEnrollment() {
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--text);
+}
+.cd-hero__assess-btn {
+  margin-left: auto;
+  text-decoration: none;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12.5px;
+}
+@media (max-width: 720px) {
+  .cd-hero__assess-btn {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
 }
 .cd-hero__contact {
   display: flex;
@@ -1346,10 +1397,11 @@ async function copyEnrollment() {
   color: var(--text);
   border-color: var(--text);
 }
-.cd-typepick__btn[aria-pressed='true'][data-tone='call']  { color: var(--accent);   border-color: var(--accent);   background: color-mix(in oklch, var(--accent) 12%, var(--surface)); }
-.cd-typepick__btn[aria-pressed='true'][data-tone='email'] { color: var(--cold);     border-color: var(--cold);     background: color-mix(in oklch, var(--cold)   12%, var(--surface)); }
-.cd-typepick__btn[aria-pressed='true'][data-tone='sms']   { color: var(--warm);     border-color: var(--warm);     background: color-mix(in oklch, var(--warm)   12%, var(--surface)); }
-.cd-typepick__btn[aria-pressed='true'][data-tone='note']  { color: var(--text);     border-color: var(--text);     background: var(--surface-sunk); }
+.cd-typepick__btn[aria-pressed='true'][data-tone='call']     { color: var(--accent);  border-color: var(--accent);  background: color-mix(in oklch, var(--accent)  12%, var(--surface)); }
+.cd-typepick__btn[aria-pressed='true'][data-tone='email']    { color: var(--cold);    border-color: var(--cold);    background: color-mix(in oklch, var(--cold)    12%, var(--surface)); }
+.cd-typepick__btn[aria-pressed='true'][data-tone='sms']      { color: var(--warm);    border-color: var(--warm);    background: color-mix(in oklch, var(--warm)    12%, var(--surface)); }
+.cd-typepick__btn[aria-pressed='true'][data-tone='telegram'] { color: var(--success); border-color: var(--success); background: color-mix(in oklch, var(--success) 12%, var(--surface)); }
+.cd-typepick__btn[aria-pressed='true'][data-tone='note']     { color: var(--text);    border-color: var(--text);    background: var(--surface-sunk); }
 
 /* ── Filter tabs ────────────────────────────────────── */
 .cd-filters {
@@ -1426,10 +1478,11 @@ async function copyEnrollment() {
   display: grid;
   place-items: center;
 }
-.cd-timeline__bullet[data-tone='call']  { border-color: var(--accent); color: var(--accent); }
-.cd-timeline__bullet[data-tone='email'] { border-color: var(--cold);   color: var(--cold);   }
-.cd-timeline__bullet[data-tone='sms']   { border-color: var(--warm);   color: var(--warm);   }
-.cd-timeline__bullet[data-tone='note']  { border-color: var(--text-muted); color: var(--text-muted); }
+.cd-timeline__bullet[data-tone='call']     { border-color: var(--accent);  color: var(--accent);  }
+.cd-timeline__bullet[data-tone='email']    { border-color: var(--cold);    color: var(--cold);    }
+.cd-timeline__bullet[data-tone='sms']      { border-color: var(--warm);    color: var(--warm);    }
+.cd-timeline__bullet[data-tone='telegram'] { border-color: var(--success); color: var(--success); }
+.cd-timeline__bullet[data-tone='note']     { border-color: var(--text-muted); color: var(--text-muted); }
 .cd-timeline__content { flex: 1; min-width: 0; }
 .cd-timeline__meta {
   display: flex;
@@ -1568,6 +1621,17 @@ async function copyEnrollment() {
   border-top: 1px solid var(--border);
 }
 .cd-profile-actions { padding-top: 14px; margin-top: 14px; }
+
+/* When the Buying-profile card lands inside a cd-profile-section (compact
+   Profile tab), the section already provides spacing + separator — strip
+   the card chrome so it matches the other inline sections (Basic info,
+   Follow-up, Telegram) instead of looking like a nested card. */
+.cd-profile-section :deep(.bp-card) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
 
 /* ── Breakpoints ────────────────────────────────────── */
 @media (max-width: 1100px) {

@@ -188,6 +188,7 @@
 }
 .seg-control > button {
   flex: 1;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -197,6 +198,7 @@
   font-size: 13px;
   font-weight: 550;
   color: var(--text-muted);
+  white-space: nowrap;
   background: transparent;
   border: 1px solid transparent;
   border-radius: calc(var(--r-md) - 2px);

@@ -375,7 +375,11 @@ defineExpose({ openAdd: openAddDialog })
 /* ── Grid + columns ─────────────────────────────────── */
 .cd-int-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* auto-fit so the kanban drops from 3 → 2 → 1 column when the container
+     narrows (e.g. CustomerDetailView's left main area on a half-screen
+     desktop window). Empty auto-fit tracks collapse, so 3 categories still
+     render as 3 columns when there's room. */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 .cd-int-column {
@@ -502,6 +506,8 @@ defineExpose({ openAdd: openAddDialog })
   gap: 8px;
 }
 .cd-int-card__addr {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
   font-size: 13.5px;
   color: var(--text);

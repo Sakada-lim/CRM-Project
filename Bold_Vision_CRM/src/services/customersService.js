@@ -9,6 +9,7 @@ function mapRowToCustomer(row) {
     channel: row.channel ?? 'Call',
     category: row.category ?? 'Cold',
     notes: row.notes ?? '',
+    agent: row.agent ?? '',
     createdAt: row.created_at,
     lastContactedAt: row.last_contacted_at ?? null,
     nextContactAt: row.next_contact_at ?? null,
@@ -25,6 +26,7 @@ function mapCustomerToRow(customer) {
     channel: customer.channel,
     category: customer.category,
     notes: customer.notes,
+    agent: customer.agent,
   }
   const row = {}
   for (const [key, value] of Object.entries(fields)) {
@@ -92,7 +94,7 @@ export async function setNextContactAt(id, dateIso) {
   if (error) throw error
 }
 
-const FEEDBACK_TYPES = new Set(['call', 'email', 'sms', 'note'])
+const FEEDBACK_TYPES = new Set(['call', 'email', 'sms', 'note', 'telegram'])
 
 function mapFeedbackRow(row) {
   return {

@@ -32,6 +32,7 @@
         <thead>
           <tr>
             <th class="col-customer">Customer</th>
+            <th class="col-agent">Agent</th>
             <th class="col-channel">Phone · Channel</th>
             <th class="col-status">Status</th>
             <th class="col-followup">Last contact</th>
@@ -40,7 +41,7 @@
         </thead>
         <tbody>
           <tr v-if="!paginatedCustomers.length">
-            <td colspan="5" class="cust-empty">
+            <td colspan="6" class="cust-empty">
               {{ emptyMessage }}
             </td>
           </tr>
@@ -58,6 +59,13 @@
                   <div class="em">{{ c.email || '—' }}</div>
                 </div>
               </div>
+            </td>
+            <td class="col-agent">
+              <span v-if="c.agent" class="agent-cell">
+                <AppIcon name="user" :size="11" />
+                {{ c.agent }}
+              </span>
+              <span v-else class="agent-cell agent-cell--empty">Unassigned</span>
             </td>
             <td class="col-channel">
               <div class="phone-cell">
@@ -127,6 +135,10 @@
             <span class="k">Follow-up</span>
             <span class="v" :data-tone="dueTone(c)">{{ dueText(c) }}</span>
             <span v-if="lastContactText(c) !== '—'" class="v-sub">{{ lastContactText(c) }}</span>
+          </div>
+          <div class="kv kv--full">
+            <span class="k">Agent</span>
+            <span class="v">{{ c.agent || 'Unassigned' }}</span>
           </div>
         </div>
         <div class="cust-card__actions">
@@ -538,13 +550,30 @@ function handleFilterClear() {
 .cust-row { cursor: pointer; transition: background-color .12s; }
 .cust-row:hover { background: var(--surface-2); }
 
-/* Fixed column widths so spacing is uniform regardless of content length.
-   Trying equal 20/20/20/20/20 split for visual balance. */
-.cust-table .col-customer { width: 35%; }
-.cust-table .col-channel  { width: 20%; }
-.cust-table .col-status   { width: 20%; white-space: nowrap; }
+/* Fixed column widths so spacing is uniform regardless of content length. */
+.cust-table .col-customer { width: 25%; }
+.cust-table .col-agent    { width: 15%; }
+.cust-table .col-channel  { width: 17%; }
+.cust-table .col-status   { width: 13%; white-space: nowrap; }
 .cust-table .col-followup { width: 20%; }
 .cust-table .col-actions  { width: 10%; text-align: right; white-space: nowrap; }
+
+/* Agent cell */
+.agent-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.agent-cell--empty {
+  color: var(--text-faint);
+  font-style: italic;
+}
 
 /* ── Customer cell (avatar + name + email) ─────────── */
 .cust-name-cell {
@@ -677,6 +706,7 @@ function handleFilterClear() {
   border-top: 1px solid var(--border);
 }
 .cust-card__grid .kv { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cust-card__grid .kv--full { grid-column: 1 / -1; }
 .cust-card__grid .k {
   font-size: 10.5px;
   font-weight: 600;

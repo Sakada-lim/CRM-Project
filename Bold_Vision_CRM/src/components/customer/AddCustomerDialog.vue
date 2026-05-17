@@ -67,6 +67,19 @@
               </div>
             </div>
           </div>
+          <div class="field">
+            <label for="ac-agent">Agent</label>
+            <div class="input-affix">
+              <span class="prefix"><AppIcon name="user" :size="14" /></span>
+              <input
+                id="ac-agent"
+                v-model="form.agent"
+                type="text"
+                class="input has-prefix"
+                placeholder="Who owns this customer (e.g. Sarah Liang)"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Categorize -->
@@ -164,6 +177,7 @@ function makeEmptyForm() {
     email: '',
     channel: 'Call',
     category: 'Cold',
+    agent: '',
     notes: '',
   }
 }
