@@ -33,7 +33,7 @@
         </div>
       </div>
 
-      <!-- Row 2: Search + Filters -->
+      <!-- Row 2: Search + Sort + Filters -->
       <div class="cust-toolbar__controls">
         <div class="cust-toolbar__search">
           <AppIcon name="search" :size="15" class="cust-toolbar__search-icon" />
@@ -45,6 +45,12 @@
             autocomplete="off"
             spellcheck="false"
           />
+        </div>
+
+        <div v-if="sortOptions.length" class="cust-toolbar__sort">
+          <select :value="sort" class="select" @change="emit('update:sort', $event.target.value)">
+            <option v-for="o in sortOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
         </div>
 
         <button
@@ -86,10 +92,12 @@ const props = defineProps({
   filters:          { type: Array,  default: () => [] },
   availableFilters: { type: Array,  default: () => [] },
   quickCategory:    { type: String, default: 'All' },
+  sort:             { type: String, default: '' },
+  sortOptions:      { type: Array,  default: () => [] },
 })
 
 const emit = defineEmits([
-  'update:search', 'update:filters', 'update:quickCategory',
+  'update:search', 'update:filters', 'update:quickCategory', 'update:sort',
   'add', 'open-filters',
 ])
 
@@ -184,11 +192,25 @@ const canAddFilters    = computed(() => props.availableFilters.length > 0)
 
 .btn-sm-height { height: 36px; }
 
+.cust-toolbar__sort { flex-shrink: 0; }
+.cust-toolbar__sort .select {
+  width: auto;
+  min-width: 170px;
+  height: 36px;
+  padding: 0 32px 0 12px;
+  font-size: 13.5px;
+  background-color: transparent;
+  border-color: transparent;
+}
+.cust-toolbar__sort .select:hover { background-color: var(--surface-2); border-color: var(--border); }
+.cust-toolbar__sort .select:focus { background-color: var(--surface); border-color: var(--accent); }
+
 @media (max-width: 600px) {
   .cust-toolbar__title h1 { font-size: 20px; }
   .filter-label { display: none; }
   .cust-toolbar__controls { gap: 6px; padding: 6px; }
   .cust-add-btn { width: 36px; padding: 0; }
   .cust-add-label { display: none; }
+  .cust-toolbar__sort .select { min-width: 0; max-width: 150px; font-size: 12.5px; padding-left: 10px; }
 }
 </style>

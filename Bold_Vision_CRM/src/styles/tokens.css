@@ -207,7 +207,7 @@
 }
 .input-affix .prefix { left: 12px; }
 .input-affix .suffix { right: 12px; }
-.input-affix .input.has-prefix { padding-left: 28px; }
+.input-affix .input.has-prefix { padding-left: 36px; }
 .input-affix .input.has-suffix { padding-right: 32px; }
 
 /* Form section (with optional chip showing computed values inline with head) */

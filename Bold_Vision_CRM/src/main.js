@@ -8,6 +8,7 @@ import vuetify from './plugins/vuetify'
 import '@mdi/font/css/materialdesignicons.css'
 import './styles/tokens.css'
 import './styles/typography.css'
+import './styles/components/modals.css'
 import './assets/styles/global.css'
 
 const app = createApp(App)

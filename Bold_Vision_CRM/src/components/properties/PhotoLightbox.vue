@@ -262,17 +262,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <style scoped>
-/* Base modal-card chrome (matches BroadcastPanel pattern) */
-.lightbox {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  max-height: 92vh;
-}
+/* Base modal-card chrome comes from styles/components/modals.css.
+   Lightbox-specific override: allow more height (92vh vs 86vh default)
+   since the stage is the main content. */
+.lightbox.modal-card { max-height: 92vh; }
 
 /* ── Head ───────────────────────────────────────────────────── */
 .lightbox__head {
@@ -468,7 +461,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 720px) {
-  .lightbox { max-height: 100vh; border-radius: 0; border: none; }
+  /* .modal-card full-screen handled by shared modals.css */
   .lightbox__stage { min-height: 320px; padding: 8px; }
   .lightbox__stage img { max-height: 55vh; }
   .lightbox__nav { width: 38px; height: 38px; }

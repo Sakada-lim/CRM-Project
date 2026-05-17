@@ -94,7 +94,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="modal-foot">
+    <div class="modal-foot modal-foot--split">
       <span class="hint">
         <template v-if="sent">
           <AppIcon name="check" :size="14" class="hint-icon hint-icon--ok" />
@@ -238,56 +238,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ── Modal card (v-dialog provides the scrim) ───────────────── */
-.modal-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  max-height: 86vh;
-}
-
-/* ── Head ───────────────────────────────────────────────────── */
-.modal-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--border);
-}
-.modal-head .ico {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  display: grid; place-items: center;
-  flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
-}
-.modal-head__text { flex: 1; min-width: 0; }
-.modal-head h2 {
-  margin: 0;
-  font-size: 16px; font-weight: 600;
-  color: var(--text); letter-spacing: -0.01em; line-height: 1.2;
-}
-.modal-head .sub {
-  margin-top: 2px;
-  font-size: 12.5px;
-  color: var(--text-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.modal-head .close {
-  margin-left: auto;
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  display: inline-grid; place-items: center;
-  color: var(--text-muted);
-  background: transparent; border: none; cursor: pointer;
-}
-.modal-head .close:hover { background: var(--surface-2); color: var(--text); }
+/* Modal-card chrome (head/foot) comes from styles/components/modals.css.
+   Below: BroadcastPanel-specific layout (grid + audience + message + bubble). */
 
 /* ── Grid (audience + message) ──────────────────────────────── */
 .modal-grid {
@@ -512,23 +464,11 @@ onMounted(() => {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* ── Footer ─────────────────────────────────────────────────── */
-.modal-foot {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  border-top: 1px solid var(--border);
-  background: var(--surface-2);
-}
-.modal-foot .hint {
-  font-size: 12px; color: var(--text-muted);
-  display: inline-flex; align-items: center; gap: 6px;
-}
+/* ── Footer hint + Send button (footer chrome itself is shared) ── */
 .hint-icon { color: var(--text-muted); }
 .hint-icon--ok { color: var(--accent); }
 .hint-text--ok { color: var(--accent); font-weight: 600; }
 
-.modal-foot .actions { display: flex; align-items: center; gap: 8px; }
 .modal-foot .btn-send {
   display: inline-flex; align-items: center; gap: 8px;
   height: 38px; padding: 0 16px;
@@ -556,12 +496,9 @@ onMounted(() => {
 
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 720px) {
-  .modal-card { max-height: 100vh; border-radius: 0; border: none; }
   .modal-grid { grid-template-columns: 1fr; overflow-y: auto; }
   .audience-panel { border-right: none; border-bottom: 1px solid var(--border); }
   .tg-frame { max-height: 220px; }
-  .modal-foot { flex-direction: column-reverse; align-items: stretch; gap: 8px; }
-  .modal-foot .actions { width: 100%; }
   .modal-foot .btn-send { flex: 1; justify-content: center; }
 }
 </style>

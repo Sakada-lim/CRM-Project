@@ -296,56 +296,9 @@ async function remove(item) {
   .interests-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Add Customer dialog (matches modal-card pattern) ──────── */
-.add-customer { display: flex; flex-direction: column; overflow: hidden; max-height: 86vh; }
-.add-customer.modal-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg);
-}
-
-/* Head */
-.modal-head {
-  display: flex; align-items: center; gap: 14px;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--border);
-}
-.modal-head .ico {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  display: grid; place-items: center;
-  flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
-}
-.modal-head__text { flex: 1; min-width: 0; }
-.modal-head h2 {
-  margin: 0;
-  font-size: 16px; font-weight: 600;
-  color: var(--text); letter-spacing: -0.01em; line-height: 1.2;
-}
-.modal-head .sub {
-  margin-top: 2px;
-  font-size: 12.5px; color: var(--text-muted);
-}
-.modal-head .close {
-  margin-left: auto;
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  display: inline-grid; place-items: center;
-  color: var(--text-muted);
-  background: transparent; border: none; cursor: pointer;
-}
-.modal-head .close:hover { background: var(--surface-2); color: var(--text); }
-
-/* Body */
-.modal-body {
-  padding: 18px;
-  display: flex; flex-direction: column; gap: 18px;
-  overflow-y: auto;
-}
+/* ── Add Customer dialog ───────────────────────────────────── */
+/* Modal-card chrome (head/body/foot) comes from styles/components/modals.css.
+   Below: dialog-specific styles only (customer picker + interest chips). */
 
 /* Customer picker */
 .customer-picker { display: flex; flex-direction: column; gap: 8px; }
@@ -432,15 +385,6 @@ async function remove(item) {
   background: var(--accent-soft);
   color: var(--accent);
 }
-
-/* Footer */
-.modal-foot {
-  display: flex; justify-content: flex-end; gap: 8px;
-  padding: 14px 18px;
-  border-top: 1px solid var(--border);
-  background: var(--surface-2);
-}
-.modal-foot .btn:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
 
 .kanban-column {
   background: var(--surface-2);
