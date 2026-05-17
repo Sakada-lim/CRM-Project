@@ -1,106 +1,88 @@
 <template>
-  <div class="properties-view">
+  <div class="prop-shell">
     <PropertiesToolbar
-      class="mb-6"
-      title="Properties"
       :supporting-text="supportingText"
       v-model:search="searchQuery"
       v-model:filters="toolbarFilters"
+      v-model:quick-status-filter="quickStatusFilter"
+      v-model:sort-key="sortKey"
       :available-filters="propertyFilterDefinitions"
       @open-filters="openFilterDialog"
       @add="openAddProperty"
     >
       <template #actions>
-        <v-btn
-          color="primary"
-          variant="elevated"
-          prepend-icon="mdi-home-plus"
-          class="text-capitalize"
-          @click="openAddProperty"
-        >
-          Add New Property
-        </v-btn>
+        <button class="btn btn-primary prop-add-btn" @click="openAddProperty">
+          <AppIcon name="plus" :size="14" />
+          <span class="prop-add-label">Add new property</span>
+        </button>
       </template>
     </PropertiesToolbar>
 
-    <div class="properties-grid" v-if="paginatedProperties.length">
-      <article v-for="property in paginatedProperties" :key="property.id" class="property-card">
-        <div class="card-photo">
-          <img :src="property.mainPhoto" :alt="property.address" loading="lazy" />
+    <!-- Card grid -->
+    <div v-if="paginatedProperties.length" class="prop-grid">
+      <router-link
+        v-for="property in paginatedProperties"
+        :key="property.id"
+        :to="`/properties/${property.id}`"
+        class="prop-card"
+      >
+        <!-- Media -->
+        <div class="media">
+          <PropCardPhoto :storage-path="property.mainPhoto" :alt="property.address" />
 
-          <div
-            v-if="property.statusBadge"
-            class="status-pill"
-            :class="`status-${property.statusBadge.type}`"
-          >
-            <span class="status-dot" />
-            {{ property.statusBadge.label }}
-          </div>
-
-          <div class="photo-meta">
-            <span class="price">{{ property.priceGuide }}</span>
-          </div>
-        </div>
-
-        <div class="card-body">
-          <div class="address">{{ property.address }}</div>
-          <div class="suburb">
-            {{ property.suburb }}, {{ property.state }} {{ property.postcode }}
-          </div>
-
-          <div class="property-stats">
-            <div class="stat">
-              <v-icon icon="mdi-bed-outline" size="18" />
-              <span>{{ property.bedrooms }}</span>
-            </div>
-            <div class="stat">
-              <v-icon icon="mdi-shower" size="18" />
-              <span>{{ property.bathrooms }}</span>
-            </div>
-            <div class="stat">
-              <v-icon icon="mdi-car-outline" size="18" />
-              <span>{{ property.carSpaces }}</span>
-            </div>
-            <div class="size-group">
-              <div class="stat">
-                <v-icon icon="mdi-ruler-square" size="18" />
-                <span>{{ property.landSize }}</span>
-              </div>
-              <div class="stat">
-                <v-icon icon="mdi-home-floor-1" size="18" />
-                <span>{{ property.houseSize }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="property-footer">
-            <div class="meta">
-              <span class="type">{{ property.type }}</span>
-            </div>
-
-            <v-btn
-              :to="`/properties/${property.id}`"
-              variant="tonal"
-              color="primary"
-              class="text-capitalize"
+          <div class="badges">
+            <span class="status-badge" :class="statusToClass(property.status)">
+              <span class="dot" />
+              {{ property.status }}
+            </span>
+            <span
+              v-if="isNewListing(property)"
+              class="status-badge"
+              style="background: var(--accent); color: var(--text-on-accent); border: none; box-shadow: none;"
             >
-              View details
-            </v-btn>
+              <AppIcon name="sparkle" :size="11" />
+              New
+            </span>
+          </div>
+
+          <span v-if="property.priceGuide" class="price-tag">{{ property.priceGuide }}</span>
+        </div>
+
+        <!-- Body -->
+        <div class="body">
+          <div class="addr">{{ property.address }}</div>
+          <div class="suburb">{{ property.suburb }}, {{ property.state }} {{ property.postcode }}</div>
+
+          <div class="specs">
+            <span v-if="property.bedrooms"  class="s"><AppIcon name="bed"  :size="13" /> {{ property.bedrooms }}</span>
+            <span v-if="property.bathrooms" class="s"><AppIcon name="bath" :size="13" /> {{ property.bathrooms }}</span>
+            <span v-if="property.carSpaces" class="s"><AppIcon name="car"  :size="13" /> {{ property.carSpaces }}</span>
+            <span v-if="property.landSizeSqm" class="s"><AppIcon name="pin"   :size="13" /> {{ formatSqm(property.landSizeSqm) }}</span>
+            <span v-if="property.houseSizeSqm" class="s"><AppIcon name="house" :size="13" /> {{ formatSqm(property.houseSizeSqm) }}</span>
+          </div>
+
+          <div class="meta-row">
+            <span>{{ property.type }}</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;">
+              <AppIcon name="users" :size="11" />
+              {{ property.interestedCustomers?.length ?? 0 }}
+              {{ property.interestedCustomers?.length === 1 ? 'lead' : 'leads' }}
+            </span>
           </div>
         </div>
-      </article>
+      </router-link>
     </div>
 
-    <div v-else class="properties-empty">
-      {{ paginationLabel }}
+    <!-- Empty state -->
+    <div v-else class="prop-empty">
+      No properties match your filter.
     </div>
 
+    <!-- Pagination -->
     <BasePaginationFooter
       v-if="filteredProperties.length"
       v-model="currentPage"
-      class="properties-pagination"
       :length="pageCount"
-      :total-visible="4"
       :label="paginationLabel"
     />
 
@@ -126,12 +108,16 @@ import { usePropertyStore } from '../stores/propertyStore'
 import AddPropertyDialog from '../components/properties/AddPropertyDialog.vue'
 import BasePaginationFooter from '../components/base/BasePaginationFooter.vue'
 import PropertiesToolbar from '../components/properties/PropertiesToolbar.vue'
+import AppIcon from '../components/base/AppIcon.vue'
+import PropCardPhoto from '../components/base/PropCardPhoto.vue'
 import { propertyFilterDefinitions } from '../config/filterDefinitions'
 import { usePropertyFilters } from '../composables/usePropertyFilters'
 import { useResponsivePageSize } from '../composables/useResponsivePageSize'
 import PropertyFilterDialog from '../components/properties/PropertyFilterDialog.vue'
 import { useFilterChips } from '../composables/useFilterChips'
 import { createEmptyPropertyDraft } from '../constants/propertyDefaults'
+import { statusToClass } from '../utils/property'
+import { formatSqm } from '../utils/formatters'
 
 const propertyStore = usePropertyStore()
 const properties = computed(() => propertyStore.properties)
@@ -139,6 +125,8 @@ const properties = computed(() => propertyStore.properties)
 const searchQuery = ref('')
 const activeFilters = ref([])
 const advancedCriteria = ref(createDefaultAdvancedCriteria())
+const quickStatusFilter = ref('All')
+const sortKey = ref('recent')
 
 const { toolbarFilters } = useFilterChips({
   manualFilters: activeFilters,
@@ -165,17 +153,46 @@ const { pageSize: itemsPerPage } = useResponsivePageSize({
   breakpoints: [
     { minWidth: 1600, size: 12 },
     { minWidth: 1200, size: 9 },
-    { minWidth: 900, size: 6 },
-    { minWidth: 0, size: 4 },
+    { minWidth: 900,  size: 6 },
+    { minWidth: 0,    size: 4 },
   ],
   fallbackSize: 4,
 })
 
+// Sort properties before filtering
+const sortedProperties = computed(() => {
+  const list = [...properties.value]
+  if (sortKey.value === 'price-high') {
+    return list.sort((a, b) => parsePriceNum(b.priceGuide) - parsePriceNum(a.priceGuide))
+  }
+  if (sortKey.value === 'price-low') {
+    return list.sort((a, b) => parsePriceNum(a.priceGuide) - parsePriceNum(b.priceGuide))
+  }
+  if (sortKey.value === 'alpha') {
+    return list.sort((a, b) => (a.address ?? '').localeCompare(b.address ?? ''))
+  }
+  // recent — by listedAt desc
+  return list.sort((a, b) => new Date(b.listedAt ?? 0) - new Date(a.listedAt ?? 0))
+})
+
+// Merge quick status chip into active filters
+const effectiveFilters = computed(() => {
+  if (quickStatusFilter.value === 'All') return activeFilters.value
+  const statusFilter = {
+    id: 'quick-status',
+    key: 'status',
+    operator: 'is',
+    value: quickStatusFilter.value,
+    label: `Status is ${quickStatusFilter.value}`,
+  }
+  return [statusFilter, ...activeFilters.value.filter((f) => f.key !== 'status')]
+})
+
 const { currentPage, pageCount, filteredProperties, paginatedProperties, paginationLabel } =
   usePropertyFilters({
-    properties,
+    properties: sortedProperties,
     searchQuery,
-    activeFilters,
+    activeFilters: effectiveFilters,
     filterPredicates,
     itemsPerPage,
     criteria: advancedCriteria,
@@ -185,107 +202,78 @@ const { currentPage, pageCount, filteredProperties, paginatedProperties, paginat
 
 const supportingText = computed(() => {
   const total = filteredProperties.value.length
-  const suffix = total === 1 ? '' : 's'
-  return `${total} active listing${suffix}`
+  return `${total} active listing${total === 1 ? '' : 's'}`
 })
 
-const showAddProperty = ref(false)
+const showAddProperty  = ref(false)
 const showFilterDialog = ref(false)
-
-const newProperty = ref(createEmptyPropertyDraft())
-
-const resetNewProperty = () => {
-  newProperty.value = createEmptyPropertyDraft()
-}
+const newProperty      = ref(createEmptyPropertyDraft())
 
 function openAddProperty() {
-  resetNewProperty()
+  newProperty.value = createEmptyPropertyDraft()
   showAddProperty.value = true
 }
 
-const filterDefinitionMap = computed(() => {
-  return propertyFilterDefinitions.reduce((map, definition) => {
-    map[definition.key] = definition
-    return map
-  }, {})
-})
+const filterDefinitionMap = computed(() =>
+  propertyFilterDefinitions.reduce((map, def) => { map[def.key] = def; return map }, {}),
+)
 
 const filterCriteria = computed(() => {
-  const typeFilters = activeFilters.value.filter((filter) => filter.key === 'type')
-  return {
-    ...advancedCriteria.value,
-    types: typeFilters.map((filter) => filter.value),
-  }
+  const typeFilters = activeFilters.value.filter((f) => f.key === 'type')
+  return { ...advancedCriteria.value, types: typeFilters.map((f) => f.value) }
 })
 const typeOptions = computed(() => filterDefinitionMap.value.type?.options ?? [])
 
-function openFilterDialog() {
-  showFilterDialog.value = true
+function openFilterDialog() { showFilterDialog.value = true }
+
+function isNewListing(property) {
+  return property.statusBadge?.type === 'new'
+}
+
+function parsePriceNum(priceGuide) {
+  if (!priceGuide) return 0
+  const m = String(priceGuide).match(/(\d+(?:\.\d+)?)([mk]?)/i)
+  if (!m) return 0
+  const v = parseFloat(m[1])
+  const u = m[2].toLowerCase()
+  return u === 'm' ? v * 1_000_000 : u === 'k' ? v * 1_000 : v
 }
 
 function buildFilterFromValue(key, value) {
   const definition = filterDefinitionMap.value[key]
   if (!definition || !value) return null
-
   const operatorValue = definition.operators?.[0]?.value ?? 'is'
-  const operatorLabel =
-    definition.operators?.find((op) => op.value === operatorValue)?.label ?? operatorValue
-  const optionLabel = definition.options?.find((option) => option.value === value)?.title ?? value
-
+  const operatorLabel = definition.operators?.find((op) => op.value === operatorValue)?.label ?? operatorValue
+  const optionLabel   = definition.options?.find((option) => option.value === value)?.title ?? value
   return {
     id: `${key}-${operatorValue}-${value}-${Date.now()}`,
-    key,
-    operator: operatorValue,
-    value,
+    key, operator: operatorValue, value,
     label: `${definition.label} ${operatorLabel} ${optionLabel}`,
-    labelParts: {
-      field: definition.label,
-      operator: operatorLabel,
-      value: optionLabel,
-    },
+    labelParts: { field: definition.label, operator: operatorLabel, value: optionLabel },
   }
 }
 
 function handleFilterApply(criteria) {
-  const typeValues = Array.isArray(criteria?.types) ? criteria.types : []
-  const uniqueTypes = [...new Set(typeValues.filter(Boolean))]
-  const typeFilters = uniqueTypes
-    .map((typeValue) => buildFilterFromValue('type', typeValue))
-    .filter(Boolean)
-
+  const uniqueTypes = [...new Set((criteria?.types ?? []).filter(Boolean))]
+  const typeFilters = uniqueTypes.map((v) => buildFilterFromValue('type', v)).filter(Boolean)
   const preservedFilters = activeFilters.value.filter(
-    (filter) => filter.key !== 'type' && filter.meta?.source !== 'advanced',
+    (f) => f.key !== 'type' && f.meta?.source !== 'advanced',
   )
   activeFilters.value = [...preservedFilters, ...typeFilters]
 
   const {
-    priceMin = null,
-    priceMax = null,
-    priceHasValue = false,
-    bedroomsMin = null,
-    bedroomsMax = null,
-    bathroomsMin = null,
-    bathroomsMax = null,
-    carSpacesMin = null,
-    landSizeMin = null,
-    landSizeMax = null,
+    priceMin = null, priceMax = null, priceHasValue = false,
+    bedroomsMin = null, bedroomsMax = null,
+    bathroomsMin = null, bathroomsMax = null,
+    carSpacesMin = null, landSizeMin = null, landSizeMax = null,
     propertyAge = 'all',
   } = criteria || {}
 
   advancedCriteria.value = {
-    priceMin,
-    priceMax,
-    priceHasValue,
-    bedroomsMin,
-    bedroomsMax,
-    bathroomsMin,
-    bathroomsMax,
-    carSpacesMin,
-    landSizeMin,
-    landSizeMax,
-    propertyAge,
+    priceMin, priceMax, priceHasValue,
+    bedroomsMin, bedroomsMax, bathroomsMin, bathroomsMax,
+    carSpacesMin, landSizeMin, landSizeMax, propertyAge,
   }
-
   showFilterDialog.value = false
 }
 
@@ -296,15 +284,13 @@ function handleFilterClear() {
 
 async function handleAddProperty(payload) {
   const propertyData = payload || newProperty.value
-
   if (!propertyData.address || !propertyData.type || !propertyData.status) {
     alert('Please fill in at least address, type, and status.')
     return
   }
-
   try {
     await propertyStore.addProperty({ ...propertyData })
-    resetNewProperty()
+    newProperty.value = createEmptyPropertyDraft()
     showAddProperty.value = false
   } catch (e) {
     alert(`Failed to save property: ${e.message}`)
@@ -313,376 +299,160 @@ async function handleAddProperty(payload) {
 
 function createDefaultAdvancedCriteria() {
   return {
-    priceMin: null,
-    priceMax: null,
-    priceHasValue: false,
-    bedroomsMin: null,
-    bedroomsMax: null,
-    bathroomsMin: null,
-    bathroomsMax: null,
-    carSpacesMin: null,
-    landSizeMin: null,
-    landSizeMax: null,
+    priceMin: null, priceMax: null, priceHasValue: false,
+    bedroomsMin: null, bedroomsMax: null,
+    bathroomsMin: null, bathroomsMax: null,
+    carSpacesMin: null, landSizeMin: null, landSizeMax: null,
     propertyAge: 'all',
   }
 }
 
 function matchesAdvancedCriteria(property, criteria) {
-  if (!criteria) {
-    return true
-  }
-
+  if (!criteria) return true
   const price = parsePriceGuide(property.priceGuide)
-  if (criteria.priceHasValue && !price.hasValue) {
-    return false
-  }
+  if (criteria.priceHasValue && !price.hasValue) return false
   if (criteria.priceMin != null) {
-    const comparableMin = price.min ?? price.max
-    if (comparableMin == null || comparableMin < criteria.priceMin) {
-      return false
-    }
+    const v = price.min ?? price.max
+    if (v == null || v < criteria.priceMin) return false
   }
   if (criteria.priceMax != null) {
-    const comparableMax = price.max ?? price.min
-    if (comparableMax == null || comparableMax > criteria.priceMax) {
-      return false
-    }
+    const v = price.max ?? price.min
+    if (v == null || v > criteria.priceMax) return false
   }
-
-  if (!matchesRange(property.bedrooms, criteria.bedroomsMin, criteria.bedroomsMax)) {
-    return false
-  }
-  if (!matchesRange(property.bathrooms, criteria.bathroomsMin, criteria.bathroomsMax)) {
-    return false
-  }
-  if (!matchesRange(property.carSpaces, criteria.carSpacesMin, null)) {
-    return false
-  }
-
+  if (!matchesRange(property.bedrooms,   criteria.bedroomsMin,  criteria.bedroomsMax))  return false
+  if (!matchesRange(property.bathrooms,  criteria.bathroomsMin, criteria.bathroomsMax)) return false
+  if (!matchesRange(property.carSpaces,  criteria.carSpacesMin, null))                  return false
   const landSize = getLandSizeSqm(property)
-  if (!matchesRange(landSize, criteria.landSizeMin, criteria.landSizeMax)) {
-    return false
-  }
-
-  if (criteria.propertyAge === 'new' && !isNewProperty(property)) {
-    return false
-  }
-  if (criteria.propertyAge === 'established' && isNewProperty(property)) {
-    return false
-  }
-
+  if (!matchesRange(landSize, criteria.landSizeMin, criteria.landSizeMax)) return false
+  if (criteria.propertyAge === 'new'         && !isNewProperty(property)) return false
+  if (criteria.propertyAge === 'established' &&  isNewProperty(property)) return false
   return true
 }
 
 function isAdvancedCriteriaActive(criteria) {
-  if (!criteria) {
-    return false
-  }
-
-  if (criteria.priceHasValue) {
-    return true
-  }
-
-  if (criteria.propertyAge && criteria.propertyAge !== 'all') {
-    return true
-  }
-
-  const rangeFields = [
-    'priceMin',
-    'priceMax',
-    'bedroomsMin',
-    'bedroomsMax',
-    'bathroomsMin',
-    'bathroomsMax',
-    'carSpacesMin',
-    'landSizeMin',
-    'landSizeMax',
-  ]
-
-  return rangeFields.some((field) => criteria[field] != null)
+  if (!criteria) return false
+  if (criteria.priceHasValue) return true
+  if (criteria.propertyAge && criteria.propertyAge !== 'all') return true
+  return ['priceMin','priceMax','bedroomsMin','bedroomsMax','bathroomsMin','bathroomsMax',
+          'carSpacesMin','landSizeMin','landSizeMax'].some((f) => criteria[f] != null)
 }
 
 function matchesRange(value, min, max) {
-  if (value == null) {
-    return min == null && max == null
-  }
-  if (min != null && value < min) {
-    return false
-  }
-  if (max != null && value > max) {
-    return false
-  }
+  if (value == null) return min == null && max == null
+  if (min != null && value < min) return false
+  if (max != null && value > max) return false
   return true
 }
 
 function parsePriceGuide(priceGuide) {
-  if (!priceGuide) {
-    return { min: null, max: null, hasValue: false }
-  }
-
+  if (!priceGuide) return { min: null, max: null, hasValue: false }
   const matches = [...String(priceGuide).matchAll(/(\d+(?:\.\d+)?)([mk]?)/gi)]
-  if (!matches.length) {
-    return { min: null, max: null, hasValue: false }
-  }
-
-  const values = matches
-    .map(([, rawValue, unit]) => {
-      const parsed = Number(rawValue)
-      if (Number.isNaN(parsed)) {
-        return null
-      }
-      const normalizedUnit = unit?.toLowerCase()
-      const multiplier = normalizedUnit === 'm' ? 1_000_000 : normalizedUnit === 'k' ? 1_000 : 1
-      return parsed * multiplier
-    })
-    .filter((value) => value != null)
-
-  if (!values.length) {
-    return { min: null, max: null, hasValue: false }
-  }
-
+  if (!matches.length) return { min: null, max: null, hasValue: false }
+  const values = matches.map(([, rawValue, unit]) => {
+    const parsed = Number(rawValue)
+    if (Number.isNaN(parsed)) return null
+    const u = unit?.toLowerCase()
+    return parsed * (u === 'm' ? 1_000_000 : u === 'k' ? 1_000 : 1)
+  }).filter((v) => v != null)
+  if (!values.length) return { min: null, max: null, hasValue: false }
   const [minValue, maxValue] = values
-  return {
-    min: minValue ?? null,
-    max: maxValue ?? minValue ?? null,
-    hasValue: true,
-  }
+  return { min: minValue ?? null, max: maxValue ?? minValue ?? null, hasValue: true }
 }
 
 function getLandSizeSqm(property) {
-  if (typeof property?.landSizeSqm === 'number') {
-    return property.landSizeSqm
-  }
-
-  const match = String(property?.landSize ?? '')
-    .replace(/,/g, '')
-    .match(/\d+(?:\.\d+)?/)
-
+  if (typeof property?.landSizeSqm === 'number') return property.landSizeSqm
+  const match = String(property?.landSize ?? '').replace(/,/g, '').match(/\d+(?:\.\d+)?/)
   return match ? Number(match[0]) : null
 }
 
-function isNewProperty(property) {
-  return property?.statusBadge?.type === 'new'
-}
+function isNewProperty(property) { return property?.statusBadge?.type === 'new' }
 
 function buildAdvancedFilterChips(criteria) {
-  if (!criteria) {
-    return []
-  }
-
+  if (!criteria) return []
   const chips = []
-
-  if (criteria.priceMin != null || criteria.priceMax != null) {
-    const chip = createAdvancedChip({
-      id: 'price-range',
-      field: 'priceRange',
-      fieldLabel: 'Price',
-      valueLabel: formatRangeLabel(criteria.priceMin, criteria.priceMax, formatCurrencyShort),
+  const push = (id, field, fieldLabel, valueLabel) => {
+    if (valueLabel) chips.push({
+      id: `advanced-${id}`, key: `advanced-${id}`,
+      label: `${fieldLabel}: ${valueLabel}`,
+      labelParts: { field: fieldLabel, operator: '', value: valueLabel },
+      meta: { source: 'advanced', field },
     })
-    if (chip) {
-      chips.push(chip)
-    }
   }
-
-  if (criteria.priceHasValue) {
-    const chip = createAdvancedChip({
-      id: 'price-has-value',
-      field: 'priceHasValue',
-      fieldLabel: 'Price',
-      valueLabel: 'Has price',
-    })
-    if (chip) {
-      chips.push(chip)
-    }
-  }
-
-  if (criteria.bedroomsMin != null || criteria.bedroomsMax != null) {
-    const chip = createAdvancedChip({
-      id: 'bedrooms',
-      field: 'bedrooms',
-      fieldLabel: 'Bedrooms',
-      valueLabel: formatCountRange(criteria.bedroomsMin, criteria.bedroomsMax),
-    })
-    if (chip) {
-      chips.push(chip)
-    }
-  }
-
-  if (criteria.bathroomsMin != null || criteria.bathroomsMax != null) {
-    const chip = createAdvancedChip({
-      id: 'bathrooms',
-      field: 'bathrooms',
-      fieldLabel: 'Bathrooms',
-      valueLabel: formatCountRange(criteria.bathroomsMin, criteria.bathroomsMax),
-    })
-    if (chip) {
-      chips.push(chip)
-    }
-  }
-
-  if (criteria.carSpacesMin != null) {
-    const chip = createAdvancedChip({
-      id: 'car-spaces',
-      field: 'carSpaces',
-      fieldLabel: 'Car spaces',
-      valueLabel: `${criteria.carSpacesMin}+`,
-    })
-    if (chip) {
-      chips.push(chip)
-    }
-  }
-
-  if (criteria.landSizeMin != null || criteria.landSizeMax != null) {
-    const chip = createAdvancedChip({
-      id: 'land-size',
-      field: 'landSize',
-      fieldLabel: 'Land size',
-      valueLabel: formatRangeLabel(criteria.landSizeMin, criteria.landSizeMax, formatAreaLabel),
-    })
-    if (chip) {
-      chips.push(chip)
-    }
-  }
-
-  if (criteria.propertyAge && criteria.propertyAge !== 'all') {
-    const valueLabel = criteria.propertyAge === 'new' ? 'New' : 'Established'
-    const chip = createAdvancedChip({
-      id: 'property-age',
-      field: 'propertyAge',
-      fieldLabel: 'Property age',
-      valueLabel,
-    })
-    if (chip) {
-      chips.push(chip)
-    }
-  }
-
+  if (criteria.priceMin != null || criteria.priceMax != null)
+    push('price-range', 'priceRange', 'Price', formatRangeLabel(criteria.priceMin, criteria.priceMax, formatCurrencyShort))
+  if (criteria.priceHasValue)
+    push('price-has-value', 'priceHasValue', 'Price', 'Has price')
+  if (criteria.bedroomsMin != null || criteria.bedroomsMax != null)
+    push('bedrooms', 'bedrooms', 'Bedrooms', formatCountRange(criteria.bedroomsMin, criteria.bedroomsMax))
+  if (criteria.bathroomsMin != null || criteria.bathroomsMax != null)
+    push('bathrooms', 'bathrooms', 'Bathrooms', formatCountRange(criteria.bathroomsMin, criteria.bathroomsMax))
+  if (criteria.carSpacesMin != null)
+    push('car-spaces', 'carSpaces', 'Car spaces', `${criteria.carSpacesMin}+`)
+  if (criteria.landSizeMin != null || criteria.landSizeMax != null)
+    push('land-size', 'landSize', 'Land size', formatRangeLabel(criteria.landSizeMin, criteria.landSizeMax, (v) => `${v} m²`))
+  if (criteria.propertyAge && criteria.propertyAge !== 'all')
+    push('property-age', 'propertyAge', 'Property age', criteria.propertyAge === 'new' ? 'New' : 'Established')
   return chips
 }
 
-function createAdvancedChip({ id, field, fieldLabel, valueLabel }) {
-  if (!valueLabel) {
-    return null
-  }
-
-  return {
-    id: `advanced-${id}`,
-    key: `advanced-${id}`,
-    label: `${fieldLabel}: ${valueLabel}`,
-    labelParts: {
-      field: fieldLabel,
-      operator: '',
-      value: valueLabel,
-    },
-    meta: {
-      source: 'advanced',
-      field,
-    },
-  }
-}
-
 function clearAdvancedField(field) {
-  switch (field) {
-    case 'priceRange':
-      updateAdvancedCriteria({ priceMin: null, priceMax: null })
-      break
-    case 'priceHasValue':
-      updateAdvancedCriteria({ priceHasValue: false })
-      break
-    case 'bedrooms':
-      updateAdvancedCriteria({ bedroomsMin: null, bedroomsMax: null })
-      break
-    case 'bathrooms':
-      updateAdvancedCriteria({ bathroomsMin: null, bathroomsMax: null })
-      break
-    case 'carSpaces':
-      updateAdvancedCriteria({ carSpacesMin: null })
-      break
-    case 'landSize':
-      updateAdvancedCriteria({ landSizeMin: null, landSizeMax: null })
-      break
-    case 'propertyAge':
-      updateAdvancedCriteria({ propertyAge: 'all' })
-      break
-    default:
-      break
-  }
+  const patch = {
+    priceRange:    { priceMin: null, priceMax: null },
+    priceHasValue: { priceHasValue: false },
+    bedrooms:      { bedroomsMin: null, bedroomsMax: null },
+    bathrooms:     { bathroomsMin: null, bathroomsMax: null },
+    carSpaces:     { carSpacesMin: null },
+    landSize:      { landSizeMin: null, landSizeMax: null },
+    propertyAge:   { propertyAge: 'all' },
+  }[field]
+  if (patch) advancedCriteria.value = { ...advancedCriteria.value, ...patch }
 }
 
-function updateAdvancedCriteria(patch) {
-  advancedCriteria.value = { ...advancedCriteria.value, ...patch }
-}
-
-function formatRangeLabel(min, max, formatter) {
-  if (min != null && max != null) {
-    return `${formatter(min)} - ${formatter(max)}`
-  }
-  if (min != null) {
-    return `${formatter(min)}+`
-  }
-  if (max != null) {
-    return `≤ ${formatter(max)}`
-  }
+function formatRangeLabel(min, max, fmt) {
+  if (min != null && max != null) return `${fmt(min)} - ${fmt(max)}`
+  if (min != null) return `${fmt(min)}+`
+  if (max != null) return `≤ ${fmt(max)}`
   return ''
 }
 
 function formatCountRange(min, max) {
-  if (min != null && max != null) {
-    return `${min}-${max}`
-  }
-  if (min != null) {
-    return `${min}+`
-  }
-  if (max != null) {
-    return `≤ ${max}`
-  }
+  if (min != null && max != null) return `${min}-${max}`
+  if (min != null) return `${min}+`
+  if (max != null) return `≤ ${max}`
   return ''
 }
 
 function formatCurrencyShort(value) {
-  if (value == null) {
-    return ''
-  }
-
-  if (value >= 1_000_000) {
-    const formatted =
-      value % 1_000_000 === 0 ? (value / 1_000_000).toFixed(0) : (value / 1_000_000).toFixed(1)
-    return `$${formatted}m`
-  }
-
-  if (value >= 1_000) {
-    return `$${Math.round(value / 1_000)}k`
-  }
-
+  if (value == null) return ''
+  if (value >= 1_000_000) return `$${value % 1_000_000 === 0 ? (value / 1_000_000).toFixed(0) : (value / 1_000_000).toFixed(1)}m`
+  if (value >= 1_000) return `$${Math.round(value / 1_000)}k`
   return `$${value}`
-}
-
-function formatAreaLabel(value) {
-  if (value == null) {
-    return ''
-  }
-  return `${value} m²`
 }
 </script>
 
 <style scoped>
-.properties-view {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding-right: 0;
-  padding-top: 0;
-  padding-bottom: clamp(16px, 2vw, 32px);
+.prop-shell {
+  padding: 24px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.properties-empty {
-  padding: 32px 0;
+.prop-empty {
+  padding: 40px;
   text-align: center;
-  color: var(--bv-text-secondary, #64748b);
-  font-size: 1rem;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
 }
 
-.properties-pagination {
-  margin-top: 32px;
+@media (max-width: 1100px) { .prop-shell { padding: 20px 20px 32px; } }
+@media (max-width: 720px)  { .prop-shell { padding: 14px 12px 24px; gap: 14px; } }
+
+@media (max-width: 600px) {
+  .prop-add-btn { width: 36px; padding: 0; }
+  .prop-add-label { display: none; }
 }
 </style>

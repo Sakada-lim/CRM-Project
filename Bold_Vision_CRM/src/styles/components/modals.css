@@ -1,0 +1,294 @@
+/* ─────────────────────────────────────────────────────────────
+   Modal card chrome
+   ─────────────────────────────────────────────────────────────
+   Shared base for dialog content (used inside a v-dialog).
+   Components own their internal layout (forms, grids, tabs, etc.)
+   but rely on these classes for the head / body / foot chrome
+   so every modal in the app looks and behaves the same.
+
+   Usage:
+     <v-dialog v-model="open" max-width="640">
+       <div class="modal-card">
+         <header class="modal-head">
+           <span class="ico"><AppIcon name="chat" :size="18" /></span>
+           <div class="modal-head__text">
+             <h2>Title</h2>
+             <div class="sub">Optional subtitle</div>
+           </div>
+           <button class="close" @click="open = false">
+             <AppIcon name="x" :size="16" />
+           </button>
+         </header>
+         <div class="modal-body">…content…</div>
+         <div class="modal-foot">
+           <button class="btn btn-ghost" @click="open = false">Cancel</button>
+           <button class="btn btn-primary">Confirm</button>
+         </div>
+       </div>
+     </v-dialog>
+
+   Variants:
+     .modal-foot                   — actions right-aligned (default)
+     .modal-foot.modal-foot--split — hint left, actions right
+     ───────────────────────────────────────────────────────── */
+
+.modal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 86vh;
+}
+
+/* ── Head ───────────────────────────────────────────────────── */
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-head .ico {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+.modal-head__text { flex: 1; min-width: 0; }
+.modal-head h2 {
+  margin: 0;
+  font-size: 16px; font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.modal-head .sub {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.modal-head .close {
+  margin-left: auto;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: inline-grid; place-items: center;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.modal-head .close:hover { background: var(--surface-2); color: var(--text); }
+
+/* ── Body ───────────────────────────────────────────────────── */
+.modal-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ── Foot ───────────────────────────────────────────────────── */
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+/* Split variant: hint/info on the left, action buttons on the right */
+.modal-foot.modal-foot--split { justify-content: space-between; gap: 12px; }
+.modal-foot .actions { display: flex; align-items: center; gap: 8px; }
+.modal-foot .hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.modal-foot .btn:disabled,
+.modal-foot button:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+
+/* ── Sectioned body ─────────────────────────────────────────
+   Use .modal-section blocks inside .modal-body. Sections stack with
+   horizontal dividers between them. Each section has an eyebrow h4
+   plus form rows / seg-controls / toggles. */
+.modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.modal-section + .modal-section {
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.modal-section h4 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+/* Field head row: label left, optional action/hint right.
+   The plain `.field > label` eyebrow style still applies when no head row is used. */
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.field-head > label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  margin: 0;
+}
+.field-head .field-action {
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+/* ── Split grid: two- and three-column field rows ──────────── */
+.split-grid {
+  display: grid;
+  gap: 14px;
+}
+.split-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.split-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 720px) {
+  .split-grid.cols-2,
+  .split-grid.cols-3 { grid-template-columns: 1fr; }
+}
+
+/* ── Segmented control ─────────────────────────────────────
+   Use for single-select OR multi-select option groups (Status, Channel).
+   Active state via [aria-pressed="true"]. Tone variants .is-hot/.is-warm/.is-cold
+   give status-coloured fills when pressed. */
+.seg-control {
+  display: flex;
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 4px;
+  gap: 4px;
+}
+.seg-control > button {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  min-height: 32px;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-muted);
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--r-md) - 2px);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, color .12s, border-color .12s, box-shadow .12s;
+}
+.seg-control > button:hover {
+  color: var(--text);
+}
+.seg-control > button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.seg-control > button.is-hot[aria-pressed="true"]  { background: var(--hot-soft);  color: var(--hot-ink);  border-color: color-mix(in oklch, var(--hot) 30%, transparent); }
+.seg-control > button.is-warm[aria-pressed="true"] { background: var(--warm-soft); color: var(--warm-ink); border-color: color-mix(in oklch, var(--warm) 30%, transparent); }
+.seg-control > button.is-cold[aria-pressed="true"] { background: var(--cold-soft); color: var(--cold-ink); border-color: color-mix(in oklch, var(--cold) 30%, transparent); }
+.seg-control .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.seg-control .ico { display: inline-flex; align-items: center; }
+
+@media (max-width: 720px) {
+  .seg-control { flex-wrap: wrap; }
+  .seg-control > button { flex: 1 1 calc(33.333% - 4px); }
+  /* 4-button seg-controls drop to 2x2 grid so the last button doesn't sit alone on a row */
+  .seg-control.cols-4 > button { flex: 1 1 calc(50% - 4px); }
+}
+
+/* ── Toggle row + switch ───────────────────────────────────
+   Bordered row with title/description on the left and a switch on the right. */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+.toggle-row .meta { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.toggle-row .ttl { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.toggle-row .desc { font-size: 12px; color: var(--text-muted); }
+
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background .12s, border-color .12s;
+}
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  transition: transform .14s ease, background .14s;
+}
+.toggle-switch[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.toggle-switch[aria-checked="true"]::after {
+  background: var(--surface);
+  transform: translateX(18px);
+}
+.toggle-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Responsive: full-screen on phones ─────────────────────── */
+@media (max-width: 720px) {
+  .modal-card {
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+  .modal-foot.modal-foot--split {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .modal-foot.modal-foot--split .actions { width: 100%; }
+  .modal-foot.modal-foot--split .actions .btn { flex: 1; justify-content: center; }
+}

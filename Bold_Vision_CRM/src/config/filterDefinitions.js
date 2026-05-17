@@ -11,9 +11,12 @@ export const propertyFilterDefinitions = [
       { label: 'is not', value: 'is_not' },
     ],
     options: [
-      { title: 'On Market', value: 'On Market' },
-      { title: 'Under Offer', value: 'Under Offer' },
-      { title: 'Sold', value: 'Sold' },
+      { title: 'On Market',      value: 'On Market' },
+      { title: 'Coming Soon',    value: 'Coming Soon' },
+      { title: 'Under Contract', value: 'Under Contract' },
+      { title: 'Sold',           value: 'Sold' },
+      { title: 'Off Market',     value: 'Off Market' },
+      { title: 'Withdrawn',      value: 'Withdrawn' },
     ],
   },
   {

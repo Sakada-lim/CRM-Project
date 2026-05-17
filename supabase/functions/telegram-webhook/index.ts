@@ -1,3 +1,6 @@
+// @ts-nocheck — runs on Deno (Supabase Edge Functions). The Deno global +
+// URL imports below aren't recognised by VS Code's built-in TS server.
+// Standard Supabase workaround; runtime correctness is unaffected.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 

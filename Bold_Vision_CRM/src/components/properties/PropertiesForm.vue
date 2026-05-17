@@ -1,198 +1,249 @@
 <template>
   <div class="property-form">
-    <section class="filter-section">
-      <div class="section-header">
-        <p class="section-title">Basic details</p>
-      </div>
-      <div class="input-grid">
-        <v-text-field
-          v-model="form.address"
-          label="Street address"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          required
-          class="wide"
-          name="street-address"
-          autocomplete="street-address"
-        />
-        <v-text-field
-          v-model="form.suburb"
-          label="Suburb"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          name="address-level2"
-          autocomplete="address-level2"
-        />
-        <v-select
-          v-model="form.state"
-          :items="stateOptions"
-          label="State"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          name="address-level1"
-          autocomplete="address-level1"
-        />
-        <v-text-field
-          v-model="form.postcode"
-          label="Postcode"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          name="postal-code"
-          autocomplete="postal-code"
-        />
-        <v-text-field
-          v-model="form.code"
-          label="Internal code"
-          hint="e.g. PROP-001"
-          persistent-hint
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          autocomplete="off"
-          name="internal-code"
-        />
+
+    <!-- ── Basic details ─────────────────────────────────────── -->
+    <section class="pd-section">
+      <h4 class="pd-section-head">Basic details</h4>
+
+      <div class="field-stack">
+        <div class="field">
+          <label for="pf-address">Street address</label>
+          <input
+            id="pf-address"
+            v-model="form.address"
+            class="input"
+            type="text"
+            name="street-address"
+            autocomplete="street-address"
+            placeholder="e.g. 12 Main Street"
+            required
+          />
+        </div>
+
+        <div class="grid-2-1-1">
+          <div class="field">
+            <label for="pf-suburb">Suburb</label>
+            <input
+              id="pf-suburb"
+              v-model="form.suburb"
+              class="input"
+              type="text"
+              name="address-level2"
+              autocomplete="address-level2"
+            />
+          </div>
+          <div class="field">
+            <label for="pf-state">State</label>
+            <select
+              id="pf-state"
+              v-model="form.state"
+              class="select"
+              name="address-level1"
+              autocomplete="address-level1"
+            >
+              <option v-for="s in stateOptions" :key="s" :value="s">{{ s }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pf-postcode">Postcode</label>
+            <input
+              id="pf-postcode"
+              v-model="form.postcode"
+              class="input"
+              type="text"
+              inputmode="numeric"
+              name="postal-code"
+              autocomplete="postal-code"
+            />
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="filter-section">
-      <div class="section-header">
-        <p class="section-title">Status & pricing</p>
+    <!-- ── Status & pricing ──────────────────────────────────── -->
+    <section class="pd-section">
+      <div class="pd-section-row">
+        <h4 class="pd-section-head">Status &amp; pricing</h4>
+        <span v-if="priceDisplay" class="pd-section-chip">
+          <span class="dot" />{{ priceDisplay }}
+        </span>
       </div>
-      <div class="input-grid">
-        <v-select
-          v-model="form.type"
-          :items="typeOptions"
-          label="Property type"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          required
-        />
-        <v-select
-          v-model="form.status"
-          :items="statusOptions"
-          label="Status"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          required
-        />
-        <v-text-field
-          v-model="form.priceGuide"
-          label="Price guide"
-          hint="e.g. $850k–$900k"
-          persistent-hint
-          variant="outlined"
-          density="comfortable"
-          hide-details
-        />
-        <v-text-field
-          v-model="form.listedAt"
-          type="date"
-          label="Listed date"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          autocomplete="off"
-        />
+
+      <div class="field-stack">
+        <div class="grid-4">
+          <div class="field">
+            <label for="pf-type">Property type</label>
+            <select id="pf-type" v-model="form.type" class="select" required>
+              <option v-for="t in typeOptions" :key="t" :value="t">{{ t }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pf-status">Status</label>
+            <select id="pf-status" v-model="form.status" class="select" required>
+              <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pf-price-min">Price (min)</label>
+            <div class="input-affix">
+              <span class="prefix">$</span>
+              <input
+                id="pf-price-min"
+                v-model="priceMinInput"
+                class="input has-prefix"
+                type="text"
+                placeholder="e.g. 850k or 1.2m"
+                autocomplete="off"
+                @blur="normalizePriceInput('min')"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label for="pf-price-max">Price (max, optional)</label>
+            <div class="input-affix">
+              <span class="prefix">$</span>
+              <input
+                id="pf-price-max"
+                v-model="priceMaxInput"
+                class="input has-prefix"
+                type="text"
+                placeholder="leave blank for single price"
+                autocomplete="off"
+                @blur="normalizePriceInput('max')"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="narrow-field">
+          <div class="field">
+            <label for="pf-listed">Listed date</label>
+            <input
+              id="pf-listed"
+              v-model="listedAtInput"
+              class="input"
+              type="date"
+              autocomplete="off"
+            />
+          </div>
+        </div>
       </div>
+
     </section>
 
-    <section class="filter-section">
-      <div class="section-header">
-        <p class="section-title">Layout & dimensions</p>
+    <!-- ── Layout & dimensions ───────────────────────────────── -->
+    <section class="pd-section">
+      <div class="pd-section-row">
+        <h4 class="pd-section-head">Layout &amp; dimensions</h4>
+        <span v-if="sizeSummary" class="pd-section-chip">
+          <span class="dot" />{{ sizeSummary }}
+        </span>
       </div>
-      <div class="input-grid">
-        <v-text-field
-          :model-value="form.bedrooms"
-          type="number"
-          min="0"
-          label="Bedrooms"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          @update:model-value="(val) => updateNumberField('bedrooms', val)"
-        />
-        <v-text-field
-          :model-value="form.bathrooms"
-          type="number"
-          min="0"
-          label="Bathrooms"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          @update:model-value="(val) => updateNumberField('bathrooms', val)"
-        />
-        <v-text-field
-          :model-value="form.carSpaces"
-          type="number"
-          min="0"
-          label="Car spaces"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          @update:model-value="(val) => updateNumberField('carSpaces', val, { mirrorField: 'carparkSpaces' })"
-        />
-        <v-text-field
-          :model-value="form.landSizeSqm"
-          type="number"
-          min="0"
-          label="Land size (sqm)"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          @update:model-value="(val) => updateNumberField('landSizeSqm', val, { labelField: 'landSize' })"
-        />
-        <v-text-field
-          :model-value="form.houseSizeSqm"
-          type="number"
-          min="0"
-          label="House size (sqm)"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          @update:model-value="(val) => updateNumberField('houseSizeSqm', val, { labelField: 'houseSize' })"
-        />
+
+      <div class="grid-5">
+        <div class="field">
+          <label for="pf-bedrooms">Bedrooms</label>
+          <input
+            id="pf-bedrooms"
+            :value="form.bedrooms"
+            class="input"
+            type="number"
+            min="0"
+            @input="(e) => updateNumberField('bedrooms', e.target.value)"
+          />
+        </div>
+        <div class="field">
+          <label for="pf-bathrooms">Bathrooms</label>
+          <input
+            id="pf-bathrooms"
+            :value="form.bathrooms"
+            class="input"
+            type="number"
+            min="0"
+            @input="(e) => updateNumberField('bathrooms', e.target.value)"
+          />
+        </div>
+        <div class="field">
+          <label for="pf-cars">Car spaces</label>
+          <input
+            id="pf-cars"
+            :value="form.carSpaces"
+            class="input"
+            type="number"
+            min="0"
+            @input="(e) => updateNumberField('carSpaces', e.target.value, { mirrorField: 'carparkSpaces' })"
+          />
+        </div>
+        <div class="field">
+          <label for="pf-land">Land size</label>
+          <div class="input-affix">
+            <input
+              id="pf-land"
+              v-model="landSizeInput"
+              class="input has-suffix"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              @blur="normalizeSqmInput('land')"
+            />
+            <span class="suffix">m²</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="pf-house">House size</label>
+          <div class="input-affix">
+            <input
+              id="pf-house"
+              v-model="houseSizeInput"
+              class="input has-suffix"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              @blur="normalizeSqmInput('house')"
+            />
+            <span class="suffix">m²</span>
+          </div>
+        </div>
       </div>
+
     </section>
 
-    <section class="filter-section">
-      <div class="section-header">
-        <p class="section-title">Notes & description</p>
-      </div>
-      <div class="input-grid">
-        <v-textarea
-          v-model="form.description"
-          label="Public description"
-          rows="4"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          class="wide"
-        />
-        <v-textarea
-          v-model="form.notes"
-          label="Internal notes"
-          rows="4"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          class="wide"
-        />
+    <!-- ── Notes & description ───────────────────────────────── -->
+    <section class="pd-section">
+      <h4 class="pd-section-head">Notes &amp; description</h4>
+
+      <div class="field-stack">
+        <div class="field">
+          <label for="pf-description">Public description</label>
+          <textarea
+            id="pf-description"
+            v-model="form.description"
+            class="textarea"
+            rows="4"
+            placeholder="Shown on the listing"
+          />
+        </div>
+        <div class="field">
+          <label for="pf-notes">Internal notes</label>
+          <textarea
+            id="pf-notes"
+            v-model="form.notes"
+            class="textarea"
+            rows="3"
+            placeholder="Only visible to your team"
+          />
+        </div>
       </div>
     </section>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { formatPrice, formatPriceSingle, parsePriceInput, formatSqm } from '../../utils/formatters'
 
 const typeOptions = ['House', 'Townhouse', 'Villa', 'Apartment']
-const statusOptions = ['On Market', 'Under Offer', 'Sold']
+const statusOptions = ['On Market', 'Coming Soon', 'Under Contract', 'Sold', 'Off Market', 'Withdrawn']
 const stateOptions = ['VIC', 'NSW', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT']
 
 const props = defineProps({
@@ -205,11 +256,104 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const form = computed({
+  get() { return props.modelValue },
+  set(val) { emit('update:modelValue', val) },
+})
+
+// Price inputs are kept as local strings so the user can type freely ("1m",
+// "850k", "1,500,000"); we parse them into form.priceMin / form.priceMax and
+// only normalize the visible string on blur.
+const priceMinInput = ref(form.value.priceMin != null ? formatPriceSingle(form.value.priceMin) : '')
+const priceMaxInput = ref(form.value.priceMax != null ? formatPriceSingle(form.value.priceMax) : '')
+
+watch(() => form.value.priceMin, (val) => {
+  const parsed = parsePriceInput(priceMinInput.value)
+  if (parsed !== val) priceMinInput.value = val != null ? formatPriceSingle(val) : ''
+})
+watch(() => form.value.priceMax, (val) => {
+  const parsed = parsePriceInput(priceMaxInput.value)
+  if (parsed !== val) priceMaxInput.value = val != null ? formatPriceSingle(val) : ''
+})
+
+watch(priceMinInput, (val) => { form.value.priceMin = parsePriceInput(val) })
+watch(priceMaxInput, (val) => { form.value.priceMax = parsePriceInput(val) })
+
+const priceDisplay = computed(() => formatPrice(form.value.priceMin, form.value.priceMax))
+
+// Mirror display string back to priceGuide so downstream code (broadcasts,
+// sorting, card display) keeps working without further changes.
+watch(priceDisplay, (val) => { form.value.priceGuide = val }, { immediate: true })
+
+function normalizePriceInput(which) {
+  if (which === 'min' && form.value.priceMin != null) {
+    priceMinInput.value = formatPriceSingle(form.value.priceMin)
+  }
+  if (which === 'max' && form.value.priceMax != null) {
+    priceMaxInput.value = formatPriceSingle(form.value.priceMax)
+  }
+}
+
+// Land / house size — text inputs with thousands-separator formatting on blur.
+function parseSqmInput(str) {
+  if (str == null || str === '') return null
+  const cleaned = String(str).replace(/[,\s]/g, '').replace(/m²?$/i, '')
+  const n = parseFloat(cleaned)
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null
+}
+function formatSqmInputValue(n) {
+  return n == null ? '' : n.toLocaleString('en-AU')
+}
+
+const landSizeInput  = ref(formatSqmInputValue(form.value.landSizeSqm))
+const houseSizeInput = ref(formatSqmInputValue(form.value.houseSizeSqm))
+
+watch(landSizeInput, (val) => {
+  const n = parseSqmInput(val)
+  form.value.landSizeSqm = n
+  form.value.landSize = formatSqm(n)
+})
+watch(houseSizeInput, (val) => {
+  const n = parseSqmInput(val)
+  form.value.houseSizeSqm = n
+  form.value.houseSize = formatSqm(n)
+})
+watch(() => form.value.landSizeSqm, (val) => {
+  if (parseSqmInput(landSizeInput.value) !== val) {
+    landSizeInput.value = formatSqmInputValue(val)
+  }
+})
+watch(() => form.value.houseSizeSqm, (val) => {
+  if (parseSqmInput(houseSizeInput.value) !== val) {
+    houseSizeInput.value = formatSqmInputValue(val)
+  }
+})
+
+function normalizeSqmInput(which) {
+  if (which === 'land' && form.value.landSizeSqm != null) {
+    landSizeInput.value = formatSqmInputValue(form.value.landSizeSqm)
+  }
+  if (which === 'house' && form.value.houseSizeSqm != null) {
+    houseSizeInput.value = formatSqmInputValue(form.value.houseSizeSqm)
+  }
+}
+
+const sizeSummary = computed(() => {
+  const parts = []
+  if (form.value.landSizeSqm)  parts.push(`Land ${formatSqm(form.value.landSizeSqm)}`)
+  if (form.value.houseSizeSqm) parts.push(`House ${formatSqm(form.value.houseSizeSqm)}`)
+  return parts.join(' · ')
+})
+
+// listed_at may arrive as an ISO datetime ("2026-05-18T00:00:00+00:00") or
+// a plain date string. <input type="date"> only displays "YYYY-MM-DD", so
+// strip to the date portion on get and pass the date string through on set.
+const listedAtInput = computed({
   get() {
-    return props.modelValue
+    const v = form.value.listedAt
+    return v ? String(v).slice(0, 10) : ''
   },
-  set(val) {
-    emit('update:modelValue', val)
+  set(v) {
+    form.value.listedAt = v || null
   },
 })
 
@@ -220,30 +364,44 @@ function updateNumberField(field, value, options = {}) {
   if (options.mirrorField) {
     form.value[options.mirrorField] = form.value[field]
   }
-
-  if (options.labelField) {
-    form.value[options.labelField] =
-      form.value[field] == null ? '' : `${form.value[field]} m²`
-  }
 }
 </script>
 
-<style scoped src="../../assets/styles/components/filterDialog.css"></style>
-
 <style scoped>
-.property-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+.property-form { display: flex; flex-direction: column; }
 
-.input-grid {
+/* Inner stacks within a section */
+.field-stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* Section-specific grids — match the reference */
+.grid-2-1-1 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+}
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
 }
 
-.input-grid .wide {
-  grid-column: 1 / -1;
+/* Listed date — narrow standalone field */
+.narrow-field { max-width: 240px; }
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-5 { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 600px) {
+  .grid-2-1-1 { grid-template-columns: 1fr; }
+  .grid-4     { grid-template-columns: 1fr 1fr; }
+  .grid-5     { grid-template-columns: 1fr 1fr; }
+  .narrow-field { max-width: none; }
 }
 </style>

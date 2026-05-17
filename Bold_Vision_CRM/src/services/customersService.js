@@ -9,6 +9,7 @@ function mapRowToCustomer(row) {
     channel: row.channel ?? 'Call',
     category: row.category ?? 'Cold',
     notes: row.notes ?? '',
+    agent: row.agent ?? '',
     createdAt: row.created_at,
     lastContactedAt: row.last_contacted_at ?? null,
     nextContactAt: row.next_contact_at ?? null,
@@ -25,6 +26,7 @@ function mapCustomerToRow(customer) {
     channel: customer.channel,
     category: customer.category,
     notes: customer.notes,
+    agent: customer.agent,
   }
   const row = {}
   for (const [key, value] of Object.entries(fields)) {
@@ -92,22 +94,57 @@ export async function setNextContactAt(id, dateIso) {
   if (error) throw error
 }
 
+const FEEDBACK_TYPES = new Set(['call', 'email', 'sms', 'note', 'telegram'])
+
+function mapFeedbackRow(row) {
+  return {
+    id: row.id,
+    note: row.note,
+    date: row.created_at,
+    type: row.type ?? 'note',
+    durationMinutes: row.duration_minutes ?? null,
+  }
+}
+
+function normalizeFeedbackPayload(input) {
+  if (input == null) return { note: '', type: 'note', durationMinutes: null }
+  if (typeof input === 'string') {
+    return { note: input, type: 'note', durationMinutes: null }
+  }
+  const type = FEEDBACK_TYPES.has(input.type) ? input.type : 'note'
+  const durationMinutes =
+    type === 'call' && Number.isFinite(Number(input.durationMinutes))
+      ? Number(input.durationMinutes)
+      : null
+  return {
+    note: input.note ?? '',
+    type,
+    durationMinutes,
+  }
+}
+
 export async function listFeedback(customerId) {
   const { data, error } = await supabase
     .from('customer_feedback')
-    .select('id, note, created_at')
+    .select('id, note, created_at, type, duration_minutes')
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })
   if (error) throw error
-  return data.map((row) => ({ id: row.id, note: row.note, date: row.created_at }))
+  return data.map(mapFeedbackRow)
 }
 
-export async function addFeedback(customerId, note) {
+export async function addFeedback(customerId, input) {
+  const { note, type, durationMinutes } = normalizeFeedbackPayload(input)
   const { data, error } = await supabase
     .from('customer_feedback')
-    .insert({ customer_id: customerId, note })
-    .select('id, note, created_at')
+    .insert({
+      customer_id: customerId,
+      note,
+      type,
+      duration_minutes: durationMinutes,
+    })
+    .select('id, note, created_at, type, duration_minutes')
     .single()
   if (error) throw error
-  return { id: data.id, note: data.note, date: data.created_at }
+  return mapFeedbackRow(data)
 }

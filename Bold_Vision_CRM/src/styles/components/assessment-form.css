@@ -1,0 +1,397 @@
+/* ─────────────────────────────────────────────────────────────
+   Assessment form — shared chrome for the financial-assessment page
+   ─────────────────────────────────────────────────────────────
+   Two-column shell: sticky left nav rail + scrollable main column.
+   Each section sits in an `.afm-section` card with `.head` (numbered
+   step + title + description). Two-client rows use `.afm-twocol`,
+   assets use `.afm-assets`, liabilities use `.afm-liab`, discovery
+   uses `.afm-discovery`. A sticky `.afm-actionbar` floats at the
+   bottom of the main column with autosave meta + Submit.
+
+   Atoms assumed to exist (do not add here): .field, .input, .select,
+   .textarea, .input-affix + .prefix + .has-prefix, .seg-control,
+   .btn / .btn-primary / .btn-ghost.
+   ───────────────────────────────────────────────────────────── */
+
+.afm-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  padding: 24px 28px 40px;
+  align-items: start;
+  min-height: 100vh;
+}
+
+/* ─── Sticky nav rail ─── */
+.afm-nav {
+  position: sticky;
+  top: 80px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.afm-nav .head {
+  padding: 4px 12px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.afm-nav .head .who { font-weight: 600; font-size: 13.5px; }
+.afm-nav .head .what { font-size: 11.5px; color: var(--text-muted); }
+
+.afm-nav a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-muted);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background .12s, color .12s;
+}
+.afm-nav a:hover { background: var(--surface-2); color: var(--text); }
+.afm-nav a .step {
+  display: inline-grid; place-items: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--surface-sunk);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.afm-nav a[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.afm-nav a[aria-current="page"] .step {
+  background: var(--accent);
+  color: var(--text-on-accent, white);
+}
+.afm-nav a.is-complete .step {
+  background: var(--success);
+  color: var(--text-on-accent, white);
+}
+
+.afm-progress {
+  margin-top: 12px; padding: 8px 12px;
+  font-size: 11px; color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+.afm-progress .bar {
+  height: 6px; border-radius: 999px; background: var(--surface-sunk);
+  overflow: hidden; margin-top: 6px;
+}
+.afm-progress .bar > i {
+  display: block; height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width .25s;
+}
+
+/* ─── Main column ─── */
+.afm-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+.afm-pageheader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+.afm-pageheader h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.afm-pageheader .sub { margin-top: 4px; font-size: 13.5px; color: var(--text-muted); }
+@media (max-width: 720px) { .afm-pageheader h1 { font-size: 22px; } }
+
+/* ─── Section card ─── */
+.afm-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  scroll-margin-top: 90px;
+}
+.afm-section .head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.afm-section .head h2 {
+  margin: 0; font-size: 19px; font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+.afm-section .head .desc { margin-top: 4px; font-size: 13px; color: var(--text-muted); }
+.afm-section .head .num {
+  display: inline-grid; place-items: center;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 700; font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ─── Two-client grid (Personal, Employment, Income) ─── */
+.afm-twocol {
+  display: grid;
+  grid-template-columns: 160px 1fr 1fr;
+  gap: 16px 18px;
+  align-items: start;
+}
+.afm-twocol .row-label {
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-muted);
+  align-self: center;
+  padding-top: 22px;
+}
+.afm-twocol .col-head {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-faint);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+
+.afm-subhead {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 18px 0 12px;
+}
+
+/* ─── Assets list ─── */
+.afm-assets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+  margin-bottom: 12px;
+}
+.afm-asset {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 4px;
+  border-bottom: 1px dashed var(--border);
+}
+.afm-asset .lbl {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text);
+}
+.afm-asset .input { height: 36px; font-size: 13px; }
+
+.afm-asset-total,
+.afm-total-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  border-radius: var(--r-md);
+}
+.afm-asset-total .lbl,
+.afm-total-row .lbl {
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.afm-asset-total .val,
+.afm-total-row .val {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--accent-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Liabilities grid (dynamic rows) ─── */
+.afm-liab {
+  display: grid;
+  grid-template-columns: 120px minmax(110px, 1.2fr) minmax(100px, 1fr) minmax(110px, 1fr) 88px 78px minmax(100px, 1fr) 28px;
+  gap: 8px 10px;
+  align-items: center;
+}
+.afm-liab .h {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-faint);
+  padding-bottom: 8px;
+}
+.afm-liab .type-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text);
+}
+.afm-liab .row-del {
+  display: inline-grid; place-items: center;
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  color: var(--text-faint);
+  background: transparent; border: 1px solid transparent;
+  cursor: pointer;
+}
+.afm-liab .row-del:hover { color: var(--hot-ink); background: var(--hot-soft); }
+
+.afm-add-row {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--r-md);
+  font-size: 12.5px; font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  width: fit-content;
+}
+.afm-add-row:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+/* ─── Discovery list ─── */
+.afm-discovery { display: flex; flex-direction: column; gap: 14px; }
+.afm-q {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.afm-q .qn {
+  display: inline-grid; place-items: center;
+  width: 28px; height: 28px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-radius: 50%;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.afm-q .body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.afm-q .body .q { font-size: 13.5px; font-weight: 550; color: var(--text); }
+.afm-q .body .a textarea,
+.afm-q .body .a input { width: 100%; }
+
+/* ─── Phone-only client toggle (Personal / Employment / Income sections) ───
+   At ≤720px the two-client stack is hard to read because there's no anchor
+   showing which input belongs to which client. We swap it for a tabbed
+   Client 1 / Client 2 picker (shared state across sections). The toggle is
+   a regular .seg-control with extra bottom-margin so it doesn't crowd the
+   first row of fields. */
+.afm-client-toggle { display: none; }
+@media (max-width: 720px) {
+  .afm-client-toggle { display: flex; margin-bottom: 16px; }
+  /* Col-heads are redundant on phone — the toggle says which client we're on. */
+  .afm-twocol .col-head { display: none; }
+}
+
+/* ─── Seg-control wrap fallback (assessment-form-scoped) ───
+   Whenever a seg-control's buttons can't fit on one row in their parent
+   column — common in the 3-col desktop layout where each Client column is
+   ~270-300px — they wrap to a second row instead of overflowing the button
+   box. min-width: max-content keeps the button at least as wide as its
+   text, so labels like "Self-employed" or "Part Time" never get clipped. */
+.afm-section .seg-control { flex-wrap: wrap; }
+.afm-section .seg-control > button {
+  flex: 1 1 auto;
+  min-width: max-content;
+}
+
+/* ─── Sticky action bar ─── */
+.afm-actionbar {
+  position: sticky;
+  bottom: 0;
+  background: color-mix(in oklab, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  margin: 0 -28px -40px -28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  z-index: 4;
+}
+.afm-actionbar .save-meta {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1100px) {
+  .afm-shell { grid-template-columns: 1fr; gap: 16px; padding: 20px 20px 32px; }
+  .afm-nav {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+  .afm-nav .head { display: none; }
+  .afm-nav .afm-progress { display: none; }
+  .afm-nav a { justify-content: center; }
+  .afm-twocol { grid-template-columns: 1fr 1fr; }
+  /* Hide the empty placeholder cell so Client 1 + Client 2 heads sit side-by-side */
+  .afm-twocol > div:empty:first-child { display: none; }
+  .afm-twocol .row-label { grid-column: 1 / -1; padding-top: 0; padding-bottom: 2px; }
+  .afm-liab { grid-template-columns: 1fr 1fr; }
+  .afm-liab .h { display: none; }
+  .afm-assets { grid-template-columns: 1fr; }
+  /* In the now-narrow two-client columns:
+     - tighten seg-control buttons so common 3-button labels (Employee/
+       Contract/Self-employed, Full Time/Part Time/Casual) fit on one row
+     - allow wrapping to a 2nd row if they still don't fit, so text is
+       never truncated mid-word */
+  .afm-section .seg-control {
+    flex-wrap: wrap;
+  }
+  .afm-section .seg-control > button {
+    font-size: 12px;
+    padding: 7px 6px;
+    gap: 4px;
+    flex: 1 1 auto;
+  }
+}
+@media (max-width: 720px) {
+  .afm-shell { padding: 14px 12px 24px; }
+  .afm-section { padding: 18px 16px; }
+  .afm-section .head h2 { font-size: 17px; }
+  .afm-nav { grid-template-columns: repeat(2, 1fr); }
+  .afm-twocol { grid-template-columns: 1fr; }
+  .afm-liab {
+    grid-template-columns: 1fr;
+    gap: 8px; padding: 12px;
+    background: var(--surface-2);
+    border-radius: var(--r-md);
+    margin-bottom: 8px;
+  }
+  .afm-actionbar { margin: 0 -12px -24px -12px; padding: 12px; }
+}

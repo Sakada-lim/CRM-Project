@@ -1,107 +1,154 @@
 <template>
-  <div class="followups">
-    <div class="followups-header mb-4">
-      <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-        <div>
-          <h2>Follow-ups</h2>
-          <p class="text-body-2 text-medium-emphasis mt-1">{{ weekRangeLabel }}</p>
+  <div class="fu-shell">
+    <!-- Header -->
+    <div class="fu-header">
+      <div class="fu-title">
+        <h1>Follow-ups</h1>
+        <div class="range">
+          <template v-if="totalTasks === 0">
+            <AppIcon name="check" :size="13" class="fu-range-check" />
+            All caught up — nothing scheduled in this view
+          </template>
+          <template v-else>
+            {{ weekRangeLabel }} · {{ totalTasks }} task{{ totalTasks === 1 ? '' : 's' }}
+          </template>
         </div>
-        <div class="d-flex gap-2">
-          <v-chip v-if="overdueCount" color="error" size="small" prepend-icon="mdi-alert-circle-outline">
-            {{ overdueCount }} overdue
-          </v-chip>
-          <v-chip v-if="unscheduledCount" color="warning" size="small" prepend-icon="mdi-calendar-remove-outline">
-            {{ unscheduledCount }} unscheduled
-          </v-chip>
-          <v-chip v-if="!overdueCount && !unscheduledCount" color="success" size="small" prepend-icon="mdi-check-circle-outline">
-            All caught up
-          </v-chip>
+      </div>
+
+      <div class="fu-controls">
+        <span v-if="overdueCount" class="pill hot" style="height: 28px; padding: 0 12px;">
+          <span class="dot"></span>{{ overdueCount }} overdue
+        </span>
+
+        <div class="fu-weeknav" role="group" aria-label="Week navigation">
+          <button type="button" aria-label="Previous week" @click="weekOffset--">
+            <AppIcon name="arrow-left" :size="14" />
+          </button>
+          <button type="button" class="today-btn" @click="weekOffset = 0">Today</button>
+          <button type="button" aria-label="Next week" @click="weekOffset++">
+            <AppIcon name="arrow-right" :size="14" />
+          </button>
+        </div>
+
+        <select v-model="sortMode" class="select fu-sort-select" aria-label="Sort follow-ups">
+          <option value="time">Time</option>
+          <option value="category">Hot first</option>
+          <option value="name">Name (A–Z)</option>
+        </select>
+
+        <button type="button" class="btn btn-ghost" @click="showFilterDialog = true">
+          <AppIcon name="filter" :size="14" />
+          Filters
+          <span v-if="filterCount" class="tab-ct">{{ filterCount }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Phone: smart inbox feed (no kanban — single vertical list) -->
+    <div v-if="isPhone" class="fu-feed">
+      <div class="fu-feed-chips" role="tablist" aria-label="Filter follow-ups">
+        <button
+          v-for="opt in phoneFilterOptions"
+          :key="opt.value"
+          type="button"
+          :aria-pressed="phoneFilter === opt.value"
+          @click="phoneFilter = opt.value"
+        >
+          {{ opt.label }}
+          <span v-if="opt.count" class="ct">{{ opt.count }}</span>
+        </button>
+      </div>
+
+      <div class="fu-feed-list">
+        <KanbanCard
+          v-for="c in feedCards"
+          :key="c.id"
+          :customer="c"
+          :show-date="true"
+          @mark-contacted="openMarkContacted(c)"
+        />
+        <div v-if="!feedCards.length" class="fu-feed-empty">
+          <AppIcon name="check" :size="18" />
+          <span>{{ phoneFilter === 'all' ? 'All caught up' : `No ${phoneFilterLabel} follow-ups` }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Kanban board -->
-    <div class="kanban-board">
-      <!-- Overdue column -->
-      <div
-        class="kanban-column kanban-column--overdue"
-        :class="{ 'kanban-column--over': dragOverColumn === 'overdue' }"
-        @dragover.prevent="dragOverColumn = 'overdue'"
-        @dragleave="dragOverColumn = null"
-        @drop.prevent="onDrop('overdue')"
-      >
-        <div class="kanban-column__header">
-          <span class="kanban-column__title">Overdue</span>
-          <v-chip size="x-small" color="error" variant="flat" class="ml-1">{{ overdue.length }}</v-chip>
+    <!-- Desktop / tablet: kanban board -->
+    <div v-else class="fu-board">
+      <!-- Overdue (drop target disabled — read-only bucket) -->
+      <div class="fu-col is-overdue">
+        <div class="fu-col-head">
+          <span class="lbl"><AppIcon name="bell" :size="12" /> Overdue</span>
+          <span class="count">{{ overdueFiltered.length }}</span>
         </div>
-        <div class="kanban-column__cards">
+        <div class="fu-col-body">
           <KanbanCard
-            v-for="c in overdue"
+            v-for="c in overdueFiltered"
             :key="c.id"
             :customer="c"
             @dragstart="onDragStart(c)"
             @dragend="dragOverColumn = null"
             @mark-contacted="openMarkContacted(c)"
-            @clear-schedule="clearSchedule(c)"
           />
-          <div v-if="!overdue.length" class="kanban-empty-state">
-            <v-icon size="18" color="success">mdi-check-circle-outline</v-icon>
-            <span>All clear</span>
+          <div v-if="!overdueFiltered.length" class="fu-empty">
+            <AppIcon name="check" :size="16" />
+            <span>Nothing overdue</span>
           </div>
         </div>
       </div>
 
-      <!-- No schedule column -->
+      <!-- No schedule -->
       <div
-        class="kanban-column kanban-column--unscheduled"
-        :class="{ 'kanban-column--over': dragOverColumn === 'unscheduled' }"
+        class="fu-col is-empty-set"
+        :class="{ 'is-drop-target': dragOverColumn === 'unscheduled' }"
         @dragover.prevent="dragOverColumn = 'unscheduled'"
         @dragleave="dragOverColumn = null"
         @drop.prevent="onDrop('unscheduled')"
       >
-        <div class="kanban-column__header">
-          <span class="kanban-column__title">No schedule</span>
-          <v-chip v-if="unscheduled.length" size="x-small" color="warning" variant="flat" class="ml-1">{{ unscheduled.length }}</v-chip>
+        <div class="fu-col-head">
+          <span class="lbl"><AppIcon name="calendar" :size="12" /> No schedule</span>
+          <span class="count">{{ unscheduledFiltered.length }}</span>
         </div>
-        <div class="kanban-column__cards">
+        <div class="fu-col-body">
           <KanbanCard
-            v-for="c in unscheduled"
+            v-for="c in unscheduledFiltered"
             :key="c.id"
             :customer="c"
-            :show-status="true"
             @dragstart="onDragStart(c)"
             @dragend="dragOverColumn = null"
             @mark-contacted="openMarkContacted(c)"
-            @clear-schedule="clearSchedule(c)"
           />
-          <div v-if="!unscheduled.length" class="kanban-empty-state">
-            <v-icon size="18" color="success">mdi-check-circle-outline</v-icon>
+          <div v-if="!unscheduledFiltered.length" class="fu-empty">
+            <AppIcon name="check" :size="16" />
             <span>All scheduled</span>
           </div>
         </div>
       </div>
 
-        <!-- Visual divider between special columns and day columns -->
-      <div class="kanban-divider" />
-
-      <!-- Day columns (today → today+6) -->
+      <!-- Day columns -->
       <div
-        v-for="bucket in days"
+        v-for="(bucket, idx) in dayBucketsFiltered"
         :key="bucket.date.toISOString()"
-        class="kanban-column"
+        class="fu-col"
         :class="[
-          isToday(bucket.date) && 'kanban-column--today',
-          dragOverColumn === bucket.date.toDateString() && 'kanban-column--over'
+          isToday(bucket.date) && 'is-today',
+          isWeekend(bucket.date) && !isToday(bucket.date) && 'is-weekend',
+          dragOverColumn === bucket.date.toDateString() && 'is-drop-target',
         ]"
         @dragover.prevent="dragOverColumn = bucket.date.toDateString()"
         @dragleave="dragOverColumn = null"
         @drop.prevent="onDrop(bucket.date)"
       >
-        <div class="kanban-column__header">
-          <span class="kanban-column__title">{{ formatDayLabel(bucket.date) }}</span>
-          <v-chip v-if="bucket.customers.length" size="x-small" color="primary" variant="flat" class="ml-1">{{ bucket.customers.length }}</v-chip>
+        <div class="fu-col-head">
+          <span class="lbl">
+            <template v-if="isToday(bucket.date)">Today</template>
+            <template v-else>{{ weekdayLabel(bucket.date) }}</template>
+            <span class="date">· {{ shortDateLabel(bucket.date) }}</span>
+          </span>
+          <span class="count">{{ bucket.customers.length }}</span>
         </div>
-        <div class="kanban-column__cards">
+        <div class="fu-col-body">
           <KanbanCard
             v-for="c in bucket.customers"
             :key="c.id"
@@ -109,81 +156,242 @@
             @dragstart="onDragStart(c)"
             @dragend="dragOverColumn = null"
             @mark-contacted="openMarkContacted(c)"
-            @clear-schedule="clearSchedule(c)"
           />
-          <p v-if="!bucket.customers.length" class="kanban-empty">—</p>
-          <!-- drop zone visual when empty and dragging -->
-
+          <div v-if="!bucket.customers.length" class="fu-empty">
+            <span>{{ isPast(bucket.date) ? '—' : 'Drop a card here' }}</span>
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Filter dialog -->
+    <FollowUpsFilterDialog
+      v-model="showFilterDialog"
+      :selected="activeCategories"
+      @apply="applyFilters"
+      @clear="clearFilters"
+    />
+
     <!-- Reschedule dialog -->
-    <v-dialog v-model="rescheduleDialog.open" max-width="380">
-      <v-card>
-        <v-card-title>Reschedule {{ rescheduleDialog.customer?.name }}</v-card-title>
-        <v-card-text>
-          <v-text-field
-            v-model="rescheduleDialog.date"
-            label="Date"
-            type="date"
-            class="mb-2"
-          />
-          <v-text-field
-            v-model="rescheduleDialog.time"
-            label="Time"
-            type="time"
-          />
-        </v-card-text>
-        <v-card-actions class="justify-end">
-          <v-btn variant="text" @click="rescheduleDialog.open = false">Cancel</v-btn>
-          <v-btn color="primary" variant="flat" @click="confirmReschedule">Confirm</v-btn>
-        </v-card-actions>
-      </v-card>
+    <v-dialog v-model="rescheduleDialog.open" :max-width="420" :scrim="'rgba(15,23,42,0.65)'">
+      <div class="modal-card">
+        <header class="modal-head">
+          <span class="ico"><AppIcon name="calendar" :size="18" /></span>
+          <div class="modal-head__text">
+            <h2>Reschedule</h2>
+            <div class="sub">{{ rescheduleDialog.customer?.name }}</div>
+          </div>
+          <button class="close" aria-label="Close" @click="rescheduleDialog.open = false">
+            <AppIcon name="x" :size="16" />
+          </button>
+        </header>
+        <div class="modal-body">
+          <div class="split-grid cols-2">
+            <div class="field">
+              <label for="fu-r-date">Date</label>
+              <input id="fu-r-date" v-model="rescheduleDialog.date" type="date" class="input" />
+            </div>
+            <div class="field">
+              <label for="fu-r-time">Time</label>
+              <input id="fu-r-time" v-model="rescheduleDialog.time" type="time" class="input" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot modal-foot--split">
+          <button type="button" class="btn btn-ghost" @click="clearScheduleFromDialog">Clear schedule</button>
+          <div class="actions">
+            <button type="button" class="btn btn-ghost" @click="rescheduleDialog.open = false">Cancel</button>
+            <button type="button" class="btn btn-primary" @click="confirmReschedule">
+              <AppIcon name="check" :size="14" />
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
     </v-dialog>
 
     <!-- Mark contacted dialog -->
-    <v-dialog v-model="markContactedDialog.open" max-width="400">
-      <v-card>
-        <v-card-title>Mark as contacted</v-card-title>
-        <v-card-text>
-          <p class="text-body-2 mb-4">
-            Last contacted will be set to now for <strong>{{ markContactedDialog.customer?.name }}</strong>.
-          </p>
-          <p class="text-body-2 font-weight-medium mb-2">When should we contact next?</p>
-          <v-text-field v-model="markContactedDialog.date" label="Date" type="date" class="mb-2" />
-          <v-text-field v-model="markContactedDialog.time" label="Time" type="time" class="mb-2" />
-          <v-btn
-            variant="tonal"
-            size="small"
-            class="mb-3"
-            @click="applyDefaultCadence"
-          >
-            {{ cadenceButtonLabel }}
-          </v-btn>
-          <v-checkbox v-model="markContactedDialog.skip" label="Skip — don't schedule next contact" density="compact" hide-details />
-        </v-card-text>
-        <v-card-actions class="justify-end">
-          <v-btn variant="text" @click="markContactedDialog.open = false">Cancel</v-btn>
-          <v-btn color="primary" variant="flat" @click="confirmMarkContacted">Confirm</v-btn>
-        </v-card-actions>
-      </v-card>
+    <v-dialog v-model="markContactedDialog.open" :max-width="460" :scrim="'rgba(15,23,42,0.65)'">
+      <div class="modal-card">
+        <header class="modal-head">
+          <span class="ico"><AppIcon name="check" :size="18" /></span>
+          <div class="modal-head__text">
+            <h2>Mark contacted</h2>
+            <div class="sub">{{ markContactedDialog.customer?.name }}</div>
+          </div>
+          <button class="close" aria-label="Close" @click="markContactedDialog.open = false">
+            <AppIcon name="x" :size="16" />
+          </button>
+        </header>
+        <div class="modal-body">
+          <div class="modal-section">
+            <p class="fu-dialog-hint">Last contacted will be set to <strong>now</strong>.</p>
+          </div>
+          <div class="modal-section">
+            <h4>Next contact</h4>
+            <div class="split-grid cols-2">
+              <div class="field">
+                <label for="fu-mc-date">Date</label>
+                <input id="fu-mc-date" v-model="markContactedDialog.date" type="date" class="input" :disabled="markContactedDialog.skip" />
+              </div>
+              <div class="field">
+                <label for="fu-mc-time">Time</label>
+                <input id="fu-mc-time" v-model="markContactedDialog.time" type="time" class="input" :disabled="markContactedDialog.skip" />
+              </div>
+            </div>
+            <button type="button" class="btn btn-ghost sm" :disabled="markContactedDialog.skip" @click="applyDefaultCadence">
+              <AppIcon name="sparkle" :size="13" />
+              {{ cadenceButtonLabel }}
+            </button>
+            <label class="fu-dialog-skip">
+              <input type="checkbox" v-model="markContactedDialog.skip" />
+              Skip — don't schedule next contact
+            </label>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-ghost" @click="markContactedDialog.open = false">Cancel</button>
+          <button type="button" class="btn btn-primary" @click="confirmMarkContacted">
+            <AppIcon name="check" :size="14" />
+            Confirm
+          </button>
+        </div>
+      </div>
     </v-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCustomerStore } from '../stores/customerStore'
 import { useCustomerFollowups } from '../composables/useCustomerFollowups'
 import { cadenceMonths, cadenceLabel } from '../utils/followUp'
 import KanbanCard from '../components/followups/KanbanCard.vue'
+import FollowUpsFilterDialog from '../components/followups/FollowUpsFilterDialog.vue'
+import AppIcon from '../components/base/AppIcon.vue'
 
 const store = useCustomerStore()
 const customers = computed(() => store.customers)
 
-const { overdue, unscheduled, days, overdueCount, unscheduledCount } =
-  useCustomerFollowups(customers)
+// Phone viewport detection — swaps the desktop kanban for a vertical "smart
+// inbox" feed (no columns, no horizontal scroll).
+const isPhone = ref(false)
+let mql = null
+const updateMql = () => { isPhone.value = mql?.matches ?? false }
+onMounted(() => {
+  mql = window.matchMedia('(max-width: 720px)')
+  isPhone.value = mql.matches
+  mql.addEventListener('change', updateMql)
+})
+onUnmounted(() => mql?.removeEventListener('change', updateMql))
+
+// ── Week navigation ─────────────────────────────────────────────────────────
+const weekOffset = ref(0)
+
+const { overdue, unscheduled, days, overdueCount } = useCustomerFollowups(customers, weekOffset)
+
+// ── Filters (category only for now) ────────────────────────────────────────
+const showFilterDialog = ref(false)
+const activeCategories = ref([])  // e.g. ['Hot','Warm']
+const filterCount = computed(() => activeCategories.value.length)
+
+function matchesFilter(c) {
+  if (!activeCategories.value.length) return true
+  return activeCategories.value.includes(c.category)
+}
+
+// ── Sort within each column ─────────────────────────────────────────────────
+const sortMode = ref('time')   // 'time' (default — earliest first) | 'category' (Hot→Warm→Cold) | 'name'
+const STATUS_RANK = { Hot: 0, Warm: 1, Cold: 2 }
+function applySort(list) {
+  if (sortMode.value === 'category') {
+    return [...list].sort((a, b) =>
+      (STATUS_RANK[a.category] ?? 9) - (STATUS_RANK[b.category] ?? 9)
+      || (a.name || '').localeCompare(b.name || ''),
+    )
+  }
+  if (sortMode.value === 'name') {
+    return [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  }
+  return list  // 'time' — already sorted by next_contact_at in the bucket function
+}
+
+const overdueFiltered     = computed(() => applySort(overdue.value.filter(matchesFilter)))
+const unscheduledFiltered = computed(() => applySort(unscheduled.value.filter(matchesFilter)))
+const dayBucketsFiltered  = computed(() =>
+  days.value.map((b) => ({ date: b.date, customers: applySort(b.customers.filter(matchesFilter)) })),
+)
+
+// ── Phone smart-inbox feed ─────────────────────────────────────────────────
+// Drops the kanban metaphor for phone widths and shows a single chronological
+// list of cards. Filter chips at top let the agent narrow to overdue / today /
+// this week / unscheduled. Each card renders its own date label inline
+// (KanbanCard's show-date prop) so no column context is needed.
+const phoneFilter = ref('all')
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear()
+      && a.getMonth() === b.getMonth()
+      && a.getDate() === b.getDate()
+}
+
+const scheduledFlat = computed(() => dayBucketsFiltered.value.flatMap((b) => b.customers))
+
+const todayCount = computed(() => {
+  const t = new Date()
+  return scheduledFlat.value.filter((c) =>
+    c.nextContactAt && isSameDay(new Date(c.nextContactAt), t),
+  ).length
+})
+
+const phoneFilterOptions = computed(() => [
+  { value: 'all',         label: 'All',         count: overdueFiltered.value.length + scheduledFlat.value.length + unscheduledFiltered.value.length },
+  { value: 'overdue',     label: 'Overdue',     count: overdueFiltered.value.length },
+  { value: 'today',       label: 'Today',       count: todayCount.value },
+  { value: 'week',        label: 'This week',   count: scheduledFlat.value.length },
+  { value: 'unscheduled', label: 'No schedule', count: unscheduledFiltered.value.length },
+])
+
+const phoneFilterLabel = computed(() =>
+  phoneFilterOptions.value.find((o) => o.value === phoneFilter.value)?.label.toLowerCase() ?? '',
+)
+
+const feedCards = computed(() => {
+  const t = new Date()
+  switch (phoneFilter.value) {
+    case 'overdue':
+      return overdueFiltered.value
+    case 'today':
+      return scheduledFlat.value.filter((c) =>
+        c.nextContactAt && isSameDay(new Date(c.nextContactAt), t),
+      )
+    case 'week':
+      return scheduledFlat.value
+    case 'unscheduled':
+      return unscheduledFiltered.value
+    default:
+      // 'all' — overdue (most urgent first) → upcoming chronological → unscheduled
+      return [
+        ...overdueFiltered.value,
+        ...scheduledFlat.value,
+        ...unscheduledFiltered.value,
+      ]
+  }
+})
+
+const totalTasks = computed(() => {
+  let n = overdueFiltered.value.length + unscheduledFiltered.value.length
+  for (const b of dayBucketsFiltered.value) n += b.customers.length
+  return n
+})
+
+function applyFilters(categories) {
+  activeCategories.value = [...categories]
+  showFilterDialog.value = false
+}
+function clearFilters() {
+  activeCategories.value = []
+}
 
 // ── Drag state ──────────────────────────────────────────────────────────────
 const dragCustomer = ref(null)
@@ -196,19 +404,13 @@ function onDragStart(customer) {
 function onDrop(target) {
   dragOverColumn.value = null
   if (!dragCustomer.value) return
-
-  if (target === 'overdue' || target === 'unscheduled') {
-    if (target === 'unscheduled') {
-      openRescheduleFor(dragCustomer.value, null)
-    }
-    dragCustomer.value = null
-    return
-  }
-
-  // target is a Date — open reschedule dialog with that date pre-filled
   const c = dragCustomer.value
   dragCustomer.value = null
-  openRescheduleFor(c, target)
+  if (target === 'unscheduled') {
+    openRescheduleFor(c, null)
+  } else {
+    openRescheduleFor(c, target)  // a Date object
+  }
 }
 
 // ── Reschedule dialog ───────────────────────────────────────────────────────
@@ -217,7 +419,6 @@ const rescheduleDialog = ref({ open: false, customer: null, date: '', time: '' }
 function openRescheduleFor(customer, date) {
   const existing = customer.nextContactAt ? new Date(customer.nextContactAt) : null
   const targetDate = date ?? new Date()
-
   rescheduleDialog.value = {
     open: true,
     customer,
@@ -234,8 +435,10 @@ async function confirmReschedule() {
   rescheduleDialog.value.open = false
 }
 
-async function clearSchedule(customer) {
-  await store.setNextContactAt(customer.id, null)
+async function clearScheduleFromDialog() {
+  const { customer } = rescheduleDialog.value
+  if (customer) await store.setNextContactAt(customer.id, null)
+  rescheduleDialog.value.open = false
 }
 
 // ── Mark contacted dialog ───────────────────────────────────────────────────
@@ -265,7 +468,7 @@ async function confirmMarkContacted() {
   const { customer, date, time, skip } = markContactedDialog.value
   const now = new Date().toISOString()
   const nextIso = skip || !date ? null : new Date(`${date}T${time || '09:00'}`).toISOString()
-  await store.logContact(customer.id, now, nextIso)
+  await store.logContact(customer.id, { lastContactedIso: now, nextContactIso: nextIso })
   markContactedDialog.value.open = false
 }
 
@@ -289,106 +492,73 @@ function toTimeInput(d) {
 
 function isToday(date) {
   const t = new Date()
-  return date.getFullYear() === t.getFullYear() && date.getMonth() === t.getMonth() && date.getDate() === t.getDate()
+  return date.getFullYear() === t.getFullYear()
+      && date.getMonth() === t.getMonth()
+      && date.getDate() === t.getDate()
 }
-
-function formatDayLabel(date) {
-  if (isToday(date)) return 'Today'
-  return date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+function isWeekend(date) {
+  const d = date.getDay()
+  return d === 0 || d === 6
+}
+function isPast(date) {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  return date < now && !isToday(date)
+}
+function weekdayLabel(date) {
+  return date.toLocaleDateString('en-AU', { weekday: 'short' })
+}
+function shortDateLabel(date) {
+  return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 }
 </script>
 
 <style scoped>
-.followups-header h2 {
-  font-size: 1.6rem;
-  font-weight: 700;
-}
-
-.kanban-board {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  align-items: stretch;
-  padding-bottom: 16px;
-  min-height: calc(100vh - 220px);
-}
-
-.kanban-divider {
-  flex: 0 0 1px;
-  background: #e2e8f0;
-  align-self: stretch;
-  margin: 0 4px;
-}
-
-.kanban-column {
-  flex: 0 0 200px;
-  min-height: 240px;
-  background: #f8fafc;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.kanban-column--today {
-  background: #f0f9ff;
-  border-color: #bae6fd;
-}
-
-.kanban-column--today .kanban-column__title {
-  color: #0284c7;
-}
-
-.kanban-column--over {
-  border-color: #6366f1 !important;
-  background: #eef2ff;
-}
-
-.kanban-column--overdue {
-  background: #fef2f2;
-}
-
-.kanban-column--unscheduled {
-  background: #fffbeb;
-}
-
-.kanban-column__header {
-  display: flex;
-  align-items: center;
-  padding: 10px 12px 8px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.kanban-column__title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #475569;
-  flex: 1;
-}
-
-.kanban-column__cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 8px;
-}
-
-.kanban-empty {
-  font-size: 0.75rem;
-  color: #cbd5e1;
-  text-align: center;
-  padding: 16px 0;
+.fu-dialog-hint {
   margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.fu-dialog-skip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-top: 8px;
+}
+.fu-dialog-skip input[type="checkbox"] { cursor: pointer; }
+
+/* Filter count badge inside the Filters button */
+.fu-controls .btn .tab-ct {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  background: var(--accent);
+  color: var(--text-on-accent, white);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 4px;
 }
 
-.kanban-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 16px 0;
-  font-size: 0.75rem;
-  color: #64748b;
+/* Sort dropdown — narrower than a full input, sits inline in the controls row */
+.fu-sort-select {
+  width: auto;
+  min-width: 140px;
+  height: 36px;
+  padding: 0 28px 0 12px;
+  font-size: 13px;
 }
+
+/* "All caught up" subtitle decoration */
+.fu-range-check {
+  color: var(--success);
+  vertical-align: -2px;
+  margin-right: 2px;
+}
+
 </style>

@@ -1,26 +1,8 @@
-:root {
-  font-size: 16px;
-}
-
-html,
-body,
-#app {
+html, body, #app {
   min-height: 100%;
-}
-
-body {
   margin: 0;
-  font-family: var(
-    --bv-font-family,
-    'Inter',
-    'Segoe UI',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif
-  );
-  background-color: var(--bv-page-bg, #f8fafc);
-  color: var(--bv-text-primary, #0f172a);
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 a {

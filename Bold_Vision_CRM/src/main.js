@@ -6,13 +6,13 @@ import router from './router'
 
 import vuetify from './plugins/vuetify'
 import '@mdi/font/css/materialdesignicons.css'
-import './assets/styles/variables.css'
+import './styles/tokens.css'
+import './styles/typography.css'
+import './styles/components/modals.css'
+import './styles/components/tabs.css'
+import './styles/components/assessment-form.css'
+import './styles/components/followups.css'
 import './assets/styles/global.css'
-import './assets/styles/utilities.css'
-import './assets/styles/components/layout.css'
-import './assets/styles/components/cards.css'
-import './assets/styles/components/forms.css'
-import './assets/styles/components/toolbars.css'
 
 const app = createApp(App)
 const pinia = createPinia()

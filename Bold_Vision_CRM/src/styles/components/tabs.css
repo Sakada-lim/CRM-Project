@@ -1,0 +1,101 @@
+/* ─────────────────────────────────────────────────────────────
+   Tabs — segmented control inside a card
+   ─────────────────────────────────────────────────────────────
+   Shared chrome for tabbed cards (Property detail, Customer detail,
+   future detail pages). The strip sits at the top of a .card-like
+   container; the active tab gets an accent underline + a count
+   badge (.tab-ct). Content goes in .tab-panel (optionally wrapped in
+   <Transition name="tab-fade"> for cross-fade between tabs).
+
+   Usage:
+     <div class="card">
+       <div class="tabs" role="tablist">
+         <button role="tab" :aria-pressed="active === 'a'" @click="active = 'a'">
+           Label
+           <span class="tab-ct">5</span>
+         </button>
+         <button role="tab" :aria-pressed="active === 'b'" @click="active = 'b'">
+           Other
+         </button>
+       </div>
+       <div class="tab-panel">
+         <Transition name="tab-fade" mode="out-in">
+           <div :key="active">…active panel content…</div>
+         </Transition>
+       </div>
+     </div>
+   ───────────────────────────────────────────────────────────── */
+
+.tabs {
+  display: flex;
+  background: var(--surface-sunk);
+  border-bottom: 1px solid var(--border);
+}
+.tabs > button {
+  flex: 1;
+  position: relative;
+  height: 52px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color .12s, background .12s;
+}
+.tabs > button + button { box-shadow: inset 1px 0 0 var(--border); }
+.tabs > button:hover { color: var(--text); }
+.tabs > button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: inset 0 -1px 0 var(--surface);
+}
+.tabs > button[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: -1px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+}
+
+/* Count badge inside a tab button */
+.tab-ct {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.tabs > button[aria-pressed='true'] .tab-ct {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--text-on-accent, white);
+}
+
+/* Tab content frame + fade transition */
+.tab-panel { min-height: 200px; }
+.tab-fade-enter-active,
+.tab-fade-leave-active { transition: opacity .15s ease, transform .15s ease; }
+.tab-fade-enter-from   { opacity: 0; transform: translateY(4px); }
+.tab-fade-leave-to     { opacity: 0; transform: translateY(-4px); }
+
+/* Tighter on phone */
+@media (max-width: 720px) {
+  .tabs > button { font-size: 12.5px; padding: 0 8px; gap: 6px; height: 46px; }
+}

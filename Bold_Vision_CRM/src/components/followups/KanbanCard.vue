@@ -1,70 +1,116 @@
 <template>
-  <div
-    class="kanban-card"
-    :class="[`kanban-card--${customer.category?.toLowerCase()}`, { 'kanban-card--dragging': isDragging }]"
+  <a
+    class="fu-card"
+    :href="`/customers/${customer.id}`"
+    :data-status="customer.category?.toLowerCase()"
+    :data-dragging="isDragging"
     draggable="true"
+    @click.prevent="$router.push(`/customers/${customer.id}`)"
     @dragstart="onDragStart"
     @dragend="onDragEnd"
   >
-    <div class="kanban-card__body" @click="$router.push(`/customers/${customer.id}`)">
-      <div class="kanban-card__top-row">
-        <p class="kanban-card__name">{{ customer.name }}</p>
-        <span class="kanban-card__category-dot" :class="`dot--${customer.category?.toLowerCase()}`" :title="customer.category" />
+    <div class="top">
+      <div style="min-width: 0;">
+        <div class="nm">{{ customer.name }}</div>
+        <div class="ph">{{ customer.phone || customer.email || 'No contact info' }}</div>
       </div>
-      <p class="kanban-card__sub">{{ customer.phone || customer.email || 'No contact info' }}</p>
-      <div class="kanban-card__footer">
-        <span v-if="timeLabel" class="kanban-card__time">
-          <v-icon size="10" class="mr-1">mdi-clock-outline</v-icon>{{ timeLabel }}
-        </span>
-        <v-chip v-if="statusChip" :color="statusChip.color" size="x-small" variant="tonal" class="kanban-card__chip">
-          {{ statusChip.label }}
-        </v-chip>
-      </div>
+      <span v-if="customer.category" class="pill" :class="categoryToneClass(customer.category)" style="height: 18px; padding: 0 7px; font-size: 10.5px;">
+        {{ customer.category }}
+      </span>
     </div>
 
-    <div class="kanban-card__actions">
-      <v-menu location="bottom end">
-        <template #activator="{ props }">
-          <v-btn v-bind="props" icon="mdi-dots-vertical" size="x-small" variant="text" density="compact" />
-        </template>
-        <v-list density="compact">
-          <v-list-item prepend-icon="mdi-check-circle-outline" title="Mark contacted" @click="$emit('mark-contacted')" />
-          <v-list-item prepend-icon="mdi-calendar-remove-outline" title="Clear schedule" @click="$emit('clear-schedule')" />
-          <v-list-item prepend-icon="mdi-account-details-outline" title="View customer" :to="`/customers/${customer.id}`" />
-        </v-list>
-      </v-menu>
+    <div class="footer">
+      <span class="type-ico">
+        <AppIcon :name="channelIcon(customer.channel)" :size="11" />
+        <!-- Context-aware second line: urgency for overdue, last-contact for
+             no-schedule, time-of-day for scheduled cards. When show-date is
+             on (phone smart-inbox feed), scheduled cards include the date
+             since there's no column header to provide that context. -->
+        <span v-if="overdueDays" class="fu-overdue-tag">{{ overdueDays }}d overdue</span>
+        <template v-else-if="!customer.nextContactAt">{{ lastContactLabel }}</template>
+        <template v-else>{{ showDate ? fullWhenLabel : timeLabel }}</template>
+      </span>
+
+      <div class="quick-actions">
+        <a
+          v-if="customer.phone"
+          class="qa-btn"
+          :href="`tel:${customer.phone.replace(/\s/g, '')}`"
+          title="Call"
+          @click.stop
+          @mousedown.stop
+        >
+          <AppIcon name="phone" :size="11" />
+        </a>
+        <button
+          type="button"
+          class="qa-btn done"
+          title="Mark contacted"
+          @click.prevent.stop="$emit('mark-contacted')"
+          @mousedown.stop
+        >
+          <AppIcon name="check" :size="11" />
+        </button>
+      </div>
     </div>
-  </div>
+  </a>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
+import { daysUntilContact } from '../../utils/followUp'
+import AppIcon from '../base/AppIcon.vue'
 
 const props = defineProps({
   customer: { type: Object, required: true },
-  showStatus: { type: Boolean, default: false },
+  showDate: { type: Boolean, default: false },   // phone feed turns this on
 })
-
-const emit = defineEmits(['dragstart', 'dragend', 'mark-contacted', 'clear-schedule'])
+const emit = defineEmits(['dragstart', 'dragend', 'mark-contacted'])
 
 const isDragging = ref(false)
 
 const timeLabel = computed(() => {
   if (!props.customer.nextContactAt) return null
   const d = new Date(props.customer.nextContactAt)
-  return d.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true })
+  return d.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()
 })
 
-const statusChip = computed(() => {
-  if (!props.showStatus) return null
-  if (!props.customer.nextContactAt && !props.customer.lastContactedAt) {
-    return { label: 'Never contacted', color: 'error' }
-  }
-  if (!props.customer.nextContactAt) {
-    return { label: 'No schedule', color: 'warning' }
-  }
-  return null
+// "Today, 9:00 am" / "Tomorrow, 9:00 am" / "Wed 20 May, 5:56 pm"
+const fullWhenLabel = computed(() => {
+  if (!props.customer.nextContactAt) return null
+  const d = new Date(props.customer.nextContactAt)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const target = new Date(d); target.setHours(0, 0, 0, 0)
+  const diff = Math.round((target - today) / (1000 * 60 * 60 * 24))
+  let datePart
+  if (diff === 0)      datePart = 'Today'
+  else if (diff === 1) datePart = 'Tomorrow'
+  else datePart = d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+  return `${datePart}, ${timeLabel.value}`
 })
+
+const overdueDays = computed(() => {
+  const d = daysUntilContact(props.customer)
+  return d !== null && d < 0 ? Math.abs(d) : null
+})
+
+const lastContactLabel = computed(() => {
+  if (!props.customer.lastContactedAt) return 'Never contacted'
+  const d = new Date(props.customer.lastContactedAt)
+  return 'Last: ' + d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+})
+
+function categoryToneClass(cat) {
+  if (cat === 'Hot') return 'hot'
+  if (cat === 'Warm') return 'warm'
+  return 'cold'
+}
+
+function channelIcon(ch) {
+  if (ch === 'Email') return 'mail'
+  if (ch === 'SMS' || ch === 'Telegram') return 'chat'
+  return 'phone'
+}
 
 function onDragStart(e) {
   isDragging.value = true
@@ -77,89 +123,3 @@ function onDragEnd() {
   emit('dragend')
 }
 </script>
-
-<style scoped>
-.kanban-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 10px 8px 10px 12px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  border-left-width: 4px;
-  cursor: grab;
-  transition: box-shadow 0.15s, opacity 0.15s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-}
-.kanban-card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-.kanban-card--dragging { opacity: 0.35; cursor: grabbing; }
-
-.kanban-card--hot  { border-left-color: #ef4444; }
-.kanban-card--warm { border-left-color: #f97316; }
-.kanban-card--cold { border-left-color: #3b82f6; }
-
-.kanban-card__body { flex: 1; min-width: 0; cursor: pointer; }
-
-.kanban-card__top-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 2px;
-}
-
-.kanban-card__name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  min-width: 0;
-}
-
-.kanban-card__category-dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.dot--hot  { background: #ef4444; }
-.dot--warm { background: #f97316; }
-.dot--cold { background: #3b82f6; }
-
-.kanban-card__sub {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin: 0 0 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.kanban-card__footer {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.kanban-card__time {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-}
-
-.kanban-card__chip { font-size: 0.65rem !important; }
-
-.kanban-card__actions {
-  flex-shrink: 0;
-  margin-top: -4px;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.kanban-card:hover .kanban-card__actions { opacity: 1; }
-</style>

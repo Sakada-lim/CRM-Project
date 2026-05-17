@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { computeBadge } from '../utils/property'
+import { formatSqm, parsePriceGuideString } from '../utils/formatters'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -10,10 +11,10 @@ function mapRowToProperty(row) {
   const houseSizeSqm = row.house_size_sqm
   const listedAtMs = listedAt ? new Date(listedAt).getTime() : Date.now()
   const soldAt = row.status_timeline?.soldAt
+  const parsedPrice = parsePriceGuideString(row.price_guide)
 
   return {
     id: row.id,
-    code: row.code ?? '',
     address: row.address ?? '',
     suburb: row.suburb ?? '',
     state: row.state ?? '',
@@ -22,6 +23,8 @@ function mapRowToProperty(row) {
     status,
     statusBadge: computeBadge(listedAt, status),
     priceGuide: row.price_guide ?? '',
+    priceMin: parsedPrice.min,
+    priceMax: parsedPrice.max,
     listedAt,
     statusUpdatedAt: row.status_updated_at,
     createdAt: row.created_at,
@@ -36,9 +39,9 @@ function mapRowToProperty(row) {
     carparkSpaces: row.carpark_spaces ?? row.car_spaces ?? 0,
     carparkType: row.carpark_type ?? 'Street parking',
     landSizeSqm,
-    landSize: landSizeSqm ? `${landSizeSqm} m²` : '',
+    landSize: formatSqm(landSizeSqm),
     houseSizeSqm,
-    houseSize: houseSizeSqm ? `${houseSizeSqm} m²` : '',
+    houseSize: formatSqm(houseSizeSqm),
     mainPhoto: row.main_photo_path ?? null,
     photos: (row.property_photos ?? [])
       .filter((p) => p.kind === 'photo')
@@ -52,6 +55,9 @@ function mapRowToProperty(row) {
     notes: row.notes ?? '',
     highlights: row.highlights ?? [],
     amenities: row.amenities ?? [],
+    agentName:  row.agent_name  ?? null,
+    agentPhone: row.agent_phone ?? null,
+    agentEmail: row.agent_email ?? null,
     interestedCustomers: [],
     daysOnMarket: Math.max(
       1,
@@ -65,7 +71,6 @@ function mapRowToProperty(row) {
 function mapPropertyToRow(property) {
   const row = {}
   const fields = {
-    code: property.code || null,
     address: property.address,
     suburb: property.suburb,
     state: property.state,
@@ -88,6 +93,9 @@ function mapPropertyToRow(property) {
     notes: property.notes,
     highlights: property.highlights ?? [],
     amenities: property.amenities ?? [],
+    agent_name:  property.agentName  || null,
+    agent_phone: property.agentPhone || null,
+    agent_email: property.agentEmail || null,
   }
   // Only include defined fields
   for (const [key, value] of Object.entries(fields)) {
