@@ -1,9 +1,26 @@
 import { supabase } from './supabase'
+import { getPropertyMediaSignedUrls } from './mediaService'
 
-export async function createBroadcast({ propertyId, body, audienceFilter, customers }) {
+const TELEGRAM_CAPTION_LIMIT = 1024  // hard limit on caption length per Telegram API
+
+export async function createBroadcast({ propertyId, body, audienceFilter, customers, includeMedia = false }) {
   const recipientCustomers = customers.filter((c) => c.telegramChatId)
 
-  // 1. Create the message record
+  // 1) Optionally build the media album (signed URLs the edge fn forwards
+  //    to Telegram's sendMediaGroup). Same URLs reused for all recipients.
+  let mediaUrls = []
+  if (includeMedia && propertyId) {
+    try {
+      mediaUrls = await getPropertyMediaSignedUrls(propertyId, 10)
+    } catch (e) {
+      // Don't block the broadcast on a media-fetch failure — fall back to text.
+      console.warn('Failed to build media URLs, sending text-only:', e)
+      mediaUrls = []
+    }
+  }
+  const willSendMedia = mediaUrls.length > 0
+
+  // 2) Create the message record
   const { data: message, error: msgError } = await supabase
     .from('messages')
     .insert({
@@ -12,6 +29,7 @@ export async function createBroadcast({ propertyId, body, audienceFilter, custom
       channel: 'Telegram',
       audience_filter: audienceFilter,
       recipient_count: recipientCustomers.length,
+      includes_media: willSendMedia,
     })
     .select()
     .single()
@@ -22,7 +40,7 @@ export async function createBroadcast({ propertyId, body, audienceFilter, custom
     return { ok: true, sent: 0, failed: 0, results: [] }
   }
 
-  // 2. Create queued recipient rows
+  // 3) Create queued recipient rows
   const { data: recipients, error: recipError } = await supabase
     .from('message_recipients')
     .insert(
@@ -31,13 +49,13 @@ export async function createBroadcast({ propertyId, body, audienceFilter, custom
         customer_id: c.id,
         telegram_chat_id: c.telegramChatId,
         status: 'queued',
-      }))
+      })),
     )
     .select()
 
   if (recipError) throw recipError
 
-  // 3. Invoke edge function — sends messages and updates statuses
+  // 4) Invoke edge function — sends messages and updates statuses
   const { data: result, error: fnError } = await supabase.functions.invoke('send-telegram', {
     body: {
       messageId: message.id,
@@ -47,6 +65,8 @@ export async function createBroadcast({ propertyId, body, audienceFilter, custom
         telegramChatId: r.telegram_chat_id,
         body,
       })),
+      mediaUrls,                              // shared across all recipients
+      captionLimit: TELEGRAM_CAPTION_LIMIT,
     },
   })
 
@@ -55,13 +75,13 @@ export async function createBroadcast({ propertyId, body, audienceFilter, custom
   const sent   = result.results?.filter((r) => r.status === 'sent').length  ?? 0
   const failed = result.results?.filter((r) => r.status === 'failed').length ?? 0
 
-  return { ok: true, sent, failed, results: result.results ?? [] }
+  return { ok: true, sent, failed, results: result.results ?? [], includedMedia: willSendMedia }
 }
 
 export async function listBroadcastsForProperty(propertyId) {
   const { data, error } = await supabase
     .from('messages')
-    .select('id, body, audience_filter, recipient_count, sent_at, message_recipients(id, status)')
+    .select('id, body, audience_filter, recipient_count, sent_at, includes_media, message_recipients(id, status)')
     .eq('property_id', propertyId)
     .order('sent_at', { ascending: false })
     .limit(5)
@@ -73,7 +93,7 @@ export async function listBroadcastsForProperty(propertyId) {
 export async function listAllBroadcasts() {
   const { data, error } = await supabase
     .from('messages')
-    .select('id, body, channel, audience_filter, recipient_count, sent_at, property_id, properties(address, suburb)')
+    .select('id, body, channel, audience_filter, recipient_count, sent_at, includes_media, property_id, properties(address, suburb)')
     .order('sent_at', { ascending: false })
 
   if (error) throw error
@@ -89,6 +109,7 @@ function mapMessage(row) {
     audienceFilter: row.audience_filter ?? 'All',
     recipientCount: row.recipient_count,
     sentAt: row.sent_at,
+    includesMedia: !!row.includes_media,
     propertyId: row.property_id,
     propertyAddress: row.properties
       ? `${row.properties.address}${row.properties.suburb ? ', ' + row.properties.suburb : ''}`

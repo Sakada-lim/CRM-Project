@@ -217,7 +217,7 @@
     </div><!-- /prop-detail__body -->
 
     <!-- Broadcast dialog -->
-    <v-dialog v-model="broadcastOpen" max-width="760" scrollable>
+    <v-dialog v-model="broadcastOpen" max-width="1000" :fullscreen="mobile" scrollable>
       <BroadcastPanel v-if="original" :property="original" @close="broadcastOpen = false" />
     </v-dialog>
 
@@ -253,6 +253,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { usePropertyStore } from '../stores/propertyStore'
 import { createEmptyPropertyDraft } from '../constants/propertyDefaults'
 import { useSignedUrl } from '../composables/useSignedUrl'
@@ -266,6 +267,7 @@ import { formatSqm } from '../utils/formatters'
 
 const route  = useRoute()
 const router = useRouter()
+const { mobile } = useDisplay()
 const propertyStore = usePropertyStore()
 
 const id = route.params.id

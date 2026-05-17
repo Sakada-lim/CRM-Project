@@ -57,9 +57,11 @@ function isSameDay(a, b) {
   )
 }
 
-// Returns array of 7 Date objects starting from today (for Kanban column headers).
-export function weekDays(today = new Date()) {
-  const base = startOfDay(today)
+// Returns array of 7 Date objects starting from `start` (for Kanban column
+// headers). Defaults to today; pass a non-today date to render a shifted
+// week (e.g. the result of today + 7 days for next-week navigation).
+export function weekDays(start = new Date()) {
+  const base = startOfDay(start)
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(base)
     d.setDate(d.getDate() + i)
@@ -67,17 +69,25 @@ export function weekDays(today = new Date()) {
   })
 }
 
-// Buckets customers into { overdue, unscheduled, days } for the week Kanban.
-// 'days' is an array of { date, customers } for today through today+6.
-// Customers beyond 7 days are not shown (they will appear as time passes).
-export function bucketCustomersForWeek(customers, today = new Date()) {
+// Buckets customers into { overdue, unscheduled, days } for the Kanban.
+//
+// `today` is the real-world today, used for the "overdue" bucket.
+// `viewStart` is the first day of the 7-column view; defaults to today.
+//
+// `weekOffset` shorthand: pass an integer N to view N×7 days into the
+// future (or past, if negative). Customers with next_contact_at outside
+// the [viewStart, viewStart+7) window are not shown — except those
+// genuinely before `today`, which go to overdue.
+export function bucketCustomersForWeek(customers, today = new Date(), weekOffset = 0) {
   const todayStart = startOfDay(today)
-  const weekEnd = new Date(todayStart)
-  weekEnd.setDate(weekEnd.getDate() + 7)
+  const viewStart = new Date(todayStart)
+  viewStart.setDate(viewStart.getDate() + weekOffset * 7)
+  const viewEnd = new Date(viewStart)
+  viewEnd.setDate(viewEnd.getDate() + 7)
 
   const overdue = []
   const unscheduled = []
-  const days = weekDays(today).map((date) => ({ date, customers: [] }))
+  const days = weekDays(viewStart).map((date) => ({ date, customers: [] }))
 
   for (const c of customers) {
     if (!c.nextContactAt) {
@@ -87,11 +97,11 @@ export function bucketCustomersForWeek(customers, today = new Date()) {
     const next = new Date(c.nextContactAt)
     if (next < todayStart) {
       overdue.push(c)
-    } else if (next < weekEnd) {
+    } else if (next >= viewStart && next < viewEnd) {
       const bucket = days.find((d) => isSameDay(d.date, next))
       if (bucket) bucket.customers.push(c)
     }
-    // Beyond this week — not shown until they roll into the window
+    // Outside the window — hidden until the user navigates to its week
   }
 
   // Overdue: longest overdue first (oldest next_contact_at first)

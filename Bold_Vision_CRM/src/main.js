@@ -11,6 +11,7 @@ import './styles/typography.css'
 import './styles/components/modals.css'
 import './styles/components/tabs.css'
 import './styles/components/assessment-form.css'
+import './styles/components/followups.css'
 import './assets/styles/global.css'
 
 const app = createApp(App)

@@ -65,3 +65,40 @@ export async function reorderPhotos(orderedIds) {
     ),
   )
 }
+
+// Lists all photos + floor plans for a property (sorted by sort_order).
+// Used by BroadcastPanel to count media and by messagesService to build the
+// Telegram album.
+export async function listPropertyMedia(propertyId) {
+  const { data, error } = await supabase
+    .from('property_photos')
+    .select('id, kind, storage_path, sort_order')
+    .eq('property_id', propertyId)
+    .order('sort_order', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
+
+// Generates short-TTL signed URLs for the property's media, suitable for
+// passing to Telegram's sendMediaGroup. Photos come first, then floor plans
+// (both internally ordered by sort_order). Capped at `limit` items.
+export async function getPropertyMediaSignedUrls(propertyId, limit = 10) {
+  const items = await listPropertyMedia(propertyId)
+  const sorted = [...items].sort((a, b) => {
+    if (a.kind !== b.kind) return a.kind === 'photo' ? -1 : 1
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0)
+  })
+  const top = sorted.slice(0, limit)
+
+  const urls = []
+  for (const item of top) {
+    const bucket = BUCKET[item.kind] ?? BUCKET.photo
+    // 600s TTL — enough headroom for Telegram to fetch even if the broadcast
+    // takes a couple minutes to flush through all recipients.
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(item.storage_path, 600)
+    if (!error && data?.signedUrl) urls.push(data.signedUrl)
+  }
+  return urls
+}

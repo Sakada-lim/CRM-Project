@@ -21,3 +21,17 @@ html, body, #app {
 }
 
 * { box-sizing: border-box; }
+
+/* ──────────────────────────────────────────────────────────────
+   Desktop UI scale (≥1101px)
+
+   Scales the whole page up 10% on desktop so text + spacing read
+   comfortably on larger screens. Uses CSS `zoom` (widely supported
+   in Chromium/Safari for years; Firefox since v126) — one rule
+   scales everything (text, padding, gaps, icons, dialogs) without
+   per-component overrides. If anything renders oddly, dial back
+   to 1.05–1.08 or layer targeted fixes on top.
+   ────────────────────────────────────────────────────────────── */
+@media (min-width: 1101px) {
+  body { zoom: 1.12; }
+}

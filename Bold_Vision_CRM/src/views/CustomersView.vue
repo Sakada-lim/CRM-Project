@@ -90,11 +90,10 @@
             <td class="col-actions">
               <RouterLink
                 :to="`/customers/${c.id}`"
-                class="btn btn-ghost sm"
+                class="btn btn-ghost sm cust-view-btn"
                 @click.stop
               >
                 View
-                <AppIcon name="arrow-right" :size="12" />
               </RouterLink>
             </td>
           </tr>
@@ -573,6 +572,16 @@ function handleFilterClear() {
 .agent-cell--empty {
   color: var(--text-faint);
   font-style: italic;
+}
+
+/* View button in the actions column.
+   - min-width so it doesn't hug its label
+   - explicit margin-right on the button itself so the gap from the
+     card edge is independent of any cell-padding overrides (e.g. the
+     900px media-query that resets td padding via shorthand) */
+.cust-view-btn {
+  min-width: 72px;
+  margin-right: 18px;
 }
 
 /* ── Customer cell (avatar + name + email) ─────────── */

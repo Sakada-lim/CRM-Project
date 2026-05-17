@@ -12,22 +12,36 @@
 
     <!-- Authenticated shell -->
     <template v-else>
+      <!-- Desktop sidebar drawer (hidden on mobile — mobile uses a top-bar + dropdown instead) -->
       <v-navigation-drawer
+        v-if="!mobile"
         v-model="drawerOpen"
         class="bv-sidebar"
+        :class="{ 'bv-sidebar--collapsed': collapsed }"
         :width="240"
+        :rail="collapsed"
+        :rail-width="68"
         :scrim="true"
         floating
         elevation="0"
       >
         <div class="bv-sidebar__inner">
-          <!-- Brand -->
+          <!-- Brand mark doubles as the collapse toggle on desktop -->
           <div class="bv-sidebar__brand">
-            <div class="bv-brand-mark">
+            <button
+              type="button"
+              class="bv-brand-mark"
+              :title="brandTitle"
+              :aria-label="brandTitle"
+              @click="onBrandClick"
+            >
               <AppIcon name="house" :size="18" />
-            </div>
-            <span class="bv-brand-name">Bold Vision</span>
+            </button>
+            <span v-if="!collapsed" class="bv-brand-name">Bold Vision</span>
           </div>
+
+          <!-- Section label -->
+          <div v-if="!collapsed" class="bv-sidebar__section-label">Workspace</div>
 
           <!-- Nav -->
           <nav class="bv-sidebar__nav">
@@ -37,9 +51,15 @@
               :to="{ name: item.name }"
               class="bv-nav-item"
               :class="{ active: route.name === item.name }"
+              :title="collapsed ? item.label : undefined"
             >
               <AppIcon :name="item.icon" :size="17" />
-              <span>{{ item.label }}</span>
+              <span v-if="!collapsed" class="bv-nav-item__label">{{ item.label }}</span>
+              <span
+                v-if="item.badge"
+                class="bv-nav-item__badge"
+                :class="item.badgeTone && `is-${item.badgeTone}`"
+              >{{ item.badge }}</span>
             </router-link>
           </nav>
 
@@ -47,9 +67,9 @@
           <div class="bv-sidebar__footer">
             <div class="bv-user">
               <div class="bv-avatar">{{ userInitials }}</div>
-              <span class="bv-user-email">{{ userEmail }}</span>
+              <span v-if="!collapsed" class="bv-user-email">{{ userEmail }}</span>
             </div>
-            <div class="bv-footer-actions">
+            <div v-if="!collapsed" class="bv-footer-actions">
               <button class="bv-icon-btn" :title="theme === 'dark' ? 'Switch to light' : 'Switch to dark'" @click="toggleTheme">
                 <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" :size="16" />
               </button>
@@ -62,13 +82,76 @@
       </v-navigation-drawer>
 
       <v-main class="bv-main">
-        <!-- Mobile top bar — visible when drawer is closed -->
-        <div v-if="!drawerOpen" class="bv-topbar">
-          <button class="bv-icon-btn" @click="drawerOpen = true">
-            <AppIcon name="menu" :size="20" />
-          </button>
-          <span class="bv-topbar-brand">Bold Vision</span>
-        </div>
+        <!-- Mobile top bar with dropdown menu -->
+        <template v-if="mobile">
+          <header class="bv-mobile-bar">
+            <span class="bv-mobile-bar__brand">
+              <span class="bv-brand-mark bv-brand-mark--static">
+                <AppIcon name="house" :size="16" />
+              </span>
+              Bold Vision
+            </span>
+            <button
+              type="button"
+              class="bv-icon-btn bv-mobile-bar__toggle"
+              :aria-expanded="mobileMenuOpen"
+              :aria-label="mobileMenuOpen ? 'Close menu' : 'Open menu'"
+              @click="mobileMenuOpen = !mobileMenuOpen"
+            >
+              <AppIcon :name="mobileMenuOpen ? 'x' : 'menu'" :size="20" />
+            </button>
+          </header>
+
+          <!-- Scrim closes the dropdown on tap-outside -->
+          <Transition name="bv-scrim">
+            <div
+              v-if="mobileMenuOpen"
+              class="bv-mobile-scrim"
+              @click="mobileMenuOpen = false"
+            />
+          </Transition>
+
+          <!-- Dropdown panel — slides down from below the top bar -->
+          <Transition name="bv-drop">
+            <div v-if="mobileMenuOpen" class="bv-mobile-drop">
+              <div class="bv-sidebar__section-label">Workspace</div>
+              <nav class="bv-mobile-drop__nav">
+                <router-link
+                  v-for="item in navItems"
+                  :key="item.name"
+                  :to="{ name: item.name }"
+                  class="bv-nav-item"
+                  :class="{ active: route.name === item.name }"
+                  @click="mobileMenuOpen = false"
+                >
+                  <AppIcon :name="item.icon" :size="17" />
+                  <span class="bv-nav-item__label">{{ item.label }}</span>
+                  <span
+                    v-if="item.badge"
+                    class="bv-nav-item__badge"
+                    :class="item.badgeTone && `is-${item.badgeTone}`"
+                  >{{ item.badge }}</span>
+                </router-link>
+              </nav>
+
+              <div class="bv-mobile-drop__foot">
+                <div class="bv-user">
+                  <div class="bv-avatar">{{ userInitials }}</div>
+                  <span class="bv-user-email">{{ userEmail }}</span>
+                </div>
+                <div class="bv-footer-actions">
+                  <button class="bv-icon-btn" :title="theme === 'dark' ? 'Switch to light' : 'Switch to dark'" @click="toggleTheme">
+                    <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" :size="16" />
+                  </button>
+                  <button class="bv-icon-btn" title="Sign out" @click="handleSignOut">
+                    <AppIcon name="logout" :size="16" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </template>
+
         <router-view />
       </v-main>
     </template>
@@ -76,32 +159,77 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from './stores/authStore'
+import { useCustomerStore } from './stores/customerStore'
 import { useTheme } from './composables/useTheme'
+import { isOverdue } from './utils/followUp'
 import AppIcon from './components/base/AppIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const customerStore = useCustomerStore()
 const { mobile } = useDisplay()
 
 const { theme, toggleTheme } = useTheme()
 
+// ── Drawer (desktop) + mobile menu ──────────────────────────────────────────
 const drawerOpen = ref(!mobile.value)
+const mobileMenuOpen = ref(false)
+watch(mobile, (isMobile) => {
+  drawerOpen.value = !isMobile
+  if (!isMobile) mobileMenuOpen.value = false
+})
+// Close mobile menu on any route change
+watch(() => route.fullPath, () => { mobileMenuOpen.value = false })
 
-// Auto-open sidebar when viewport grows to desktop; auto-close on mobile
-watch(mobile, (isMobile) => { drawerOpen.value = !isMobile })
+// ── Collapsed (desktop rail) ────────────────────────────────────────────────
+// Persisted to localStorage so it survives navigation + refresh.
+const SIDEBAR_COLLAPSED_KEY = 'bv.sidebar.collapsed'
+const collapsed = ref(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1')
+watch(collapsed, (v) => {
+  try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, v ? '1' : '0') } catch { /* ignore */ }
+})
+
 const isLoginPage = computed(() => route.name === 'login')
 
-const navItems = [
+const brandTitle = computed(() => {
+  if (mobile.value) return 'Bold Vision'
+  return collapsed.value ? 'Expand sidebar' : 'Collapse sidebar'
+})
+
+function onBrandClick() {
+  if (mobile.value) return         // logo is decorative on mobile (drawer toggles via burger)
+  collapsed.value = !collapsed.value
+}
+
+// ── Overdue count (drives the Follow-ups badge) ─────────────────────────────
+// Make sure customers are loaded so the badge is accurate everywhere.
+onMounted(() => {
+  if (authStore.user && !customerStore.loaded) customerStore.fetchCustomers()
+})
+watch(() => authStore.user, (u) => {
+  if (u && !customerStore.loaded) customerStore.fetchCustomers()
+})
+
+const overdueCount = computed(() => {
+  const today = new Date()
+  return customerStore.customers.filter((c) => isOverdue(c, today)).length
+})
+
+const navItems = computed(() => [
   { name: 'home',       label: 'Dashboard',  icon: 'grid' },
   { name: 'properties', label: 'Properties', icon: 'house' },
   { name: 'customers',  label: 'Customers',  icon: 'users' },
-  { name: 'follow-ups', label: 'Follow-ups', icon: 'calendar' },
-]
+  {
+    name: 'follow-ups', label: 'Follow-ups', icon: 'calendar',
+    badge: overdueCount.value > 0 ? overdueCount.value : null,
+    badgeTone: 'hot',
+  },
+])
 
 const userEmail = computed(() => authStore.user?.email ?? '')
 const userInitials = computed(() => {
@@ -137,6 +265,7 @@ async function handleSignOut() {
   align-items: center;
   gap: 10px;
   padding: 20px 16px 16px;
+  min-height: 70px;
 }
 .bv-brand-mark {
   width: 34px; height: 34px;
@@ -145,12 +274,35 @@ async function handleSignOut() {
   color: var(--text-on-accent);
   display: grid; place-items: center;
   flex-shrink: 0;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  transition: transform .12s, box-shadow .12s, background .12s;
 }
+.bv-brand-mark:hover {
+  background: var(--accent-hover, var(--accent));
+  transform: scale(1.05);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+.bv-brand-mark:active { transform: scale(0.98); }
 .bv-brand-name {
   font-size: 15px;
   font-weight: 650;
   letter-spacing: -0.02em;
   color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+
+/* Section label */
+.bv-sidebar__section-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 8px 16px 4px;
 }
 
 /* Nav */
@@ -159,7 +311,7 @@ async function handleSignOut() {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 12px 10px;
+  padding: 4px 10px 12px;
   overflow-y: auto;
 }
 .bv-nav-item {
@@ -189,6 +341,61 @@ async function handleSignOut() {
   width: 3px;
   border-radius: 0 3px 3px 0;
   background: var(--accent);
+}
+.bv-nav-item__label {
+  flex: 1;
+  min-width: 0;
+}
+.bv-nav-item__badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface-sunk);
+  color: var(--text-muted);
+}
+.bv-nav-item__badge.is-hot {
+  background: var(--hot);
+  color: var(--text-on-accent, white);
+}
+.bv-nav-item.active .bv-nav-item__badge.is-hot {
+  /* Already-active item keeps the hot tone — stands out against accent bg */
+}
+
+/* Collapsed (rail) state — center icons, hide labels (handled by v-if) */
+.bv-sidebar--collapsed .bv-sidebar__brand {
+  justify-content: center;
+  padding: 20px 8px 16px;
+}
+.bv-sidebar--collapsed .bv-sidebar__nav {
+  padding: 4px 8px 12px;
+}
+.bv-sidebar--collapsed .bv-nav-item {
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+.bv-sidebar--collapsed .bv-nav-item.active::before {
+  display: none;   /* rail shows active via background only */
+}
+.bv-sidebar--collapsed .bv-nav-item__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 9.5px;
+  border: 2px solid var(--surface);
+}
+.bv-sidebar--collapsed .bv-sidebar__footer {
+  justify-content: center;
+  padding: 12px 8px 16px;
 }
 
 /* Footer */
@@ -240,21 +447,97 @@ async function handleSignOut() {
 .bv-main { background: var(--bg); }
 .bv-main .v-main__wrap { display: flex; flex-direction: column; }
 
-/* Mobile topbar */
-.bv-topbar {
+/* Mobile top bar + dropdown ──────────────────────────────
+   Replaces the slide-out drawer on phone viewports. The bar sits
+   sticky at the top; tapping the toggle slides the menu panel
+   down from below the bar with a scrim behind. */
+.bv-mobile-bar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
+  height: 56px;
   background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
-.bv-topbar-brand {
+.bv-mobile-bar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 15px;
   font-weight: 650;
   letter-spacing: -0.02em;
   color: var(--text);
 }
+.bv-brand-mark--static {
+  width: 30px; height: 30px;
+  cursor: default;
+}
+.bv-brand-mark--static:hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--accent);
+}
+.bv-mobile-bar__toggle { width: 36px; height: 36px; }
+
+.bv-mobile-scrim {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: color-mix(in oklab, var(--bg) 60%, black);
+  opacity: 0.55;
+  z-index: 10;
+}
+
+.bv-mobile-drop {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  z-index: 11;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  padding: 8px 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+.bv-mobile-drop__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 0 8px;
+}
+.bv-mobile-drop__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 8px 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+}
+
+/* Slide-down transition */
+.bv-drop-enter-active, .bv-drop-leave-active {
+  transition: transform .22s cubic-bezier(.2,.7,.2,1), opacity .15s;
+}
+.bv-drop-enter-from, .bv-drop-leave-to {
+  transform: translateY(-12px);
+  opacity: 0;
+}
+
+.bv-scrim-enter-active, .bv-scrim-leave-active { transition: opacity .15s; }
+.bv-scrim-enter-from, .bv-scrim-leave-to { opacity: 0; }
 
 /* Loading */
 .bv-loading {

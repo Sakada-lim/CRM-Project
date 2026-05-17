@@ -137,6 +137,14 @@ pnpm-debug.log*
 ############################
 *.generated.*
 
+# QC screenshots saved at repo root during UI iterations
+screenshot_*.png
+
+############################
+# Claude Code local state #
+############################
+.claude/
+
 ############################
 # Docker / Containers     #
 ############################
@@ -150,6 +158,13 @@ docker-compose.override.yml
 functions/node_modules/
 .firebase/
 firebase-debug.log
+
+############################
+# Supabase CLI            #
+############################
+# `supabase link` creates supabase/.temp/linked-project.json — local-only
+# metadata identifying the linked project. Should NOT be committed.
+supabase/.temp/
 
 ############################
 # Misc                    #

@@ -61,8 +61,24 @@
       <div class="message-panel">
         <h4>Preview</h4>
         <div class="tg-frame">
-          <div class="tg-bubble">
-            <div class="card-preview">
+          <div class="tg-bubble" :class="{ 'has-album': showAlbum }">
+            <!-- Album preview: mirrors Telegram sendMediaGroup layout -->
+            <div v-if="showAlbum" class="tg-album" :data-count="albumThumbs.length">
+              <div
+                v-for="(t, i) in albumThumbs"
+                :key="t.id"
+                class="tg-album__cell"
+                :style="t.url ? { backgroundImage: `url(${t.url})` } : null"
+              >
+                <AppIcon v-if="!t.url" :name="t.kind === 'floorplan' ? 'building' : 'house'" :size="18" />
+                <span v-if="i === albumThumbs.length - 1 && albumOverflow > 0" class="tg-album__more">
+                  +{{ albumOverflow }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Link-card placeholder: only shown when no album -->
+            <div v-else class="card-preview">
               <div class="card-thumb"><AppIcon name="house" :size="16" /></div>
               <div class="card-meta">
                 <span class="t">{{ property.address }}</span>
@@ -73,6 +89,7 @@
                 </span>
               </div>
             </div>
+
             <div class="body">{{ messageBody || '…' }}</div>
             <div class="meta">
               {{ nowLabel }}
@@ -90,6 +107,25 @@
           class="tg-edit"
           placeholder="Write your broadcast…"
         />
+
+        <!-- Media toggle: include property photos + floor plans -->
+        <label class="bp-media-toggle" :class="{ 'is-disabled': !hasMedia }">
+          <input
+            type="checkbox"
+            v-model="includeMedia"
+            :disabled="!hasMedia"
+          />
+          <span class="lbl">
+            <AppIcon name="house" :size="13" />
+            Include photos &amp; floor plans
+          </span>
+          <span class="ct" :class="{ 'ct--empty': !hasMedia }">
+            <template v-if="hasMedia">
+              {{ photoCount }} photo{{ photoCount === 1 ? '' : 's' }}<template v-if="floorplanCount">, {{ floorplanCount }} plan{{ floorplanCount === 1 ? '' : 's' }}</template>
+            </template>
+            <template v-else>None on file</template>
+          </span>
+        </label>
       </div>
     </div>
 
@@ -139,7 +175,10 @@ defineOptions({ inheritAttrs: false })
 defineEmits(['close'])
 import { useCustomerStore } from '../../stores/customerStore'
 import { createBroadcast } from '../../services/messagesService'
+import { listPropertyMedia, getSignedUrl } from '../../services/mediaService'
 import AppIcon from '../base/AppIcon.vue'
+
+const ALBUM_PREVIEW_MAX = 4   // Telegram caps the album at 10; preview shows up to 4 thumbs + "+N"
 
 const props = defineProps({
   property: { type: Object, required: true },
@@ -152,6 +191,31 @@ const messageBody      = ref('')
 const sending          = ref(false)
 const sent             = ref(false)
 const lastSentCount    = ref(0)
+
+// Media: photos + floor plans available for this property.
+const propertyMedia = ref([])
+const thumbUrls     = ref({})     // { [storage_path]: signedUrl } — populated lazily on mount
+const photoCount     = computed(() => propertyMedia.value.filter((m) => m.kind === 'photo').length)
+const floorplanCount = computed(() => propertyMedia.value.filter((m) => m.kind === 'floorplan').length)
+const hasMedia       = computed(() => propertyMedia.value.length > 0)
+const includeMedia   = ref(true)  // default ON; auto-flips off in onMounted if no media exists
+
+// Album preview: photos first, then floor plans, matching messagesService order.
+const orderedMedia = computed(() =>
+  [...propertyMedia.value].sort((a, b) => {
+    if (a.kind !== b.kind) return a.kind === 'photo' ? -1 : 1
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0)
+  }),
+)
+const showAlbum = computed(() => includeMedia.value && hasMedia.value)
+const albumThumbs = computed(() =>
+  orderedMedia.value.slice(0, ALBUM_PREVIEW_MAX).map((m) => ({
+    id: m.id,
+    kind: m.kind,
+    url: thumbUrls.value[m.storage_path] ?? null,
+  })),
+)
+const albumOverflow = computed(() => Math.max(0, orderedMedia.value.length - ALBUM_PREVIEW_MAX))
 
 const snackbar = ref({ show: false, text: '', color: 'success' })
 
@@ -217,12 +281,13 @@ async function send() {
       body: messageBody.value,
       audienceFilter: selectedAudience.value,
       customers: eligibleRecipients.value,
+      includeMedia: includeMedia.value && hasMedia.value,
     })
     lastSentCount.value = result.sent
     sent.value = true
     snackbar.value = {
       show: true,
-      text: `Sent to ${result.sent} customer${result.sent === 1 ? '' : 's'}${result.failed ? ` (${result.failed} failed)` : ''}.`,
+      text: `Sent to ${result.sent} customer${result.sent === 1 ? '' : 's'}${result.failed ? ` (${result.failed} failed)` : ''}${result.includedMedia ? ' with media' : ''}.`,
       color: result.failed ? 'warning' : 'success',
     }
   } catch (e) {
@@ -232,14 +297,39 @@ async function send() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   messageBody.value = buildDefaultMessage()
+  try {
+    propertyMedia.value = await listPropertyMedia(props.property.id)
+  } catch {
+    propertyMedia.value = []
+  }
+  if (!hasMedia.value) {
+    includeMedia.value = false
+    return
+  }
+  // Fetch signed URLs for the thumbs we'll actually render. Failures are
+  // non-fatal — the cell falls back to an icon placeholder.
+  const top = orderedMedia.value.slice(0, ALBUM_PREVIEW_MAX)
+  await Promise.all(
+    top.map(async (m) => {
+      try {
+        thumbUrls.value[m.storage_path] = await getSignedUrl(m.storage_path, m.kind)
+      } catch { /* leave unset → icon placeholder */ }
+    }),
+  )
 })
 </script>
 
 <style scoped>
 /* Modal-card chrome (head/foot) comes from styles/components/modals.css.
    Below: BroadcastPanel-specific layout (grid + audience + message + bubble). */
+
+/* Make the broadcast modal taller than the default modal-card so the
+   preview + editor have real room. Mobile fullscreen override below. */
+.modal-card {
+  min-height: 70vh;
+}
 
 /* ── Grid (audience + message) ──────────────────────────────── */
 .modal-grid {
@@ -377,8 +467,8 @@ onMounted(() => {
   border-radius: var(--r-md);
   padding: 16px 14px 14px;
   overflow-y: auto;
-  flex: 0 0 auto;
-  max-height: 280px;
+  flex: 1 1 0;
+  min-height: 280px;
 }
 .tg-bubble {
   max-width: 92%;
@@ -398,6 +488,50 @@ onMounted(() => {
   margin-bottom: 8px;
   border-left: 3px solid oklch(58% 0.14 240);
 }
+
+/* Album: photo grid that mimics Telegram's sendMediaGroup layout */
+.tg-bubble.has-album { padding: 4px 4px 6px; max-width: 96%; }
+.tg-album {
+  display: grid;
+  gap: 2px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  background: var(--surface-sunk);
+}
+.tg-album[data-count="1"] { grid-template-columns: 1fr; }
+.tg-album[data-count="2"] { grid-template-columns: 1fr 1fr; }
+.tg-album[data-count="3"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.tg-album[data-count="3"] .tg-album__cell:first-child { grid-row: span 2; }
+.tg-album[data-count="4"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.tg-album__cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background-color: var(--surface-sunk);
+  background-size: cover;
+  background-position: center;
+  display: grid; place-items: center;
+  color: var(--text-faint);
+}
+.tg-album[data-count="1"] .tg-album__cell { aspect-ratio: 16 / 10; }
+.tg-album__more {
+  position: absolute;
+  inset: 0;
+  background: oklch(20% 0.02 60 / 0.55);
+  color: oklch(100% 0 0);
+  font-weight: 700;
+  font-size: 16px;
+  display: grid; place-items: center;
+  letter-spacing: 0.02em;
+}
+.tg-bubble.has-album .body { padding: 0 6px; }
+.tg-bubble.has-album .meta { padding: 0 6px; }
 .tg-bubble .card-thumb {
   width: 44px; height: 44px;
   border-radius: 8px;
@@ -464,6 +598,55 @@ onMounted(() => {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+/* Media toggle */
+.bp-media-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .12s, background .12s;
+}
+.bp-media-toggle:hover { border-color: var(--border-strong); }
+.bp-media-toggle.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.bp-media-toggle input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: inherit;
+  flex-shrink: 0;
+}
+.bp-media-toggle .lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.bp-media-toggle .ct {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+.bp-media-toggle .ct--empty {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
 /* ── Footer hint + Send button (footer chrome itself is shared) ── */
 .hint-icon { color: var(--text-muted); }
 .hint-icon--ok { color: var(--accent); }
@@ -496,9 +679,41 @@ onMounted(() => {
 
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 720px) {
+  /* Fullscreen on phone (driven by :fullscreen="mobile" on v-dialog) —
+     remove desktop chrome so the card fills edge-to-edge. */
+  .modal-card {
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+  }
+
+  /* Tighter head so the title doesn't wrap "Broadcast via\nTelegram" */
+  .modal-head { padding: 12px 14px; gap: 10px; }
+  .modal-head .ico { width: 30px; height: 30px; border-radius: 8px; }
+  .modal-head h2 { font-size: 15px; line-height: 1.2; }
+  .modal-head .sub {
+    font-size: 11.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Stack columns; let the page itself scroll */
   .modal-grid { grid-template-columns: 1fr; overflow-y: auto; }
-  .audience-panel { border-right: none; border-bottom: 1px solid var(--border); }
-  .tg-frame { max-height: 220px; }
+  .audience-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+  .message-panel { padding: 14px 16px; gap: 10px; }
+  .tg-frame { min-height: 240px; flex: 0 0 auto; }
+
+  /* Footer: hide the hint to keep buttons on a single tidy row */
+  .modal-foot { padding: 10px 14px; gap: 8px; }
+  .modal-foot .hint { display: none; }
+  .modal-foot .actions { flex: 1; gap: 8px; }
+  .modal-foot .btn-ghost,
   .modal-foot .btn-send { flex: 1; justify-content: center; }
 }
 </style>
