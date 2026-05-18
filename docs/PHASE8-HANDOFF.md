@@ -1,7 +1,10 @@
-# Phase 8 Handoff — Input Validation Slice (Slice 1 + 1b)
+# Phase 8 Handoff — Slices 1, 1b, 2
 
-**Branch:** `Feature/Phase8-InputValidation` (off `main` at `8d04305`)
-**State:** Working tree dirty with Slice 1 + 1b changes. **Not committed, not merged.**
+**Branch:** `Feature/Phase8-InputValidation` (off `main` at `8d04305`) — **not yet merged**
+**Commits:**
+- `d5f1a93` — Phase 8 Slice 2: edge function security + idempotent broadcasts
+- `25af33b` — Phase 8 Slice 1: input validation across forms + assessment N/A flags
+
 **Date:** 2026-05-18
 **Full audit:** [`C:\Users\limsa\.claude\plans\crispy-shimmying-valiant.md`](../../Users/limsa/.claude/plans/crispy-shimmying-valiant.md)
 
@@ -62,11 +65,36 @@ A second-pass Explore agent audited every input across the app for missed valida
 - **Customer + Property interest pickers** `maxlength="200"` on internal search input.
 - **FollowUpsView reschedule + mark-followed-up dialogs** — `required` attr on date/time inputs, inline `<p class="field-error">` with reactive `rescheduleErrorMsg` / `markContactedErrorMsg` computed, Confirm button gated on error/empty.
 
+### Slice 2 — Edge function security + idempotent broadcasts (`d5f1a93`)
+
+Telegram-themed hardening. Closes audit items **C1, C2, C4, C10, C11** plus several HIGH/MEDIUM (H2, H3, H4, H15, H25, M1).
+
+| Change | Audit ID | Why |
+|---|---|---|
+| `verify_jwt = true` on `send-telegram` + JWT-derived ownership check via user-scoped Supabase client | C1 | Anyone with the URL could previously broadcast as anyone. |
+| Recipients derived server-side from `audience_filter` instead of trusting client array | C11 | Tampered client could insert wrong-category recipients. |
+| `idempotency_key` UUID per dialog session; UNIQUE per agent on `messages` | C10 | Double-clicks / network retries no longer fan out duplicates. |
+| `message_recipients (message_id, customer_id)` UNIQUE | C10 | Concurrent invocations collapse cleanly via `ON CONFLICT DO NOTHING`. |
+| Partial UNIQUE on `customers.telegram_chat_id` | C4 | Two customers can't bind same chat (was code-side only). |
+| `X-Telegram-Bot-Api-Secret-Token` verification on webhook | C2 | Anonymous `/start` calls with guessed enrollment tokens are blocked. |
+| 128-bit enrollment tokens (backfill rotates all existing) | H15 | 48-bit was borderline brute-forceable; 128-bit is cryptographic-key territory. |
+| Batched fan-out (25/batch, 1.1s pause) + per-fetch `AbortSignal.timeout(10s)` | H2/H3 | Old code did `Promise.all` over all recipients → Telegram rate-limit hits + 60s edge-fn hangs. |
+| CORS allowlist via `ALLOWED_ORIGINS` env var (was `*`) | H4 | Cross-origin phishing pages can't invoke as the user. |
+| Structured JSON logging (`level`/`messageId`/`customerId`/`ip`) | H25 | Grep-able function logs across both fns. |
+| Enum error codes (`auth`/`not_found`/`recipient_cap`/`rate_limited`/...) returned to client | M1 | Don't leak raw `e.message` to attackers. |
+| In-memory per-IP rate limit on webhook `/start` lookups (10/min) | belt-and-suspenders | Per-instance only (stateless edge fns); real defense is the 128-bit token. |
+
+**Two migrations:** `0013_telegram_hardening.sql` (UNIQUE indexes + idempotency_key + token bump) and `0014_service_role_grants.sql` (hotfix — `INSERT` on `message_recipients` + `SELECT, UPDATE` on `messages` for the new server-side recipient flow). The GRANT gap caught us on the first smoke test; lesson captured in [[feedback-edge-fn-grants]].
+
+**Client-side:** `messagesService.createBroadcast` now generates an `idempotencyKey` (pinned per dialog via a BroadcastPanel ref), drops the `customers`/`recipients` params, sends only `{ messageId, mediaUrls, captionLimit }` to the edge fn. On 23505 collision (retry path), looks up the existing message and lets the fn re-process failed recipients only.
+
+**Dashboard cutover steps** were executed during the session — see [`docs/PHASE8-SLICE2-CUTOVER.md`](PHASE8-SLICE2-CUTOVER.md) for the durable checklist + rollback plan.
+
 ---
 
 ## Files touched
 
-**New files (untracked):**
+**New files (Slice 1):**
 - `Bold_Vision_CRM/src/utils/validators.js`
 - `Bold_Vision_CRM/src/utils/inputFilters.js`
 - `Bold_Vision_CRM/src/composables/useFeedback.js`
@@ -75,48 +103,51 @@ A second-pass Explore agent audited every input across the app for missed valida
 - `Bold_Vision_CRM/src/components/assessment/NAButton.vue`
 - `supabase/migrations/0012_customer_unique_contacts.sql`
 
-**Modified:** App.vue, all 7 assessment sections + view, AddCustomerDialog, CustomerDetailView, CustomersView, AddPropertyDialog, PropertiesForm, PropertiesView, PropertyDetailsView, PropertyInterestsPanel, CustomerInterestsPanel, BroadcastPanel, BaseSearchBar, KanbanCard, FollowUpsView, LoginView, all four services that take user input (customers, properties, media, assessments), assessmentStore, formatters.js, followUp.js, tokens.css, assessment-form.css. ~32 files total.
+**Slice 1 modified:** App.vue, all 7 assessment sections + view, AddCustomerDialog, CustomerDetailView, CustomersView, AddPropertyDialog, PropertiesForm, PropertiesView, PropertyDetailsView, PropertyInterestsPanel, CustomerInterestsPanel, BroadcastPanel, BaseSearchBar, KanbanCard, FollowUpsView, LoginView, all four services that take user input (customers, properties, media, assessments), assessmentStore, formatters.js, followUp.js, tokens.css, assessment-form.css. ~32 files.
+
+**New files (Slice 2):**
+- `supabase/migrations/0013_telegram_hardening.sql`
+- `supabase/migrations/0014_service_role_grants.sql`
+- `docs/PHASE8-SLICE2-CUTOVER.md`
+
+**Slice 2 modified:** `supabase/functions/send-telegram/index.ts`, `supabase/functions/telegram-webhook/index.ts`, `messagesService.js`, `BroadcastPanel.vue`. 7 files / +1034/-190.
 
 ---
 
 ## What's NOT done
 
-The audit (`crispy-shimmying-valiant.md`) still has 90+ findings open. **No CRITICAL item beyond C13 has shipped.** Top of the next slice's pile:
+The audit (`crispy-shimmying-valiant.md`) still has ~80 findings open. Critical items closed by Slices 1+2: **C1, C2, C4, C10, C11, C13** (the last was Phase 7). Still open:
 
 | ID | Item |
 |---|---|
-| C1 | `verify_jwt=true` + caller-owns-property check on `send-telegram` edge fn |
-| C2 | Telegram webhook `X-Telegram-Bot-Api-Secret-Token` validation |
-| C3 | `SET search_path = public, pg_temp` on all `SECURITY DEFINER` trigger functions |
-| C4 | UNIQUE on `customers.telegram_chat_id` (Slice 1 only did phone + email) |
+| C3 | `SET search_path = public, pg_temp` on all `SECURITY DEFINER` trigger functions (30-min slice) |
 | C6 | `vite.config.js`: `base: '/'` |
 | C7 | `vercel.json` (SPA rewrite + CSP + security headers) |
 | C8 | `useAuthStore().init()` error handling — no infinite loading |
 | C9 | `vueDevTools` dev-only |
-| C10/C11 | Broadcast idempotency key + server-side recipient computation |
 | C12 | `await authStore.init()` before mount; use store in router guard |
 | C14 | Backup / DR plan (Supabase Pro + weekly `pg_dump` mirror) |
 | C15 | (rolled into C7) |
 
-After CRITICAL: 34 HIGH, 40 MEDIUM, 16 LOW. **Next migration is `0013_*.sql`** (0012 is taken).
+After CRITICAL: ~34 HIGH, ~40 MEDIUM, ~16 LOW. **Next migration is `0015_*.sql`** (0012/13/14 are taken).
 
 ---
 
 ## Continuing this work
 
 1. **Decide branch strategy first.**
-   - Option A: merge `Feature/Phase8-InputValidation` to main now, branch new slice off main.
-   - Option B: keep extending this branch with Slice 2 (less safe — PR keeps growing).
-   - Slice 1 + 1b is a clean reviewable PR as-is. Recommend Option A.
+   - Option A: merge `Feature/Phase8-InputValidation` to main now (two clean commits ready), branch new slice off main.
+   - Option B: keep extending this branch with Slice 3+ (PR keeps growing).
+   - Slices 1+2 are a clean reviewable PR as-is. **Recommend Option A.**
 
-2. **Commit before moving on.** Working tree is dirty across ~32 files. Suggested commits:
-   - `Phase 8 Slice 1: input validation across all forms + duplicate-detection + delete dialogs`
-   - `Phase 8 Slice 1b: assessment N/A flags + three-state completion logic`
-   - `Phase 8 deep-scan: LoginView email rule + search-bar maxlength + FollowUps inline errors`
+2. **Open PR manually on GitHub** when ready (per [[no-gh-cli]] memory — `gh` CLI doesn't work on this machine). Push the branch first.
 
-3. **Open PR manually on GitHub** (per [[no-gh-cli]] memory — `gh` CLI doesn't work on this machine).
+3. **For the next slice**, re-read the audit doc and pick a focused scope. Recommended:
+   - **Vercel deploy prep** (C6 + C7 + C9 + C12): last big chunk before production launch. Self-contained config + 2 small frontend changes.
+   - **DB hardening** (C3 + H10 FK indexes + H13 RLS tightening): small SQL-only slice if you want a quick win first.
+   - **Frontend resilience** (C8 + H5 + H6/H7 + H24): user-visible robustness.
 
-4. **For the next slice**, re-read the audit doc and pick a focused scope. Edge-fn auth (C1+C2) is a self-contained slice and the highest security value. Vercel deploy (C6+C7+C9+C12) is another self-contained slice but interacts with hosting setup.
+4. **Lesson from Slice 2:** when an edge-fn rewrite changes what tables it reads/writes, audit `service_role` GRANTs in a fresh migration BEFORE deploying. See [[feedback-edge-fn-grants]].
 
 ---
 
@@ -133,4 +164,6 @@ Quick smoke tests for Slice 1 + 1b:
 - **LoginView**: type `abc` in email → Vuetify rule fires "Invalid email format" on submit.
 - **Search bars**: paste 500 chars → truncated to 200.
 
-For the migration: apply `0012_customer_unique_contacts.sql` to a fresh Supabase project, verify the two partial UNIQUE indexes exist on `customers (auth_user_id, normalized phone)` and `customers (auth_user_id, lower email)`. Pre-flight SELECTs in the file should return 0 rows on a clean DB.
+Slice 2 smoke tests are in [`PHASE8-SLICE2-CUTOVER.md`](PHASE8-SLICE2-CUTOVER.md) §6 — covers anon-call-rejected, missing-secret-rejected, wrong-secret-rejected, authenticated-broadcast-works, idempotency, enrollment, already-enrolled, bad-token, structured-logs. All 9 passed in the session.
+
+For the migrations on a fresh Supabase project, apply in order: `0012_customer_unique_contacts.sql` (Slice 1 — pre-flight + functional UNIQUE indexes), then `0013_telegram_hardening.sql` (Slice 2 — UNIQUE + idempotency + token bump), then `0014_service_role_grants.sql` (Slice 2 hotfix — grants for new edge-fn flow). Each has pre-flight SELECTs or is idempotent.
