@@ -196,6 +196,13 @@ const sending          = ref(false)
 const sent             = ref(false)
 const lastSentCount    = ref(0)
 
+// Idempotency key (audit C10). Pinned for the lifetime of THIS dialog so that
+// a network retry of an in-flight Send hits the same key — the edge fn
+// recognises it as a retry, resends only the failed recipients, and the agent
+// doesn't accidentally double-broadcast. A fresh dialog open generates a new
+// key (fresh broadcast).
+const idempotencyKey = ref(crypto.randomUUID())
+
 // Media: photos + floor plans available for this property.
 const propertyMedia = ref([])
 const thumbUrls     = ref({})     // { [storage_path]: signedUrl } — populated lazily on mount
@@ -295,8 +302,8 @@ async function send() {
       propertyId: props.property.id,
       body: messageBody.value,
       audienceFilter: selectedAudience.value,
-      customers: eligibleRecipients.value,
       includeMedia: includeMedia.value && hasMedia.value,
+      idempotencyKey: idempotencyKey.value,
     })
     lastSentCount.value = result.sent
     sent.value = true
