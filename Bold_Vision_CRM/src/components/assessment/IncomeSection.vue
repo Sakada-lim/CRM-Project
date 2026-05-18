@@ -23,33 +23,57 @@
 
       <template v-for="row in INCOME_ROWS" :key="row.key">
         <div class="row-label">{{ row.label }}</div>
-        <div v-if="showC1" class="afm-income-cell">
-          <div class="input-affix">
-            <span class="prefix">$</span>
-            <input class="input has-prefix" type="text"
-                   :placeholder="row.placeholder"
-                   :value="(c1[row.key] ?? {}).amount"
-                   @input="patch('client1', row.key, { amount: $event.target.value })" />
+        <div v-if="showC1" :class="['afm-field-with-na', { 'afm-na-on': !!c1.na?.[row.key] }]">
+          <div class="afm-income-cell" :class="{ 'afm-income-cell--other': row.key === 'other' }">
+            <div class="input-affix">
+              <span class="prefix">$</span>
+              <input class="input has-prefix" type="text"
+                     :placeholder="c1.na?.[row.key] ? 'N/A' : row.placeholder"
+                     inputmode="decimal"
+                     maxlength="15"
+                     :value="(c1[row.key] ?? {}).amount"
+                     @keydown="currencyKeydown"
+                     @input="patchRow('client1', row.key, { amount: currencySanitize($event.target.value) })" />
+            </div>
+            <select class="select"
+                    :value="(c1[row.key] ?? {}).freq || 'pw'"
+                    @change="patchRow('client1', row.key, { freq: $event.target.value })">
+              <option v-for="f in FREQS" :key="f" :value="f">p/{{ f }}</option>
+            </select>
+            <input v-if="row.key === 'other'"
+                   class="input afm-income-detail" type="text"
+                   :placeholder="c1.na?.other ? 'N/A' : 'What is it? (e.g. freelance design, board fees)'"
+                   maxlength="200"
+                   :value="(c1.other ?? {}).details"
+                   @input="patchRow('client1', 'other', { details: $event.target.value })" />
           </div>
-          <select class="select"
-                  :value="(c1[row.key] ?? {}).freq || 'pw'"
-                  @change="patch('client1', row.key, { freq: $event.target.value })">
-            <option v-for="f in FREQS" :key="f" :value="f">p/{{ f }}</option>
-          </select>
+          <NAButton :active="!!c1.na?.[row.key]" @toggle="toggleNARow('client1', row.key)" />
         </div>
-        <div v-if="showC2" class="afm-income-cell">
-          <div class="input-affix">
-            <span class="prefix">$</span>
-            <input class="input has-prefix" type="text"
-                   :placeholder="row.placeholder"
-                   :value="(c2[row.key] ?? {}).amount"
-                   @input="patch('client2', row.key, { amount: $event.target.value })" />
+        <div v-if="showC2" :class="['afm-field-with-na', { 'afm-na-on': !!c2.na?.[row.key] }]">
+          <div class="afm-income-cell" :class="{ 'afm-income-cell--other': row.key === 'other' }">
+            <div class="input-affix">
+              <span class="prefix">$</span>
+              <input class="input has-prefix" type="text"
+                     :placeholder="c2.na?.[row.key] ? 'N/A' : row.placeholder"
+                     inputmode="decimal"
+                     maxlength="15"
+                     :value="(c2[row.key] ?? {}).amount"
+                     @keydown="currencyKeydown"
+                     @input="patchRow('client2', row.key, { amount: currencySanitize($event.target.value) })" />
+            </div>
+            <select class="select"
+                    :value="(c2[row.key] ?? {}).freq || 'pw'"
+                    @change="patchRow('client2', row.key, { freq: $event.target.value })">
+              <option v-for="f in FREQS" :key="f" :value="f">p/{{ f }}</option>
+            </select>
+            <input v-if="row.key === 'other'"
+                   class="input afm-income-detail" type="text"
+                   :placeholder="c2.na?.other ? 'N/A' : 'What is it? (e.g. freelance design, board fees)'"
+                   maxlength="200"
+                   :value="(c2.other ?? {}).details"
+                   @input="patchRow('client2', 'other', { details: $event.target.value })" />
           </div>
-          <select class="select"
-                  :value="(c2[row.key] ?? {}).freq || 'pw'"
-                  @change="patch('client2', row.key, { freq: $event.target.value })">
-            <option v-for="f in FREQS" :key="f" :value="f">p/{{ f }}</option>
-          </select>
+          <NAButton :active="!!c2.na?.[row.key]" @toggle="toggleNARow('client2', row.key)" />
         </div>
       </template>
     </div>
@@ -58,7 +82,9 @@
 
 <script setup>
 import { computed } from 'vue'
+import NAButton from './NAButton.vue'
 import { useActiveClient, setActiveClient, useIsPhoneView } from '../../composables/useAssessmentClient'
+import { currencyKeydown, currencySanitize } from '../../utils/inputFilters'
 
 const FREQS = ['w', 'f', 'm', 'a']
 const INCOME_ROWS = [
@@ -83,7 +109,7 @@ const activeClient = useActiveClient()
 const showC1 = computed(() => !isPhone.value || activeClient.value === 'client1')
 const showC2 = computed(() => !isPhone.value || activeClient.value === 'client2')
 
-function patch(which, rowKey, partial) {
+function patchRow(which, rowKey, partial) {
   const clientObj = props.modelValue?.[which] ?? {}
   const rowObj = clientObj[rowKey] ?? {}
   emit('update:modelValue', {
@@ -92,6 +118,27 @@ function patch(which, rowKey, partial) {
       ...clientObj,
       [rowKey]: { ...rowObj, ...partial },
     },
+  })
+}
+
+// Toggling N/A on an income row clears the row entirely (amount + freq +
+// details), flips the flag, and persists.
+function toggleNARow(which, rowKey) {
+  const clientObj = props.modelValue?.[which] ?? {}
+  const na = { ...(clientObj.na ?? {}) }
+  const nextActive = !na[rowKey]
+  let nextClient
+  if (nextActive) {
+    na[rowKey] = true
+    // Clear the row's data
+    nextClient = { ...clientObj, [rowKey]: null, na }
+  } else {
+    delete na[rowKey]
+    nextClient = { ...clientObj, na }
+  }
+  emit('update:modelValue', {
+    ...props.modelValue,
+    [which]: nextClient,
   })
 }
 </script>
@@ -104,4 +151,12 @@ function patch(which, rowKey, partial) {
   align-items: center;
 }
 .afm-income-cell .select { width: 100%; padding: 10px 8px; }
+
+/* Other (specify) variant — adds a full-width description below amount + freq */
+.afm-income-cell--other {
+  grid-template-rows: auto auto;
+}
+.afm-income-cell--other .afm-income-detail {
+  grid-column: 1 / span 2;
+}
 </style>

@@ -1,4 +1,67 @@
 import { supabase } from './supabase'
+import {
+  validateCustomerForm,
+  validateFeedback,
+  validateRequired,
+  validateMaxLength,
+  validatePhone,
+  validateEmail,
+  validateTelegramChatId,
+  ValidationError,
+  LIMITS,
+} from '../utils/validators'
+
+// Trim string fields. Mutates a shallow copy.
+function trimStringFields(obj, keys) {
+  const out = { ...obj }
+  for (const k of keys) {
+    if (typeof out[k] === 'string') out[k] = out[k].trim()
+  }
+  return out
+}
+
+// Full-payload validation (used by createCustomer).
+function normalizeCustomerCreate(payload) {
+  const clean = trimStringFields(payload, ['name', 'phone', 'email', 'notes', 'agent'])
+  const errors = validateCustomerForm(clean)
+  if (errors) throw new ValidationError(errors)
+  return clean
+}
+
+// Partial-payload validation (used by updateCustomer). Only fields present in
+// the patch are checked; the "at least one contact" rule is enforced by the
+// DB CHECK rather than re-derived here (the patch may not include all three).
+function normalizeCustomerUpdate(payload) {
+  const clean = trimStringFields(payload, ['name', 'phone', 'email', 'notes', 'agent'])
+  const errors = {}
+  if ('name' in clean) {
+    const e = validateRequired(clean.name, 'Name')
+      ?? validateMaxLength(clean.name, LIMITS.name.max, 'Name')
+    if (e) errors.name = e
+  }
+  if ('phone' in clean) {
+    const e = validatePhone(clean.phone)
+    if (e) errors.phone = e
+  }
+  if ('email' in clean) {
+    const e = validateEmail(clean.email)
+    if (e) errors.email = e
+  }
+  if ('telegramChatId' in clean) {
+    const e = validateTelegramChatId(clean.telegramChatId)
+    if (e) errors.telegramChatId = e
+  }
+  if ('agent' in clean) {
+    const e = validateMaxLength(clean.agent, LIMITS.agent.max, 'Agent')
+    if (e) errors.agent = e
+  }
+  if ('notes' in clean) {
+    const e = validateMaxLength(clean.notes, LIMITS.notes.max, 'Notes')
+    if (e) errors.notes = e
+  }
+  if (Object.keys(errors).length) throw new ValidationError(errors)
+  return clean
+}
 
 function mapRowToCustomer(row) {
   return {
@@ -55,14 +118,16 @@ export async function getCustomer(id) {
 }
 
 export async function createCustomer(payload) {
-  const row = mapCustomerToRow(payload)
+  const clean = normalizeCustomerCreate(payload)
+  const row = mapCustomerToRow(clean)
   const { data, error } = await supabase.from('customers').insert(row).select().single()
   if (error) throw error
   return mapRowToCustomer(data)
 }
 
 export async function updateCustomer(id, payload) {
-  const row = mapCustomerToRow(payload)
+  const clean = normalizeCustomerUpdate(payload)
+  const row = mapCustomerToRow(clean)
   const { data, error } = await supabase
     .from('customers')
     .update(row)
@@ -135,6 +200,9 @@ export async function listFeedback(customerId) {
 
 export async function addFeedback(customerId, input) {
   const { note, type, durationMinutes } = normalizeFeedbackPayload(input)
+  // Final safety check: enforce note length + duration/type coupling
+  const errors = validateFeedback({ note, type, durationMinutes })
+  if (errors) throw new ValidationError(errors)
   const { data, error } = await supabase
     .from('customer_feedback')
     .insert({

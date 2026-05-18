@@ -17,7 +17,7 @@
             type="email"
             variant="outlined"
             prepend-inner-icon="mdi-email-outline"
-            :rules="[(v) => !!v || 'Email is required']"
+            :rules="emailRules"
             class="mb-3"
             autocomplete="email"
           />
@@ -50,6 +50,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { signIn } from '../services/authService'
+import { validateEmail } from '../utils/validators'
 
 const router = useRouter()
 const route = useRoute()
@@ -61,6 +62,12 @@ const password = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
 const error = ref('')
+
+// "required" + format. validateEmail returns null on success or error string.
+const emailRules = [
+  (v) => !!v || 'Email is required',
+  (v) => validateEmail(v) === null || validateEmail(v),
+]
 
 async function submit() {
   const { valid } = await form.value.validate()

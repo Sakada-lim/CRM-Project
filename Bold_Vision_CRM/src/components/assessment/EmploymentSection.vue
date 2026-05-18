@@ -23,21 +23,41 @@
 
       <!-- Occupation -->
       <div class="row-label">Occupation</div>
-      <input v-if="showC1" class="input" type="text" placeholder="e.g. Software engineer"
-             :value="c1.occupation"
-             @input="patch('client1', { occupation: $event.target.value })" />
-      <input v-if="showC2" class="input" type="text" placeholder="Occupation"
-             :value="c2.occupation"
-             @input="patch('client2', { occupation: $event.target.value })" />
+      <div v-if="showC1" :class="['afm-field-with-na', { 'afm-na-on': !!c1.na?.occupation }]">
+        <input class="input" type="text"
+               :placeholder="c1.na?.occupation ? 'N/A' : 'e.g. Software engineer'"
+               :maxlength="LIMITS.assessmentText.max"
+               :value="c1.occupation"
+               @input="patch('client1', { occupation: $event.target.value })" />
+        <NAButton :active="!!c1.na?.occupation" @toggle="toggleNA('client1', 'occupation', { occupation: '' })" />
+      </div>
+      <div v-if="showC2" :class="['afm-field-with-na', { 'afm-na-on': !!c2.na?.occupation }]">
+        <input class="input" type="text"
+               :placeholder="c2.na?.occupation ? 'N/A' : 'Occupation'"
+               :maxlength="LIMITS.assessmentText.max"
+               :value="c2.occupation"
+               @input="patch('client2', { occupation: $event.target.value })" />
+        <NAButton :active="!!c2.na?.occupation" @toggle="toggleNA('client2', 'occupation', { occupation: '' })" />
+      </div>
 
       <!-- Employer -->
       <div class="row-label">Employer</div>
-      <input v-if="showC1" class="input" type="text" placeholder="Employer name"
-             :value="c1.employer"
-             @input="patch('client1', { employer: $event.target.value })" />
-      <input v-if="showC2" class="input" type="text" placeholder="Employer name"
-             :value="c2.employer"
-             @input="patch('client2', { employer: $event.target.value })" />
+      <div v-if="showC1" :class="['afm-field-with-na', { 'afm-na-on': !!c1.na?.employer }]">
+        <input class="input" type="text"
+               :placeholder="c1.na?.employer ? 'N/A' : 'Employer name'"
+               :maxlength="LIMITS.assessmentText.max"
+               :value="c1.employer"
+               @input="patch('client1', { employer: $event.target.value })" />
+        <NAButton :active="!!c1.na?.employer" @toggle="toggleNA('client1', 'employer', { employer: '' })" />
+      </div>
+      <div v-if="showC2" :class="['afm-field-with-na', { 'afm-na-on': !!c2.na?.employer }]">
+        <input class="input" type="text"
+               :placeholder="c2.na?.employer ? 'N/A' : 'Employer name'"
+               :maxlength="LIMITS.assessmentText.max"
+               :value="c2.employer"
+               @input="patch('client2', { employer: $event.target.value })" />
+        <NAButton :active="!!c2.na?.employer" @toggle="toggleNA('client2', 'employer', { employer: '' })" />
+      </div>
 
       <!-- Work status -->
       <div class="row-label">Work status</div>
@@ -71,17 +91,27 @@
 
       <!-- Years in role -->
       <div class="row-label">Years in role</div>
-      <div v-if="showC1" class="input-affix afm-years">
-        <input class="input" type="text" placeholder="0"
-               :value="c1.yearsInRole"
-               @input="patch('client1', { yearsInRole: $event.target.value })" />
-        <span class="suffix">yrs</span>
+      <div v-if="showC1" :class="['afm-field-with-na', { 'afm-na-on': !!c1.na?.yearsInRole }]">
+        <div class="input-affix afm-years">
+          <input class="input" type="number"
+                 :placeholder="c1.na?.yearsInRole ? 'N/A' : '0'"
+                 min="0" max="99" step="0.5"
+                 :value="c1.yearsInRole"
+                 @input="patch('client1', { yearsInRole: $event.target.value })" />
+          <span class="suffix">yrs</span>
+        </div>
+        <NAButton :active="!!c1.na?.yearsInRole" @toggle="toggleNA('client1', 'yearsInRole', { yearsInRole: '' })" />
       </div>
-      <div v-if="showC2" class="input-affix afm-years">
-        <input class="input" type="text" placeholder="0"
-               :value="c2.yearsInRole"
-               @input="patch('client2', { yearsInRole: $event.target.value })" />
-        <span class="suffix">yrs</span>
+      <div v-if="showC2" :class="['afm-field-with-na', { 'afm-na-on': !!c2.na?.yearsInRole }]">
+        <div class="input-affix afm-years">
+          <input class="input" type="number"
+                 :placeholder="c2.na?.yearsInRole ? 'N/A' : '0'"
+                 min="0" max="99" step="0.5"
+                 :value="c2.yearsInRole"
+                 @input="patch('client2', { yearsInRole: $event.target.value })" />
+          <span class="suffix">yrs</span>
+        </div>
+        <NAButton :active="!!c2.na?.yearsInRole" @toggle="toggleNA('client2', 'yearsInRole', { yearsInRole: '' })" />
       </div>
 
       <!-- Probation -->
@@ -105,19 +135,31 @@
 
       <!-- Previous job (if < 1 yr) -->
       <div class="row-label">Previous job (if &lt; 1 yr)</div>
-      <textarea v-if="showC1" class="textarea" placeholder="Commentary on previous job…" style="min-height:60px"
-                :value="c1.previousJobNote"
-                @input="patch('client1', { previousJobNote: $event.target.value })"></textarea>
-      <textarea v-if="showC2" class="textarea" placeholder="Commentary on previous job…" style="min-height:60px"
-                :value="c2.previousJobNote"
-                @input="patch('client2', { previousJobNote: $event.target.value })"></textarea>
+      <div v-if="showC1" :class="['afm-field-with-na', { 'afm-na-on': !!c1.na?.previousJobNote }]">
+        <textarea class="textarea" style="min-height:60px"
+                  :placeholder="c1.na?.previousJobNote ? 'N/A' : 'Commentary on previous job…'"
+                  :maxlength="LIMITS.assessmentLongText.max"
+                  :value="c1.previousJobNote"
+                  @input="patch('client1', { previousJobNote: $event.target.value })"></textarea>
+        <NAButton :active="!!c1.na?.previousJobNote" @toggle="toggleNA('client1', 'previousJobNote', { previousJobNote: '' })" />
+      </div>
+      <div v-if="showC2" :class="['afm-field-with-na', { 'afm-na-on': !!c2.na?.previousJobNote }]">
+        <textarea class="textarea" style="min-height:60px"
+                  :placeholder="c2.na?.previousJobNote ? 'N/A' : 'Commentary on previous job…'"
+                  :maxlength="LIMITS.assessmentLongText.max"
+                  :value="c2.previousJobNote"
+                  @input="patch('client2', { previousJobNote: $event.target.value })"></textarea>
+        <NAButton :active="!!c2.na?.previousJobNote" @toggle="toggleNA('client2', 'previousJobNote', { previousJobNote: '' })" />
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import NAButton from './NAButton.vue'
 import { useActiveClient, setActiveClient, useIsPhoneView } from '../../composables/useAssessmentClient'
+import { LIMITS } from '../../utils/validators'
 
 const WORK_STATUS_OPTIONS = [
   { value: 'Employee',     label: 'Employee' },
@@ -148,6 +190,19 @@ function patch(which, fieldPatch) {
   emit('update:modelValue', {
     ...props.modelValue,
     [which]: { ...current, ...fieldPatch },
+  })
+}
+
+function toggleNA(which, fieldKey, cleared) {
+  const current = props.modelValue?.[which] ?? {}
+  const na = { ...(current.na ?? {}) }
+  const nextActive = !na[fieldKey]
+  const nextClient = nextActive
+    ? { ...current, ...cleared, na: { ...na, [fieldKey]: true } }
+    : (() => { const n = { ...na }; delete n[fieldKey]; return { ...current, na: n } })()
+  emit('update:modelValue', {
+    ...props.modelValue,
+    [which]: nextClient,
   })
 }
 </script>

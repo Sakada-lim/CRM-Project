@@ -118,6 +118,9 @@ import { useFilterChips } from '../composables/useFilterChips'
 import { createEmptyPropertyDraft } from '../constants/propertyDefaults'
 import { statusToClass } from '../utils/property'
 import { formatSqm } from '../utils/formatters'
+import { useFeedback } from '../composables/useFeedback'
+
+const { notifySuccess, notifyFromError } = useFeedback()
 
 const propertyStore = usePropertyStore()
 const properties = computed(() => propertyStore.properties)
@@ -284,16 +287,13 @@ function handleFilterClear() {
 
 async function handleAddProperty(payload) {
   const propertyData = payload || newProperty.value
-  if (!propertyData.address || !propertyData.type || !propertyData.status) {
-    alert('Please fill in at least address, type, and status.')
-    return
-  }
   try {
     await propertyStore.addProperty({ ...propertyData })
     newProperty.value = createEmptyPropertyDraft()
     showAddProperty.value = false
+    notifySuccess('Property added')
   } catch (e) {
-    alert(`Failed to save property: ${e.message}`)
+    notifyFromError(e, 'Failed to save property')
   }
 }
 

@@ -14,7 +14,7 @@
       </header>
 
       <div class="dialog-body" tabindex="-1">
-        <PropertyForm v-model="draft" />
+        <PropertyForm ref="propertyFormRef" v-model="draft" />
       </div>
 
       <footer class="dialog-footer">
@@ -27,9 +27,14 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import PropertyForm from './PropertiesForm.vue'
 import { useFilterDialogState } from '../../composables/useFilterDialogState'
 import { createEmptyPropertyDraft } from '../../constants/propertyDefaults'
+import { useFeedback } from '../../composables/useFeedback'
+
+const { notifyError } = useFeedback()
+const propertyFormRef = ref(null)
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -59,6 +64,12 @@ const { draft, isOpen, close } = useFilterDialogState({
 })
 
 function handleConfirm() {
+  const errs = propertyFormRef.value?.validate()
+  if (errs) {
+    const first = errs._ ?? Object.values(errs)[0]
+    notifyError(first)
+    return
+  }
   emit('confirm', {
     ...draft,
     gallery: Array.isArray(draft.gallery) ? [...draft.gallery] : [],

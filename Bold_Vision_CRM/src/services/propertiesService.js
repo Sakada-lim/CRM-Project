@@ -1,8 +1,30 @@
 import { supabase } from './supabase'
 import { computeBadge } from '../utils/property'
 import { formatSqm, parsePriceGuideString } from '../utils/formatters'
+import { validatePropertyForm, ValidationError } from '../utils/validators'
 
 const DAY_MS = 24 * 60 * 60 * 1000
+
+function trimStringFields(obj, keys) {
+  const out = { ...obj }
+  for (const k of keys) {
+    if (typeof out[k] === 'string') out[k] = out[k].trim()
+  }
+  return out
+}
+
+const TEXT_FIELDS = [
+  'address', 'suburb', 'state', 'postcode', 'type', 'status',
+  'priceGuide', 'description', 'notes', 'code',
+  'agentName', 'agentPhone', 'agentEmail',
+]
+
+function normalizePropertyPayload(payload) {
+  const clean = trimStringFields(payload, TEXT_FIELDS)
+  const errors = validatePropertyForm(clean)
+  if (errors) throw new ValidationError(errors)
+  return clean
+}
 
 function mapRowToProperty(row) {
   const listedAt = row.listed_at
@@ -124,14 +146,16 @@ export async function getProperty(id) {
 }
 
 export async function createProperty(payload) {
-  const row = mapPropertyToRow(payload)
+  const clean = normalizePropertyPayload(payload)
+  const row = mapPropertyToRow(clean)
   const { data, error } = await supabase.from('properties').insert(row).select().single()
   if (error) throw error
   return mapRowToProperty(data)
 }
 
 export async function updateProperty(id, payload) {
-  const row = mapPropertyToRow(payload)
+  const clean = normalizePropertyPayload(payload)
+  const row = mapPropertyToRow(clean)
   const { data, error } = await supabase
     .from('properties')
     .update(row)

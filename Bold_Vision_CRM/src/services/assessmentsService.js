@@ -1,4 +1,11 @@
 import { supabase } from './supabase'
+import {
+  validateAssessmentSection,
+  validateMaxLength,
+  validateDateMaxFuture,
+  ValidationError,
+  LIMITS,
+} from '../utils/validators'
 
 // Section payload shapes (JSONB columns on customer_assessments).
 // PDF page 1 → personal/employment/income/assets/liabilities;
@@ -80,6 +87,12 @@ export async function updateSection(assessmentId, sectionKey, payload, touchedSe
   if (!SECTION_KEYS.includes(sectionKey)) {
     throw new Error(`Unknown assessment section: ${sectionKey}`)
   }
+  // Validate the section payload before sending. Throws ValidationError on
+  // length / format / range violations so the autosave halts and the store
+  // surfaces a toast rather than silently writing garbage.
+  const errs = validateAssessmentSection(sectionKey, payload)
+  if (errs) throw new ValidationError(errs, `Invalid ${sectionKey} section`)
+
   const patch = { [sectionKey]: payload }
   if (Array.isArray(touchedSections)) patch.touched_sections = touchedSections
   const { data, error } = await supabase
@@ -93,6 +106,22 @@ export async function updateSection(assessmentId, sectionKey, payload, touchedSe
 }
 
 export async function updateMeta(assessmentId, partial) {
+  // Validate top-level meta fields the same way
+  const errors = {}
+  if (partial.consultantName !== undefined) {
+    const e = validateMaxLength(partial.consultantName, LIMITS.assessmentText.max, 'Consultant')
+    if (e) errors.consultantName = e
+  }
+  if (partial.brokerName !== undefined) {
+    const e = validateMaxLength(partial.brokerName, LIMITS.assessmentText.max, 'Broker')
+    if (e) errors.brokerName = e
+  }
+  if (partial.nextAppointmentAt !== undefined && partial.nextAppointmentAt) {
+    const e = validateDateMaxFuture(partial.nextAppointmentAt, 5, 'Next appointment')
+    if (e) errors.nextAppointmentAt = e
+  }
+  if (Object.keys(errors).length) throw new ValidationError(errors)
+
   const patch = {}
   if (partial.consultantName !== undefined) patch.consultant_name = partial.consultantName
   if (partial.brokerName !== undefined) patch.broker_name = partial.brokerName

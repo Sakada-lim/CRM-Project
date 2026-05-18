@@ -193,12 +193,23 @@
 
                 <!-- Details tab: the overview form -->
                 <template v-if="activeTab === 'details'">
-                  <PropertyForm v-model="editable" />
+                  <PropertyForm ref="propertyFormRef" v-model="editable" />
                   <div class="pd-form-footer">
                     <button class="btn btn-ghost" :disabled="!hasUnsavedChanges" @click="resetChanges">Reset</button>
                     <button class="btn btn-primary" :disabled="!hasUnsavedChanges" @click="saveChanges">
                       <AppIcon name="check" :size="14" /> Save changes
                       <span v-if="hasUnsavedChanges" class="save-dot" />
+                    </button>
+                  </div>
+
+                  <div class="pd-danger-zone">
+                    <div class="pd-danger-zone__text">
+                      <strong>Delete this property</strong>
+                      <span>Permanent. Removes photos, floor plans, interests, and broadcast history.</span>
+                    </div>
+                    <button type="button" class="btn pd-btn-danger" @click="deleteDialog = true">
+                      <AppIcon name="x" :size="14" />
+                      Delete property
                     </button>
                   </div>
                 </template>
@@ -237,9 +248,14 @@
       />
     </v-dialog>
 
-    <v-snackbar v-model="snackbar" timeout="2000" color="success">
-      Changes saved successfully.
-    </v-snackbar>
+    <ConfirmDeleteDialog
+      v-model="deleteDialog"
+      entity-type="property"
+      :entity-label="original?.address ?? ''"
+      :busy="deleting"
+      @confirm="confirmDelete"
+    />
+
   </div>
 
   <!-- ── Not found ──────────────────────────────────────────── -->
@@ -262,8 +278,13 @@ import PropertyInterestsPanel from '../components/properties/PropertyInterestsPa
 import BroadcastPanel from '../components/properties/BroadcastPanel.vue'
 import PhotoLightbox from '../components/properties/PhotoLightbox.vue'
 import AppIcon from '../components/base/AppIcon.vue'
+import ConfirmDeleteDialog from '../components/base/ConfirmDeleteDialog.vue'
 import { statusToClass } from '../utils/property'
 import { formatSqm } from '../utils/formatters'
+import { useFeedback } from '../composables/useFeedback'
+import { validatePhotoFile, LIMITS } from '../utils/validators'
+
+const { notifySuccess, notifyError, notifyFromError } = useFeedback()
 
 const route  = useRoute()
 const router = useRouter()
@@ -276,7 +297,9 @@ const original      = computed(() => propertyStore.properties.find((p) => p.id =
 const propertyFound = computed(() => !!original.value)
 
 const editable       = ref(createEmptyPropertyDraft())
-const snackbar       = ref(false)
+const propertyFormRef = ref(null)
+const deleteDialog   = ref(false)
+const deleting       = ref(false)
 const photoUploading = ref(false)
 const photoError     = ref(null)
 const broadcastOpen  = ref(false)
@@ -349,14 +372,39 @@ const tabMeta = computed(() => {
   }
 })
 
-function saveChanges() {
+async function saveChanges() {
   if (!propertyFound.value) return
-  propertyStore.updateProperty(id, { ...editable.value })
-  snackbar.value = true
+  const errs = propertyFormRef.value?.validate()
+  if (errs) {
+    const first = errs._ ?? Object.values(errs)[0]
+    notifyError(first)
+    return
+  }
+  try {
+    await propertyStore.updateProperty(id, { ...editable.value })
+    notifySuccess('Changes saved')
+  } catch (e) {
+    notifyFromError(e, 'Failed to save')
+  }
 }
 
 function resetChanges() {
   if (original.value) editable.value = { ...createEmptyPropertyDraft(), ...original.value }
+}
+
+async function confirmDelete() {
+  if (deleting.value) return
+  deleting.value = true
+  try {
+    await propertyStore.deleteProperty(id)
+    deleteDialog.value = false
+    notifySuccess('Property deleted')
+    router.push({ name: 'properties' })
+  } catch (e) {
+    notifyFromError(e, 'Failed to delete property')
+  } finally {
+    deleting.value = false
+  }
 }
 
 function goBack() { router.push({ name: 'properties' }) }
@@ -428,10 +476,31 @@ onMounted(() => {
 // ── photo handlers ───────────────────────────────────────────
 async function handleAdd(files, kind) {
   photoError.value = null
+
+  // Pre-flight: filter out files that fail size/type checks BEFORE upload.
+  // Bucket policy will also reject, but catching here gives instant feedback.
+  const valid = []
+  const skipped = []
+  for (const file of files) {
+    const err = validatePhotoFile(file)
+    if (err) skipped.push(`${file.name}: ${err}`)
+    else valid.push(file)
+  }
+  if (skipped.length) {
+    notifyError(`Skipped ${skipped.length} file${skipped.length === 1 ? '' : 's'} — ${skipped[0]}`)
+  }
+  if (valid.length > LIMITS.photoBatch.max) {
+    notifyError(`Too many at once — uploading first ${LIMITS.photoBatch.max} of ${valid.length}`)
+    valid.length = LIMITS.photoBatch.max
+  }
+  if (!valid.length) return
+
   photoUploading.value = true
   try {
-    for (const file of files) await propertyStore.uploadPhoto(id, file, kind)
+    for (const file of valid) await propertyStore.uploadPhoto(id, file, kind)
+    notifySuccess(`Uploaded ${valid.length} ${kind === 'floorplan' ? 'floor plan' : 'photo'}${valid.length === 1 ? '' : 's'}`)
   } catch (e) {
+    notifyFromError(e, 'Upload failed')
     photoError.value = `Upload failed: ${e.message}`
   } finally {
     photoUploading.value = false
@@ -722,6 +791,35 @@ async function handleSelect(storagePath) {
 }
 .pd-form-footer .btn-primary {
   display: inline-flex; align-items: center; gap: 6px;
+}
+
+/* ── Danger zone (delete property) ──────────────────────────── */
+.pd-danger-zone {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-top: 20px; padding: 14px 16px;
+  border: 1px dashed oklch(80% 0.10 27);
+  border-radius: var(--r-md);
+  background: oklch(98% 0.015 27);
+}
+:root[data-theme="dark"] .pd-danger-zone {
+  background: oklch(24% 0.04 27);
+  border-color: oklch(40% 0.10 27);
+}
+.pd-danger-zone__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pd-danger-zone__text strong { font-size: 13.5px; color: var(--text); }
+.pd-danger-zone__text span   { font-size: 12px; color: var(--text-muted); }
+.pd-btn-danger {
+  background: var(--danger, oklch(56% 0.20 27));
+  color: oklch(100% 0 0);
+  border: none;
+  flex-shrink: 0;
+}
+.pd-btn-danger:hover:not(:disabled) {
+  background: oklch(50% 0.20 27);
+}
+@media (max-width: 600px) {
+  .pd-danger-zone { flex-direction: column; align-items: stretch; text-align: center; }
+  .pd-btn-danger { justify-content: center; }
 }
 
 /* ── Agent card (kept for reuse) ────────────────────────────── */

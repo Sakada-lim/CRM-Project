@@ -14,22 +14,32 @@ export function cadenceLabel(category) {
 // ── Status ─────────────────────────────────────────────────────────────────
 
 // Returns one of: 'never-contacted' | 'unscheduled' | 'overdue' | 'approaching' | 'up-to-date'
+//
+// "Overdue" is now any time strictly in the past, including a few hours ago
+// today — not just past calendar days. So a card scheduled for 9am that the
+// agent looks at at 5pm correctly shows as overdue.
 export function customerStatus(customer, today = new Date()) {
   if (!customer.nextContactAt) {
     return customer.lastContactedAt ? 'unscheduled' : 'never-contacted'
   }
   const next = new Date(customer.nextContactAt)
+  if (next < today) return 'overdue'
   const diffDays = Math.ceil((next - today) / (1000 * 60 * 60 * 24))
-  if (diffDays < 0) return 'overdue'
   if (diffDays <= 30) return 'approaching'
   return 'up-to-date'
 }
 
 // Days until next contact (negative = past due). null if no schedule set.
+//
+// Past times round DOWN (Math.floor) so "scheduled 8 hours ago" → -1 day,
+// showing as "1d overdue" instead of 0.
+// Future times round UP (Math.ceil) preserves the existing "Due in N days"
+// display behavior.
 export function daysUntilContact(customer, today = new Date()) {
   if (!customer.nextContactAt) return null
   const next = new Date(customer.nextContactAt)
-  return Math.ceil((next - today) / (1000 * 60 * 60 * 24))
+  const diff = (next - today) / (1000 * 60 * 60 * 24)
+  return diff < 0 ? Math.floor(diff) : Math.ceil(diff)
 }
 
 export function isOverdue(customer, today = new Date()) {
@@ -95,7 +105,9 @@ export function bucketCustomersForWeek(customers, today = new Date(), weekOffset
       continue
     }
     const next = new Date(c.nextContactAt)
-    if (next < todayStart) {
+    // Overdue = strictly before NOW (not midnight today) — a card scheduled
+    // today at 9am is overdue when the agent looks at the board at 5pm.
+    if (next < today) {
       overdue.push(c)
     } else if (next >= viewStart && next < viewEnd) {
       const bucket = days.find((d) => isSameDay(d.date, next))

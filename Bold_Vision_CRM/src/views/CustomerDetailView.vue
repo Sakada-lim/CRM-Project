@@ -37,12 +37,12 @@
 
       <div class="cd-hero__stats">
         <div class="cd-hero__stat">
-          <div class="cd-hero__stat-eyebrow">Last contact</div>
+          <div class="cd-hero__stat-eyebrow">Last follow-up</div>
           <div class="cd-hero__stat-v">{{ lastContactedShort }}</div>
           <div class="cd-hero__stat-s">{{ lastContactedSub }}</div>
         </div>
         <div class="cd-hero__stat">
-          <div class="cd-hero__stat-eyebrow">Next contact</div>
+          <div class="cd-hero__stat-eyebrow">Next follow-up</div>
           <div class="cd-hero__stat-v" :data-tone="nextContactTone">{{ nextContactShort }}</div>
           <div class="cd-hero__stat-s" :data-tone="nextContactTone">{{ nextContactSub }}</div>
         </div>
@@ -61,30 +61,64 @@
           </div>
 
           <div class="cd-form-grid">
-            <div class="field">
+            <div class="field" :class="{ 'is-error': errors.name }">
               <label for="cd-name">Full name</label>
-              <input id="cd-name" v-model="editable.name" type="text" class="input" autocomplete="name" />
+              <input id="cd-name" v-model="editable.name" type="text" class="input" autocomplete="name"
+                     :maxlength="LIMITS.name.max"
+                     @input="clearError('name')" @blur="validateField('name')" />
+              <p v-if="errors.name" class="field-error">{{ errors.name }}</p>
+              <p v-if="duplicates.name" class="cd-dup-warn">
+                <AppIcon name="user" :size="12" />
+                Same name as
+                <RouterLink :to="`/customers/${duplicates.name.id}`" class="cd-dup-link">
+                  {{ duplicates.name.name }}
+                </RouterLink>
+                — different person? Save anyway.
+              </p>
             </div>
-            <div class="field">
+            <div class="field" :class="{ 'is-error': errors.phone }">
               <label for="cd-phone">Phone</label>
               <div class="input-affix">
                 <span class="prefix"><AppIcon name="phone" :size="14" /></span>
-                <input id="cd-phone" v-model="editable.phone" type="tel" class="input has-prefix" autocomplete="tel" />
+                <input id="cd-phone" v-model="editable.phone" type="tel" class="input has-prefix" autocomplete="tel"
+                       :maxlength="LIMITS.phone.max"
+                       @input="clearError('phone')" @blur="validateField('phone'); checkDuplicates()" />
               </div>
+              <p v-if="errors.phone" class="field-error">{{ errors.phone }}</p>
+              <p v-if="duplicates.phone" class="cd-dup-error">
+                <AppIcon name="phone" :size="12" />
+                This phone already belongs to
+                <RouterLink :to="`/customers/${duplicates.phone.id}`" class="cd-dup-link">
+                  {{ duplicates.phone.name || 'an existing customer' }}
+                </RouterLink>
+              </p>
             </div>
-            <div class="field">
+            <div class="field" :class="{ 'is-error': errors.email }">
               <label for="cd-email">Email</label>
               <div class="input-affix">
                 <span class="prefix"><AppIcon name="mail" :size="14" /></span>
-                <input id="cd-email" v-model="editable.email" type="email" class="input has-prefix" autocomplete="email" />
+                <input id="cd-email" v-model="editable.email" type="email" class="input has-prefix" autocomplete="email"
+                       :maxlength="LIMITS.email.max"
+                       @input="clearError('email')" @blur="validateField('email'); checkDuplicates()" />
               </div>
+              <p v-if="errors.email" class="field-error">{{ errors.email }}</p>
+              <p v-if="duplicates.email" class="cd-dup-error">
+                <AppIcon name="mail" :size="12" />
+                This email already belongs to
+                <RouterLink :to="`/customers/${duplicates.email.id}`" class="cd-dup-link">
+                  {{ duplicates.email.name || 'an existing customer' }}
+                </RouterLink>
+              </p>
             </div>
-            <div class="field">
+            <div class="field" :class="{ 'is-error': errors.agent }">
               <label for="cd-agent">Agent</label>
               <div class="input-affix">
                 <span class="prefix"><AppIcon name="user" :size="14" /></span>
-                <input id="cd-agent" v-model="editable.agent" type="text" class="input has-prefix" placeholder="e.g. Sarah Liang" />
+                <input id="cd-agent" v-model="editable.agent" type="text" class="input has-prefix" placeholder="e.g. Sarah Liang"
+                       :maxlength="LIMITS.agent.max"
+                       @input="clearError('agent')" @blur="validateField('agent')" />
               </div>
+              <p v-if="errors.agent" class="field-error">{{ errors.agent }}</p>
             </div>
             <div class="field">
               <label for="cd-channel">Preferred channel</label>
@@ -101,7 +135,7 @@
           </div>
 
           <div class="cd-form-notes">
-            <div class="field">
+            <div class="field" :class="{ 'is-error': errors.notes }">
               <div class="field-head">
                 <label for="cd-notes">Internal notes</label>
                 <span class="field-action">Only visible to your team</span>
@@ -112,7 +146,10 @@
                 class="textarea"
                 rows="3"
                 placeholder="Family details, preferences, anything important to remember…"
+                :maxlength="LIMITS.notes.max"
+                @input="clearError('notes')" @blur="validateField('notes')"
               ></textarea>
+              <p v-if="errors.notes" class="field-error">{{ errors.notes }}</p>
             </div>
           </div>
 
@@ -121,6 +158,17 @@
             <button class="btn btn-primary" :disabled="!isDirty || saving" @click="saveChanges">
               <AppIcon name="check" :size="14" />
               {{ saving ? 'Saving…' : 'Save changes' }}
+            </button>
+          </div>
+
+          <div class="cd-danger-zone">
+            <div class="cd-danger-zone__text">
+              <strong>Delete this customer</strong>
+              <span>Permanent. Removes interactions, interests, and assessment data.</span>
+            </div>
+            <button type="button" class="btn cd-btn-danger" @click="deleteDialog = true">
+              <AppIcon name="x" :size="14" />
+              Delete customer
             </button>
           </div>
         </section>
@@ -163,6 +211,7 @@
                     class="textarea"
                     rows="2"
                     placeholder="Log a quick note from the last interaction…"
+                    :maxlength="LIMITS.notes.max"
                   ></textarea>
                   <div class="cd-quickadd__row">
                     <div class="cd-typepick" role="group">
@@ -262,7 +311,7 @@
           </div>
 
           <div class="field">
-            <label for="cd-last">Last contacted</label>
+            <label for="cd-last">Last follow-up</label>
             <div class="input-affix">
               <span class="prefix"><AppIcon name="clock" :size="14" /></span>
               <input
@@ -276,7 +325,7 @@
           </div>
 
           <div class="field" style="margin-top: 12px">
-            <label for="cd-next">Next contact</label>
+            <label for="cd-next">Next follow-up</label>
             <div class="input-affix">
               <span class="prefix"><AppIcon name="calendar" :size="14" /></span>
               <input
@@ -305,7 +354,7 @@
 
           <button class="btn btn-primary cd-mark-btn" @click="markContactedDialog = true">
             <AppIcon name="check" :size="14" />
-            Mark contacted now
+            Mark followed up now
           </button>
         </section>
 
@@ -370,30 +419,64 @@
                 <span class="cd-sec-title__sub">All fields editable</span>
               </div>
               <div class="cd-form-grid">
-                <div class="field">
+                <div class="field" :class="{ 'is-error': errors.name }">
                   <label for="cdm-name">Full name</label>
-                  <input id="cdm-name" v-model="editable.name" type="text" class="input" autocomplete="name" />
+                  <input id="cdm-name" v-model="editable.name" type="text" class="input" autocomplete="name"
+                         :maxlength="LIMITS.name.max"
+                         @input="clearError('name')" @blur="validateField('name')" />
+                  <p v-if="errors.name" class="field-error">{{ errors.name }}</p>
+                  <p v-if="duplicates.name" class="cd-dup-warn">
+                    <AppIcon name="user" :size="12" />
+                    Same name as
+                    <RouterLink :to="`/customers/${duplicates.name.id}`" class="cd-dup-link">
+                      {{ duplicates.name.name }}
+                    </RouterLink>
+                    — different person? Save anyway.
+                  </p>
                 </div>
-                <div class="field">
+                <div class="field" :class="{ 'is-error': errors.phone }">
                   <label for="cdm-phone">Phone</label>
                   <div class="input-affix">
                     <span class="prefix"><AppIcon name="phone" :size="14" /></span>
-                    <input id="cdm-phone" v-model="editable.phone" type="tel" class="input has-prefix" autocomplete="tel" />
+                    <input id="cdm-phone" v-model="editable.phone" type="tel" class="input has-prefix" autocomplete="tel"
+                           :maxlength="LIMITS.phone.max"
+                           @input="clearError('phone')" @blur="validateField('phone'); checkDuplicates()" />
                   </div>
+                  <p v-if="errors.phone" class="field-error">{{ errors.phone }}</p>
+                  <p v-if="duplicates.phone" class="cd-dup-error">
+                    <AppIcon name="phone" :size="12" />
+                    This phone already belongs to
+                    <RouterLink :to="`/customers/${duplicates.phone.id}`" class="cd-dup-link">
+                      {{ duplicates.phone.name || 'an existing customer' }}
+                    </RouterLink>
+                  </p>
                 </div>
-                <div class="field">
+                <div class="field" :class="{ 'is-error': errors.email }">
                   <label for="cdm-email">Email</label>
                   <div class="input-affix">
                     <span class="prefix"><AppIcon name="mail" :size="14" /></span>
-                    <input id="cdm-email" v-model="editable.email" type="email" class="input has-prefix" autocomplete="email" />
+                    <input id="cdm-email" v-model="editable.email" type="email" class="input has-prefix" autocomplete="email"
+                           :maxlength="LIMITS.email.max"
+                           @input="clearError('email')" @blur="validateField('email'); checkDuplicates()" />
                   </div>
+                  <p v-if="errors.email" class="field-error">{{ errors.email }}</p>
+                  <p v-if="duplicates.email" class="cd-dup-error">
+                    <AppIcon name="mail" :size="12" />
+                    This email already belongs to
+                    <RouterLink :to="`/customers/${duplicates.email.id}`" class="cd-dup-link">
+                      {{ duplicates.email.name || 'an existing customer' }}
+                    </RouterLink>
+                  </p>
                 </div>
-                <div class="field">
+                <div class="field" :class="{ 'is-error': errors.agent }">
                   <label for="cdm-agent">Agent</label>
                   <div class="input-affix">
                     <span class="prefix"><AppIcon name="user" :size="14" /></span>
-                    <input id="cdm-agent" v-model="editable.agent" type="text" class="input has-prefix" placeholder="e.g. Sarah Liang" />
+                    <input id="cdm-agent" v-model="editable.agent" type="text" class="input has-prefix" placeholder="e.g. Sarah Liang"
+                           :maxlength="LIMITS.agent.max"
+                           @input="clearError('agent')" @blur="validateField('agent')" />
                   </div>
+                  <p v-if="errors.agent" class="field-error">{{ errors.agent }}</p>
                 </div>
                 <div class="field">
                   <label for="cdm-channel">Preferred channel</label>
@@ -409,7 +492,7 @@
                 </div>
               </div>
               <div class="cd-form-notes">
-                <div class="field">
+                <div class="field" :class="{ 'is-error': errors.notes }">
                   <div class="field-head">
                     <label for="cdm-notes">Internal notes</label>
                     <span class="field-action">Only visible to your team</span>
@@ -420,7 +503,10 @@
                     class="textarea"
                     rows="3"
                     placeholder="Family details, preferences, anything important to remember…"
+                    :maxlength="LIMITS.notes.max"
+                    @input="clearError('notes')" @blur="validateField('notes')"
                   ></textarea>
+                  <p v-if="errors.notes" class="field-error">{{ errors.notes }}</p>
                 </div>
               </div>
               <div class="cd-card__actions cd-profile-actions">
@@ -428,6 +514,17 @@
                 <button class="btn btn-primary" :disabled="!isDirty || saving" @click="saveChanges">
                   <AppIcon name="check" :size="14" />
                   {{ saving ? 'Saving…' : 'Save changes' }}
+                </button>
+              </div>
+
+              <div class="cd-danger-zone">
+                <div class="cd-danger-zone__text">
+                  <strong>Delete this customer</strong>
+                  <span>Permanent. Removes interactions, interests, and assessment data.</span>
+                </div>
+                <button type="button" class="btn cd-btn-danger" @click="deleteDialog = true">
+                  <AppIcon name="x" :size="14" />
+                  Delete customer
                 </button>
               </div>
             </div>
@@ -441,7 +538,7 @@
                 </span>
               </div>
               <div class="field">
-                <label for="cdm-last">Last contacted</label>
+                <label for="cdm-last">Last follow-up</label>
                 <div class="input-affix">
                   <span class="prefix"><AppIcon name="clock" :size="14" /></span>
                   <input
@@ -454,7 +551,7 @@
                 </div>
               </div>
               <div class="field" style="margin-top: 12px">
-                <label for="cdm-next">Next contact</label>
+                <label for="cdm-next">Next follow-up</label>
                 <div class="input-affix">
                   <span class="prefix"><AppIcon name="calendar" :size="14" /></span>
                   <input
@@ -477,7 +574,7 @@
               </div>
               <button class="btn btn-primary cd-mark-btn" @click="markContactedDialog = true">
                 <AppIcon name="check" :size="14" />
-                Mark contacted now
+                Mark followed up now
               </button>
             </div>
 
@@ -529,6 +626,7 @@
                 class="textarea"
                 rows="2"
                 placeholder="Log a quick note from the last interaction…"
+                :maxlength="LIMITS.notes.max"
               ></textarea>
               <div class="cd-quickadd__row">
                 <div class="cd-typepick" role="group">
@@ -618,7 +716,7 @@
           <span class="ico"><AppIcon name="check" :size="18" /></span>
           <div class="modal-head__text">
             <h2>Log activity</h2>
-            <div class="sub">Capture how this customer was contacted and when to follow up next.</div>
+            <div class="sub">Capture how you followed up and when to follow up next.</div>
           </div>
           <button class="close" aria-label="Close" @click="markContactedDialog = false">
             <AppIcon name="x" :size="16" />
@@ -628,7 +726,7 @@
         <div class="modal-body">
           <!-- Type picker -->
           <div class="field">
-            <label>How did you contact them?</label>
+            <label>How did you follow up?</label>
             <div class="cd-typepick" role="group">
               <button
                 v-for="t in INTERACTION_TYPES"
@@ -654,6 +752,7 @@
               class="textarea"
               rows="3"
               placeholder="What was discussed? Any commitments or next steps?"
+              :maxlength="LIMITS.notes.max"
             ></textarea>
           </div>
 
@@ -675,14 +774,14 @@
           <div class="cd-mc-divider"></div>
           <div class="cd-mc-section">
             <div class="cd-mc-section__head">
-              <h4>Schedule next contact</h4>
+              <h4>Schedule next follow-up</h4>
               <label class="cd-mc-skip">
                 <input v-model="mcSkip" type="checkbox" />
                 <span>Skip</span>
               </label>
             </div>
             <div class="field">
-              <label for="mc-next">Next contact</label>
+              <label for="mc-next">Next follow-up</label>
               <div class="input-affix">
                 <span class="prefix"><AppIcon name="calendar" :size="14" /></span>
                 <input
@@ -713,12 +812,20 @@
         </div>
       </div>
     </v-dialog>
+
+    <ConfirmDeleteDialog
+      v-model="deleteDialog"
+      entity-type="customer"
+      :entity-label="editable.name"
+      :busy="deleting"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useCustomerStore } from '../stores/customerStore'
 import { useAssessmentStore } from '../stores/assessmentStore'
 import {
@@ -730,6 +837,18 @@ import {
 import CustomerInterestsPanel from '../components/customer/CustomerInterestsPanel.vue'
 import BuyingProfilePanel from '../components/customer/BuyingProfilePanel.vue'
 import AppIcon from '../components/base/AppIcon.vue'
+import ConfirmDeleteDialog from '../components/base/ConfirmDeleteDialog.vue'
+import {
+  validateCustomerForm,
+  validateFeedback,
+  validateRequired,
+  validateMaxLength,
+  validatePhone,
+  validateEmail,
+  findDuplicateCustomers,
+  LIMITS,
+} from '../utils/validators'
+import { useFeedback } from '../composables/useFeedback'
 
 const CHANNELS = ['Call', 'Telegram', 'SMS', 'Email']
 const CATEGORIES = ['Hot', 'Warm', 'Cold']
@@ -748,9 +867,28 @@ function metaFor(type) {
 }
 
 const route = useRoute()
+const router = useRouter()
 const store = useCustomerStore()
 const assessmentStore = useAssessmentStore()
 const id = route.params.id
+
+const deleteDialog = ref(false)
+const deleting = ref(false)
+
+async function confirmDelete() {
+  if (deleting.value) return
+  deleting.value = true
+  try {
+    await store.deleteCustomer(id)
+    deleteDialog.value = false
+    notifySuccess('Customer deleted')
+    router.push('/customers')
+  } catch (e) {
+    notifyFromError(e, 'Failed to delete customer')
+  } finally {
+    deleting.value = false
+  }
+}
 
 const assessment = computed(() => assessmentStore.forCustomer(id))
 const assessmentCtaLabel = computed(() => {
@@ -820,14 +958,88 @@ const isDirty = computed(() => {
 })
 
 const saving = ref(false)
+const errors = ref({})
+const duplicates = ref({})
+const { notifySuccess, notifyError, notifyFromError } = useFeedback()
+
+function checkDuplicates() {
+  duplicates.value = findDuplicateCustomers(
+    { phone: editable.value.phone, email: editable.value.email, name: editable.value.name },
+    store.customers,
+    { excludeId: id },
+  )
+}
+
+const hasBlockingDuplicate = computed(
+  () => !!(duplicates.value.phone || duplicates.value.email),
+)
+
+watch(
+  () => [editable.value.phone, editable.value.email, editable.value.name, original.value?.id],
+  () => checkDuplicates(),
+  { immediate: true },
+)
+
+function clearError(field) {
+  if (errors.value[field]) {
+    const { [field]: _, ...rest } = errors.value
+    errors.value = rest
+  }
+}
+
+// Single-field validation on @blur. Composite isn't needed since the
+// at-least-one-contact rule is enforced at the DB layer (the user can't
+// blank out their only contact via this UI without seeing the toast).
+function validateField(field) {
+  let err = null
+  const val = editable.value[field]
+  switch (field) {
+    case 'name':
+      err = validateRequired(val, 'Name') ?? validateMaxLength(val, LIMITS.name.max, 'Name')
+      break
+    case 'phone':
+      err = validatePhone(val)
+      break
+    case 'email':
+      err = validateEmail(val)
+      break
+    case 'agent':
+      err = validateMaxLength(val, LIMITS.agent.max, 'Agent')
+      break
+    case 'notes':
+      err = validateMaxLength(val, LIMITS.notes.max, 'Notes')
+      break
+  }
+  if (err) errors.value = { ...errors.value, [field]: err }
+  else clearError(field)
+}
 
 async function saveChanges() {
   if (!customerFound.value || !isDirty.value) return
+  // Run the full composite validator so the "at least one contact" rule fires
+  // here too — the patch could end up clearing the only contact method.
+  const result = validateCustomerForm(editable.value)
+  if (result) {
+    errors.value = result
+    const first = result._ ?? Object.values(result)[0]
+    notifyError(first)
+    return
+  }
+  // Hard block on phone/email duplicates (name dup is just a soft warn)
+  checkDuplicates()
+  if (hasBlockingDuplicate.value) {
+    const target = duplicates.value.phone ?? duplicates.value.email
+    const field  = duplicates.value.phone ? 'phone number' : 'email'
+    notifyError(`This ${field} already belongs to ${target.name || 'an existing customer'}.`)
+    return
+  }
+  errors.value = {}
   saving.value = true
   try {
     await store.updateCustomer(id, { ...editable.value })
+    notifySuccess('Changes saved')
   } catch (e) {
-    alert(`Failed to save: ${e.message}`)
+    notifyFromError(e, 'Failed to save')
   } finally {
     saving.value = false
   }
@@ -836,6 +1048,7 @@ async function saveChanges() {
 function resetChanges() {
   if (!original.value) return
   editable.value = { ...editable.value, ...original.value }
+  errors.value = {}
 }
 
 // ── Hero stats ──────────────────────────────────────────────────────────────
@@ -862,7 +1075,7 @@ const lastContactedShort = computed(() =>
 )
 const lastContactedSub = computed(() => {
   const v = editable.value.lastContactedAt
-  if (!v) return 'No contact logged yet'
+  if (!v) return 'No follow-up logged yet'
   return `${formatTime(v)} · ${editable.value.channel || 'Call'}`
 })
 
@@ -903,7 +1116,7 @@ const statusBadge = computed(() => {
     const d = daysUntilContact(editable.value)
     return { label: `Due in ${d}d`, cls: 'warm' }
   }
-  if (s === 'never-contacted') return { label: 'Never contacted', cls: 'muted' }
+  if (s === 'never-contacted') return { label: 'No follow-ups yet', cls: 'muted' }
   if (s === 'unscheduled') return { label: 'No schedule', cls: 'muted' }
   return null
 })
@@ -1004,6 +1217,14 @@ const mcCanConfirm = computed(() => !!mcNote.value.trim() && !mcSaving.value)
 
 async function confirmMarkContacted() {
   if (!mcCanConfirm.value) return
+  // Validate before sending
+  const note = mcNote.value.trim()
+  const durationMinutes = mcType.value === 'call' ? mcDuration.value : null
+  const errs = validateFeedback({ note, type: mcType.value, durationMinutes })
+  if (errs) {
+    notifyError(errs.note ?? errs.durationMinutes ?? errs.type ?? 'Invalid input')
+    return
+  }
   mcSaving.value = true
   const now = new Date().toISOString()
   const nextIso = mcSkip.value || !mcNextDate.value ? null : new Date(mcNextDate.value).toISOString()
@@ -1012,14 +1233,15 @@ async function confirmMarkContacted() {
       lastContactedIso: now,
       nextContactIso: nextIso,
       type: mcType.value,
-      note: mcNote.value.trim(),
-      durationMinutes: mcType.value === 'call' ? mcDuration.value : null,
+      note,
+      durationMinutes,
     })
     editable.value.lastContactedAt = now
     editable.value.nextContactAt = nextIso
     markContactedDialog.value = false
+    notifySuccess('Logged')
   } catch (e) {
-    alert(`Failed to log: ${e.message}`)
+    notifyFromError(e, 'Failed to log')
   } finally {
     mcSaving.value = false
   }
@@ -1100,13 +1322,19 @@ function onMatchProperty() {
 async function addFeedback() {
   const note = newFeedback.value.trim()
   if (!note || !customerFound.value) return
+  // Length safety net before send
+  const errs = validateFeedback({ note, type: quickType.value, durationMinutes: null })
+  if (errs) {
+    notifyError(errs.note ?? errs.type ?? 'Invalid input')
+    return
+  }
   addingFeedback.value = true
   try {
     await store.addFeedback(id, { note, type: quickType.value })
     newFeedback.value = ''
     quickType.value = 'note'
   } catch (e) {
-    alert(`Failed to log activity: ${e.message}`)
+    notifyFromError(e, 'Failed to log activity')
   } finally {
     addingFeedback.value = false
   }
@@ -1345,6 +1573,99 @@ async function copyEnrollment() {
   margin-top: 18px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
+}
+
+/* Soft duplicate warning (name) — yellow, allows save */
+.cd-dup-warn {
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: oklch(45% 0.13 75);
+  background: oklch(96% 0.04 75);
+  border: 1px solid oklch(80% 0.10 75);
+  border-radius: var(--r-md);
+}
+:root[data-theme="dark"] .cd-dup-warn {
+  background: oklch(28% 0.06 75);
+  border-color: oklch(40% 0.10 75);
+  color: oklch(85% 0.10 75);
+}
+
+/* Hard duplicate error (phone / email) — red, blocks save */
+.cd-dup-error {
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--danger, oklch(45% 0.18 27));
+  background: oklch(96% 0.03 27);
+  border: 1px solid oklch(80% 0.10 27);
+  border-radius: var(--r-md);
+}
+:root[data-theme="dark"] .cd-dup-error {
+  background: oklch(28% 0.06 27);
+  border-color: oklch(40% 0.10 27);
+  color: oklch(85% 0.10 27);
+}
+
+.cd-dup-link {
+  color: inherit;
+  text-decoration: underline;
+  font-weight: 600;
+}
+.cd-dup-link:hover { opacity: 0.85; }
+
+/* Danger zone — delete-customer affordance, kept far from primary actions */
+.cd-danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px dashed oklch(80% 0.10 27);
+  border-radius: var(--r-md);
+  background: oklch(98% 0.015 27);
+}
+:root[data-theme="dark"] .cd-danger-zone {
+  background: oklch(24% 0.04 27);
+  border-color: oklch(40% 0.10 27);
+}
+.cd-danger-zone__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cd-danger-zone__text strong {
+  font-size: 13.5px;
+  color: var(--text);
+}
+.cd-danger-zone__text span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.cd-btn-danger {
+  background: var(--danger, oklch(56% 0.20 27));
+  color: oklch(100% 0 0);
+  border: none;
+  flex-shrink: 0;
+}
+.cd-btn-danger:hover:not(:disabled) {
+  background: oklch(50% 0.20 27);
+}
+@media (max-width: 600px) {
+  .cd-danger-zone {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .cd-btn-danger { justify-content: center; }
 }
 
 /* ── Quick add ──────────────────────────────────────── */

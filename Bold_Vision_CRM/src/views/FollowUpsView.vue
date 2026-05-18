@@ -189,19 +189,22 @@
           <div class="split-grid cols-2">
             <div class="field">
               <label for="fu-r-date">Date</label>
-              <input id="fu-r-date" v-model="rescheduleDialog.date" type="date" class="input" />
+              <input id="fu-r-date" v-model="rescheduleDialog.date" type="date" class="input" required />
             </div>
             <div class="field">
               <label for="fu-r-time">Time</label>
-              <input id="fu-r-time" v-model="rescheduleDialog.time" type="time" class="input" />
+              <input id="fu-r-time" v-model="rescheduleDialog.time" type="time" class="input" required />
             </div>
           </div>
+          <p v-if="rescheduleErrorMsg" class="field-error fu-dialog-err">{{ rescheduleErrorMsg }}</p>
         </div>
         <div class="modal-foot modal-foot--split">
           <button type="button" class="btn btn-ghost" @click="clearScheduleFromDialog">Clear schedule</button>
           <div class="actions">
             <button type="button" class="btn btn-ghost" @click="rescheduleDialog.open = false">Cancel</button>
-            <button type="button" class="btn btn-primary" @click="confirmReschedule">
+            <button type="button" class="btn btn-primary"
+                    :disabled="!!rescheduleErrorMsg || !rescheduleDialog.date"
+                    @click="confirmReschedule">
               <AppIcon name="check" :size="14" />
               Confirm
             </button>
@@ -216,7 +219,7 @@
         <header class="modal-head">
           <span class="ico"><AppIcon name="check" :size="18" /></span>
           <div class="modal-head__text">
-            <h2>Mark contacted</h2>
+            <h2>Mark followed up</h2>
             <div class="sub">{{ markContactedDialog.customer?.name }}</div>
           </div>
           <button class="close" aria-label="Close" @click="markContactedDialog.open = false">
@@ -225,33 +228,40 @@
         </header>
         <div class="modal-body">
           <div class="modal-section">
-            <p class="fu-dialog-hint">Last contacted will be set to <strong>now</strong>.</p>
+            <p class="fu-dialog-hint">Last follow-up will be set to <strong>now</strong>.</p>
           </div>
           <div class="modal-section">
-            <h4>Next contact</h4>
+            <h4>Next follow-up</h4>
             <div class="split-grid cols-2">
               <div class="field">
                 <label for="fu-mc-date">Date</label>
-                <input id="fu-mc-date" v-model="markContactedDialog.date" type="date" class="input" :disabled="markContactedDialog.skip" />
+                <input id="fu-mc-date" v-model="markContactedDialog.date" type="date" class="input"
+                       :disabled="markContactedDialog.skip"
+                       :required="!markContactedDialog.skip" />
               </div>
               <div class="field">
                 <label for="fu-mc-time">Time</label>
-                <input id="fu-mc-time" v-model="markContactedDialog.time" type="time" class="input" :disabled="markContactedDialog.skip" />
+                <input id="fu-mc-time" v-model="markContactedDialog.time" type="time" class="input"
+                       :disabled="markContactedDialog.skip"
+                       :required="!markContactedDialog.skip" />
               </div>
             </div>
+            <p v-if="markContactedErrorMsg" class="field-error fu-dialog-err">{{ markContactedErrorMsg }}</p>
             <button type="button" class="btn btn-ghost sm" :disabled="markContactedDialog.skip" @click="applyDefaultCadence">
               <AppIcon name="sparkle" :size="13" />
               {{ cadenceButtonLabel }}
             </button>
             <label class="fu-dialog-skip">
               <input type="checkbox" v-model="markContactedDialog.skip" />
-              Skip — don't schedule next contact
+              Skip — don't schedule next follow-up
             </label>
           </div>
         </div>
         <div class="modal-foot">
           <button type="button" class="btn btn-ghost" @click="markContactedDialog.open = false">Cancel</button>
-          <button type="button" class="btn btn-primary" @click="confirmMarkContacted">
+          <button type="button" class="btn btn-primary"
+                  :disabled="!!markContactedErrorMsg || (!markContactedDialog.skip && !markContactedDialog.date)"
+                  @click="confirmMarkContacted">
             <AppIcon name="check" :size="14" />
             Confirm
           </button>
@@ -269,6 +279,21 @@ import { cadenceMonths, cadenceLabel } from '../utils/followUp'
 import KanbanCard from '../components/followups/KanbanCard.vue'
 import FollowUpsFilterDialog from '../components/followups/FollowUpsFilterDialog.vue'
 import AppIcon from '../components/base/AppIcon.vue'
+import { validateDateMaxFuture } from '../utils/validators'
+import { useFeedback } from '../composables/useFeedback'
+
+const { notifySuccess, notifyError, notifyFromError } = useFeedback()
+
+// Reschedule + mark-contacted both schedule a future next-contact. The native
+// `<input type="time">` always supplies HH:MM, so we can do a strict moment
+// comparison — past = strictly before now, not before midnight today.
+function validateScheduleDate(date, time) {
+  if (!date) return 'Date is required'
+  const t = Date.parse(`${date}T${time || '09:00'}`)
+  if (Number.isNaN(t)) return 'Date is not valid'
+  if (t < Date.now()) return "Date and time can't be in the past"
+  return validateDateMaxFuture(`${date}T${time || '09:00'}`, 2, 'Date')
+}
 
 const store = useCustomerStore()
 const customers = computed(() => store.customers)
@@ -416,6 +441,15 @@ function onDrop(target) {
 // ── Reschedule dialog ───────────────────────────────────────────────────────
 const rescheduleDialog = ref({ open: false, customer: null, date: '', time: '' })
 
+// Inline error display: only complain about format/range once the agent has
+// actually picked something. An empty-date dialog shows no error yet — the
+// Confirm button is disabled instead.
+const rescheduleErrorMsg = computed(() => {
+  const { date, time } = rescheduleDialog.value
+  if (!date) return null
+  return validateScheduleDate(date, time)
+})
+
 function openRescheduleFor(customer, date) {
   const existing = customer.nextContactAt ? new Date(customer.nextContactAt) : null
   const targetDate = date ?? new Date()
@@ -429,20 +463,40 @@ function openRescheduleFor(customer, date) {
 
 async function confirmReschedule() {
   const { customer, date, time } = rescheduleDialog.value
-  if (!date) { rescheduleDialog.value.open = false; return }
+  const err = validateScheduleDate(date, time)
+  if (err) { notifyError(err); return }
   const iso = new Date(`${date}T${time || '09:00'}`).toISOString()
-  await store.setNextContactAt(customer.id, iso)
-  rescheduleDialog.value.open = false
+  try {
+    await store.setNextContactAt(customer.id, iso)
+    rescheduleDialog.value.open = false
+    notifySuccess(`Rescheduled ${customer.name}`)
+  } catch (e) {
+    notifyFromError(e, 'Failed to reschedule')
+  }
 }
 
 async function clearScheduleFromDialog() {
   const { customer } = rescheduleDialog.value
-  if (customer) await store.setNextContactAt(customer.id, null)
-  rescheduleDialog.value.open = false
+  if (!customer) return
+  try {
+    await store.setNextContactAt(customer.id, null)
+    rescheduleDialog.value.open = false
+    notifySuccess(`Cleared next follow-up for ${customer.name}`)
+  } catch (e) {
+    notifyFromError(e, 'Failed to clear schedule')
+  }
 }
 
 // ── Mark contacted dialog ───────────────────────────────────────────────────
 const markContactedDialog = ref({ open: false, customer: null, date: '', time: '', skip: false })
+
+// Same pattern as reschedule — but if "skip" is on, no schedule needed so no
+// error to surface.
+const markContactedErrorMsg = computed(() => {
+  const { date, time, skip } = markContactedDialog.value
+  if (skip || !date) return null
+  return validateScheduleDate(date, time)
+})
 
 function openMarkContacted(customer) {
   markContactedDialog.value = { open: true, customer, date: '', time: '', skip: false }
@@ -466,10 +520,20 @@ function applyDefaultCadence() {
 
 async function confirmMarkContacted() {
   const { customer, date, time, skip } = markContactedDialog.value
+  // Validate date only when the agent intends to schedule a next contact
+  if (!skip && date) {
+    const err = validateScheduleDate(date, time)
+    if (err) { notifyError(err); return }
+  }
   const now = new Date().toISOString()
   const nextIso = skip || !date ? null : new Date(`${date}T${time || '09:00'}`).toISOString()
-  await store.logContact(customer.id, { lastContactedIso: now, nextContactIso: nextIso })
-  markContactedDialog.value.open = false
+  try {
+    await store.logContact(customer.id, { lastContactedIso: now, nextContactIso: nextIso })
+    markContactedDialog.value.open = false
+    notifySuccess(`Marked ${customer.name} as followed up`)
+  } catch (e) {
+    notifyFromError(e, 'Failed to log')
+  }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -529,6 +593,7 @@ function shortDateLabel(date) {
   margin-top: 8px;
 }
 .fu-dialog-skip input[type="checkbox"] { cursor: pointer; }
+.fu-dialog-err { margin-top: 10px; }
 
 /* Filter count badge inside the Filters button */
 .fu-controls .btn .tab-ct {

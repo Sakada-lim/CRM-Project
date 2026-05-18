@@ -11,11 +11,18 @@
     <div class="afm-assets">
       <div v-for="row in ASSET_ROWS" :key="row.key" class="afm-asset">
         <span class="lbl">{{ row.label }}</span>
-        <div class="input-affix">
-          <span class="prefix">$</span>
-          <input class="input has-prefix" type="text" placeholder="0"
-                 :value="modelValue[row.key]"
-                 @input="patch(row.key, $event.target.value)" />
+        <div :class="['afm-field-with-na', { 'afm-na-on': !!na[row.key] }]">
+          <div class="input-affix">
+            <span class="prefix">$</span>
+            <input class="input has-prefix" type="text"
+                   :placeholder="na[row.key] ? 'N/A' : '0'"
+                   inputmode="decimal"
+                   maxlength="15"
+                   :value="modelValue[row.key]"
+                   @keydown="currencyKeydown"
+                   @input="patch(row.key, currencySanitize($event.target.value))" />
+          </div>
+          <NAButton :active="!!na[row.key]" @toggle="toggleNA(row.key)" />
         </div>
       </div>
     </div>
@@ -29,6 +36,8 @@
 
 <script setup>
 import { computed } from 'vue'
+import NAButton from './NAButton.vue'
+import { currencyKeydown, currencySanitize } from '../../utils/inputFilters'
 
 const ASSET_ROWS = [
   { key: 'principalResidence',  label: 'Principal residence' },
@@ -56,6 +65,20 @@ const emit = defineEmits(['update:modelValue'])
 
 function patch(key, value) {
   emit('update:modelValue', { ...props.modelValue, [key]: value })
+}
+
+const na = computed(() => props.modelValue?.na ?? {})
+
+function toggleNA(key) {
+  const naMap = { ...(props.modelValue?.na ?? {}) }
+  const nextActive = !naMap[key]
+  if (nextActive) naMap[key] = true
+  else delete naMap[key]
+  emit('update:modelValue', {
+    ...props.modelValue,
+    [key]: nextActive ? '' : props.modelValue?.[key],
+    na: naMap,
+  })
 }
 
 function parseNum(v) {

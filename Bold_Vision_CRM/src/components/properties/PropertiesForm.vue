@@ -6,7 +6,7 @@
       <h4 class="pd-section-head">Basic details</h4>
 
       <div class="field-stack">
-        <div class="field">
+        <div class="field" :class="{ 'is-error': errors.address }">
           <label for="pf-address">Street address</label>
           <input
             id="pf-address"
@@ -17,11 +17,15 @@
             autocomplete="street-address"
             placeholder="e.g. 12 Main Street"
             required
+            :maxlength="LIMITS.address.max"
+            @input="clearError('address')"
+            @blur="validateFieldNamed('address')"
           />
+          <p v-if="errors.address" class="field-error">{{ errors.address }}</p>
         </div>
 
         <div class="grid-2-1-1">
-          <div class="field">
+          <div class="field" :class="{ 'is-error': errors.suburb }">
             <label for="pf-suburb">Suburb</label>
             <input
               id="pf-suburb"
@@ -30,7 +34,11 @@
               type="text"
               name="address-level2"
               autocomplete="address-level2"
+              :maxlength="LIMITS.suburb.max"
+              @input="clearError('suburb')"
+              @blur="validateFieldNamed('suburb')"
             />
+            <p v-if="errors.suburb" class="field-error">{{ errors.suburb }}</p>
           </div>
           <div class="field">
             <label for="pf-state">State</label>
@@ -44,7 +52,7 @@
               <option v-for="s in stateOptions" :key="s" :value="s">{{ s }}</option>
             </select>
           </div>
-          <div class="field">
+          <div class="field" :class="{ 'is-error': errors.postcode }">
             <label for="pf-postcode">Postcode</label>
             <input
               id="pf-postcode"
@@ -54,7 +62,11 @@
               inputmode="numeric"
               name="postal-code"
               autocomplete="postal-code"
+              maxlength="4"
+              @input="clearError('postcode')"
+              @blur="validateFieldNamed('postcode')"
             />
+            <p v-if="errors.postcode" class="field-error">{{ errors.postcode }}</p>
           </div>
         </div>
       </div>
@@ -83,7 +95,7 @@
               <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
             </select>
           </div>
-          <div class="field">
+          <div class="field" :class="{ 'is-error': errors.priceMin }">
             <label for="pf-price-min">Price (min)</label>
             <div class="input-affix">
               <span class="prefix">$</span>
@@ -94,11 +106,13 @@
                 type="text"
                 placeholder="e.g. 850k or 1.2m"
                 autocomplete="off"
-                @blur="normalizePriceInput('min')"
+                @input="clearError('priceMin'); clearError('priceMax')"
+                @blur="normalizePriceInput('min'); validateFieldNamed('priceMin'); validateFieldNamed('priceMax')"
               />
             </div>
+            <p v-if="errors.priceMin" class="field-error">{{ errors.priceMin }}</p>
           </div>
-          <div class="field">
+          <div class="field" :class="{ 'is-error': errors.priceMax }">
             <label for="pf-price-max">Price (max, optional)</label>
             <div class="input-affix">
               <span class="prefix">$</span>
@@ -109,9 +123,11 @@
                 type="text"
                 placeholder="leave blank for single price"
                 autocomplete="off"
-                @blur="normalizePriceInput('max')"
+                @input="clearError('priceMax')"
+                @blur="normalizePriceInput('max'); validateFieldNamed('priceMax')"
               />
             </div>
+            <p v-if="errors.priceMax" class="field-error">{{ errors.priceMax }}</p>
           </div>
         </div>
 
@@ -141,7 +157,7 @@
       </div>
 
       <div class="grid-5">
-        <div class="field">
+        <div class="field" :class="{ 'is-error': errors.bedrooms }">
           <label for="pf-bedrooms">Bedrooms</label>
           <input
             id="pf-bedrooms"
@@ -149,10 +165,13 @@
             class="input"
             type="number"
             min="0"
-            @input="(e) => updateNumberField('bedrooms', e.target.value)"
+            :max="LIMITS.bedrooms.max"
+            @input="(e) => { updateNumberField('bedrooms', e.target.value); clearError('bedrooms') }"
+            @blur="validateFieldNamed('bedrooms')"
           />
+          <p v-if="errors.bedrooms" class="field-error">{{ errors.bedrooms }}</p>
         </div>
-        <div class="field">
+        <div class="field" :class="{ 'is-error': errors.bathrooms }">
           <label for="pf-bathrooms">Bathrooms</label>
           <input
             id="pf-bathrooms"
@@ -160,10 +179,13 @@
             class="input"
             type="number"
             min="0"
-            @input="(e) => updateNumberField('bathrooms', e.target.value)"
+            :max="LIMITS.bathrooms.max"
+            @input="(e) => { updateNumberField('bathrooms', e.target.value); clearError('bathrooms') }"
+            @blur="validateFieldNamed('bathrooms')"
           />
+          <p v-if="errors.bathrooms" class="field-error">{{ errors.bathrooms }}</p>
         </div>
-        <div class="field">
+        <div class="field" :class="{ 'is-error': errors.carSpaces }">
           <label for="pf-cars">Car spaces</label>
           <input
             id="pf-cars"
@@ -171,10 +193,13 @@
             class="input"
             type="number"
             min="0"
-            @input="(e) => updateNumberField('carSpaces', e.target.value, { mirrorField: 'carparkSpaces' })"
+            :max="LIMITS.carSpaces.max"
+            @input="(e) => { updateNumberField('carSpaces', e.target.value, { mirrorField: 'carparkSpaces' }); clearError('carSpaces') }"
+            @blur="validateFieldNamed('carSpaces')"
           />
+          <p v-if="errors.carSpaces" class="field-error">{{ errors.carSpaces }}</p>
         </div>
-        <div class="field">
+        <div class="field" :class="{ 'is-error': errors.landSizeSqm }">
           <label for="pf-land">Land size</label>
           <div class="input-affix">
             <input
@@ -184,12 +209,14 @@
               type="text"
               inputmode="numeric"
               autocomplete="off"
-              @blur="normalizeSqmInput('land')"
+              @input="clearError('landSizeSqm')"
+              @blur="normalizeSqmInput('land'); validateFieldNamed('landSizeSqm')"
             />
             <span class="suffix">m²</span>
           </div>
+          <p v-if="errors.landSizeSqm" class="field-error">{{ errors.landSizeSqm }}</p>
         </div>
-        <div class="field">
+        <div class="field" :class="{ 'is-error': errors.houseSizeSqm }">
           <label for="pf-house">House size</label>
           <div class="input-affix">
             <input
@@ -199,10 +226,12 @@
               type="text"
               inputmode="numeric"
               autocomplete="off"
-              @blur="normalizeSqmInput('house')"
+              @input="clearError('houseSizeSqm')"
+              @blur="normalizeSqmInput('house'); validateFieldNamed('houseSizeSqm')"
             />
             <span class="suffix">m²</span>
           </div>
+          <p v-if="errors.houseSizeSqm" class="field-error">{{ errors.houseSizeSqm }}</p>
         </div>
       </div>
 
@@ -213,7 +242,7 @@
       <h4 class="pd-section-head">Notes &amp; description</h4>
 
       <div class="field-stack">
-        <div class="field">
+        <div class="field" :class="{ 'is-error': errors.description }">
           <label for="pf-description">Public description</label>
           <textarea
             id="pf-description"
@@ -221,9 +250,13 @@
             class="textarea"
             rows="4"
             placeholder="Shown on the listing"
+            :maxlength="LIMITS.description.max"
+            @input="clearError('description')"
+            @blur="validateFieldNamed('description')"
           />
+          <p v-if="errors.description" class="field-error">{{ errors.description }}</p>
         </div>
-        <div class="field">
+        <div class="field" :class="{ 'is-error': errors.notes }">
           <label for="pf-notes">Internal notes</label>
           <textarea
             id="pf-notes"
@@ -231,7 +264,11 @@
             class="textarea"
             rows="3"
             placeholder="Only visible to your team"
+            :maxlength="LIMITS.notes.max"
+            @input="clearError('notes')"
+            @blur="validateFieldNamed('notes')"
           />
+          <p v-if="errors.notes" class="field-error">{{ errors.notes }}</p>
         </div>
       </div>
     </section>
@@ -241,6 +278,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { formatPrice, formatPriceSingle, parsePriceInput, formatSqm } from '../../utils/formatters'
+import { validatePropertyForm, LIMITS } from '../../utils/validators'
 
 const typeOptions = ['House', 'Townhouse', 'Villa', 'Apartment']
 const statusOptions = ['On Market', 'Coming Soon', 'Under Contract', 'Sold', 'Off Market', 'Withdrawn']
@@ -365,6 +403,34 @@ function updateNumberField(field, value, options = {}) {
     form.value[options.mirrorField] = form.value[field]
   }
 }
+
+// ── Validation ────────────────────────────────────────────────────────────
+const errors = ref({})
+
+function clearError(field) {
+  if (errors.value[field]) {
+    const { [field]: _, ...rest } = errors.value
+    errors.value = rest
+  }
+}
+
+// Run the full composite validator but surface only the requested field's
+// error. Keeps the priceMin/priceMax cross-check live across both blur events.
+function validateFieldNamed(field) {
+  const all = validatePropertyForm(form.value) ?? {}
+  if (all[field]) errors.value = { ...errors.value, [field]: all[field] }
+  else clearError(field)
+}
+
+// Called from the parent before save. Populates `errors` and returns the
+// errors object (or null if clean).
+function validate() {
+  const result = validatePropertyForm(form.value)
+  errors.value = result ?? {}
+  return result
+}
+
+defineExpose({ validate })
 </script>
 
 <style scoped>
