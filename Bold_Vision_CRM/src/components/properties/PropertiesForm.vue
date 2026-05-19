@@ -113,7 +113,7 @@
             <p v-if="errors.priceMin" class="field-error">{{ errors.priceMin }}</p>
           </div>
           <div class="field" :class="{ 'is-error': errors.priceMax }">
-            <label for="pf-price-max">Price (max, optional)</label>
+            <label for="pf-price-max">Price (max)</label>
             <div class="input-affix">
               <span class="prefix">$</span>
               <input
@@ -121,7 +121,7 @@
                 v-model="priceMaxInput"
                 class="input has-prefix"
                 type="text"
-                placeholder="leave blank for single price"
+                placeholder="optional"
                 autocomplete="off"
                 @input="clearError('priceMax')"
                 @blur="normalizePriceInput('max'); validateFieldNamed('priceMax')"
@@ -279,9 +279,10 @@
 import { computed, ref, watch } from 'vue'
 import { formatPrice, formatPriceSingle, parsePriceInput, formatSqm } from '../../utils/formatters'
 import { validatePropertyForm, LIMITS } from '../../utils/validators'
+import { PROPERTY_TYPES, PROPERTY_STATUSES } from '../../constants/enums'
 
-const typeOptions = ['House', 'Townhouse', 'Villa', 'Apartment']
-const statusOptions = ['On Market', 'Coming Soon', 'Under Contract', 'Sold', 'Off Market', 'Withdrawn']
+const typeOptions = PROPERTY_TYPES
+const statusOptions = PROPERTY_STATUSES
 const stateOptions = ['VIC', 'NSW', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT']
 
 const props = defineProps({
@@ -447,7 +448,9 @@ defineExpose({ validate })
 }
 .grid-4 {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Type + status carry the long enum values (e.g. "10/90 One-Part Contract",
+     "Under Construction") so they get double the share of the row. */
+  grid-template-columns: 2fr 2fr 1fr 1fr;
   gap: 12px;
 }
 .grid-5 {

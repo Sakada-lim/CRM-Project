@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     v-model="isOpen"
-    :max-width="640"
+    :max-width="704"
     transition="dialog-transition"
     :scrim="'rgba(15,23,42,0.65)'"
   >
