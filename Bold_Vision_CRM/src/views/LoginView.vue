@@ -82,12 +82,25 @@ async function retryInit() {
     // If retry succeeded AND there's now a session, jump them to where they
     // were headed.
     if (authStore.session) {
-      const redirect = route.query.redirect || '/'
-      router.push(redirect)
+      router.push(safeRedirect(route.query.redirect))
     }
   } finally {
     retrying.value = false
   }
+}
+
+// H14: validate the `redirect` query param before pushing the router to it.
+// Without this, a crafted link like /login?redirect=https://evil.com would
+// bounce signed-in users to an attacker site (phishing assist). Only accept
+// single-leading-slash absolute paths — reject protocol-relative ('//...'),
+// backslash variants (some browsers treat '/\evil.com' as cross-origin), and
+// non-strings. Legitimate redirects from the router guard are always
+// `to.fullPath` which starts with a single '/'.
+function safeRedirect(input) {
+  if (typeof input !== 'string') return '/'
+  if (!input.startsWith('/')) return '/'
+  if (input.startsWith('//') || input.startsWith('/\\')) return '/'
+  return input
 }
 
 // "required" + format. validateEmail returns null on success or error string.
@@ -106,8 +119,7 @@ async function submit() {
     const { session } = await signIn({ email: email.value, password: password.value })
     authStore.session = session
     authStore.user = session?.user ?? null
-    const redirect = route.query.redirect || '/'
-    router.push(redirect)
+    router.push(safeRedirect(route.query.redirect))
   } catch (e) {
     error.value = e.message || 'Sign in failed. Check your credentials.'
   } finally {
