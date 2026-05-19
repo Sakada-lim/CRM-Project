@@ -43,10 +43,16 @@
             · Started {{ startedAtRelative }}
           </div>
         </div>
-        <RouterLink :to="`/customers/${id}`" class="btn btn-ghost">
-          <AppIcon name="x" :size="13" />
-          Back to profile
-        </RouterLink>
+        <div class="afm-pageheader__actions">
+          <button type="button" class="btn btn-ghost" @click="printForm">
+            <AppIcon name="document" :size="13" />
+            Print / Save as PDF
+          </button>
+          <RouterLink :to="`/customers/${id}`" class="btn btn-ghost">
+            <AppIcon name="x" :size="13" />
+            Back to profile
+          </RouterLink>
+        </div>
       </div>
 
       <!-- 1. Personal information -->
@@ -387,6 +393,15 @@ function handleMetaUpdate(partial) {
   if (Object.keys(assessmentMeta).length) {
     assessmentStore.updateMeta(id.value, assessmentMeta)
   }
+}
+
+// ─── Print ───
+// Calls the browser's print dialog. Print-specific layout lives in
+// src/styles/print.css — hides the sidebar/nav rail/action bar and
+// flattens form inputs so the printed (or PDF-exported) sheet reads
+// like a paper assessment.
+function printForm() {
+  window.print()
 }
 
 // ─── Submit ───

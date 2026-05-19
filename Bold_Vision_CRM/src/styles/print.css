@@ -1,0 +1,416 @@
+/* ─────────────────────────────────────────────────────────────
+   Print stylesheet
+   ─────────────────────────────────────────────────────────────
+   Activates only in `@media print` — i.e. when the user triggers
+   window.print() (or Ctrl/Cmd+P). The dialog lets them pick
+   "Save as PDF" as the destination, giving a real searchable PDF.
+
+   Scope: assessment form (CustomerAssessmentView + its 7 section
+   components). Other pages can opt in later by adding rules below.
+
+   Strategy:
+   - Force the design-token palette to a light, paper-friendly set
+     (white bg, dark text, no shadows) regardless of the live theme.
+   - Hide all app chrome (sidebar, top bars, action bars, nav rail,
+     interactive buttons, alerts, snackbars).
+   - Expand the assessment shell to single-column page-fit layout.
+   - Add page-break hints so each section starts on a fresh page
+     when natural, and never breaks mid-block.
+   - Keep form inputs visible but flatten them so values read as
+     plain text on paper (no buttony backgrounds, no input frames).
+   ───────────────────────────────────────────────────────────── */
+
+@media print {
+  /* ── Page setup ─────────────────────────────────────────────── */
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm;
+  }
+
+  /* IMPORTANT: we deliberately do NOT set `print-color-adjust: exact`
+     or any background-forcing rule. The browser's default ("strip
+     background graphics in print") is what we want — it kills
+     Vuetify's dark-theme body bg automatically. Active states below
+     use foreground-only styling (bold text + thick border + ✓
+     prefix) so they remain visible even without background fills. */
+
+  /* Force the warm-token light palette regardless of which theme is
+     currently active in the app. */
+  :root,
+  [data-theme="light"],
+  [data-theme="dark"] {
+    --bg:            #ffffff;
+    --bg-grid:       #ffffff;
+    --surface:       #ffffff;
+    --surface-2:     #ffffff;
+    --surface-sunk:  #f5f5f5;
+    --border:        #d8d8d8;
+    --border-strong: #c0c0c0;
+    --text:          #111111;
+    --text-muted:    #444444;
+    --text-faint:    #666666;
+    --text-on-accent: #111111;
+    --accent:        #555555;
+    --accent-soft:   #ececec;
+    --accent-ink:    #222222;
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #111111 !important;
+    /* Cancel the desktop zoom: 1.12 from typography.css so pages
+       don't render scaled up on paper. */
+    zoom: 1 !important;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  /* Vuetify wraps things in v-app with a theme class that has high
+     specificity. Cover both light + dark theme variants explicitly,
+     and target any element carrying a data-theme attribute. */
+  html,
+  body,
+  #app,
+  .v-application,
+  .v-application__wrap,
+  .v-application.v-theme--light,
+  .v-application.v-theme--dark,
+  .v-main,
+  .v-main__wrap,
+  .bv-main,
+  [data-theme],
+  [data-theme="light"],
+  [data-theme="dark"] {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  /* ── Hide app-level chrome ──────────────────────────────────── */
+  .bv-sidebar,
+  .bv-mobile-bar,
+  .bv-mobile-scrim,
+  .bv-mobile-drop,
+  .v-snackbar,
+  .v-overlay {
+    display: none !important;
+  }
+  /* Vuetify shifts main content right to make room for the drawer.
+     Cancel that so the printed area starts at the page margin. */
+  .v-main {
+    padding-left: 0 !important;
+    padding-top: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* ── Assessment shell adjustments ───────────────────────────── */
+  .afm-shell {
+    display: block !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  .afm-nav,
+  .afm-actionbar {
+    display: none !important;
+  }
+  .afm-main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Page header: keep title + customer name, drop the buttons. */
+  .afm-pageheader {
+    padding-bottom: 8mm !important;
+    border-bottom: 1px solid #d8d8d8;
+    margin-bottom: 6mm !important;
+  }
+  .afm-pageheader .btn,
+  .afm-pageheader .btn-ghost,
+  .afm-pageheader .btn-primary {
+    display: none !important;
+  }
+  .afm-pageheader h1 {
+    font-size: 18pt !important;
+    color: #111111 !important;
+    margin: 0 0 2mm !important;
+  }
+  .afm-pageheader .sub {
+    color: #444444 !important;
+    font-size: 10pt !important;
+  }
+
+  /* ── Sections ───────────────────────────────────────────────── */
+  /* Let sections flow naturally — `page-break-inside: avoid` causes
+     blank pages when a section is taller than the space remaining
+     on the current page (the whole section pushes to the next page,
+     leaving the previous one empty). Keep just the head row with
+     its first content row so titles don't dangle alone at the
+     bottom of a page. */
+  .afm-section {
+    margin: 0 0 6mm !important;
+    padding: 6mm 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-top: 1px solid #d8d8d8;
+  }
+  .afm-section:first-of-type {
+    border-top: none;
+    padding-top: 0 !important;
+  }
+  .afm-section .head {
+    margin-bottom: 4mm !important;
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  /* Keep labels glued to their controls — a "Purpose of enquiry"
+     label orphaned at the bottom of a page with its buttons on the
+     next page reads badly. */
+  .afm-section .row-label,
+  .afm-section .field > label,
+  .afm-section .field-label,
+  .afm-section label {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  /* Don't split a logical field block across pages. */
+  .afm-section .field,
+  .afm-section .afm-residency-cell,
+  .afm-section .afm-twocol > *,
+  .afm-section .afm-row,
+  .afm-section .seg-control,
+  .afm-section .seg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .afm-section .head h2,
+  .afm-section .head .title {
+    font-size: 13pt !important;
+    color: #111111 !important;
+    font-weight: 600;
+  }
+  .afm-section .head .desc,
+  .afm-section .head p {
+    font-size: 10pt !important;
+    color: #555555 !important;
+  }
+
+  /* ── Form atoms (flatten to look like a paper form) ─────────── */
+  .input,
+  .select,
+  .textarea,
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="date"],
+  textarea,
+  select {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid #999 !important;
+    border-radius: 0 !important;
+    padding: 2px 0 !important;
+    box-shadow: none !important;
+    color: #111111 !important;
+    font-size: 10.5pt !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+  .textarea, textarea {
+    border: 1px solid #999 !important;
+    padding: 4px 6px !important;
+    min-height: 60px !important;
+  }
+  .field > label,
+  .field-label,
+  label {
+    color: #333333 !important;
+    font-size: 9.5pt !important;
+  }
+
+  /* Hide input prefix/suffix icons ($, location pin, etc.) — they
+     overlay on top of the value and look like garbled characters
+     once the field is flattened. The value alone reads cleanly. */
+  .input-affix .prefix,
+  .input-affix .suffix,
+  .v-field__prepend-inner,
+  .v-field__append-inner {
+    display: none !important;
+  }
+  .input.has-prefix,
+  .input.has-suffix {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Hide placeholder text in print — empty fields should be visually
+     empty, not show "N/A" or "e.g. 850k" as if those were values. */
+  input::placeholder,
+  textarea::placeholder {
+    color: transparent !important;
+  }
+
+  /* Vue DevTools floating widget (dev mode only — production builds
+     already exclude vueDevTools per vite.config.js). Hide for clean
+     dev-mode print preview. */
+  [id*="devtools"],
+  [class*="devtools"],
+  iframe[src*="devtools"] {
+    display: none !important;
+  }
+
+  /* Segmented controls / radio buttons — these ARE the value display
+     (residency, housing status, purpose, etc). Keep all options
+     visible; bold the active one so the chosen value stands out.
+     Strip pill background so it doesn't print as a heavy grey bar. */
+  .seg-control,
+  .seg {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    gap: 4px !important;
+    display: inline-flex !important;
+  }
+  .seg-control button,
+  .seg-control [role="button"],
+  .seg button {
+    display: inline-block !important;
+    background: transparent !important;
+    color: #555555 !important;
+    border: 1px solid #cccccc !important;
+    border-radius: 3px !important;
+    padding: 2px 8px !important;
+    font-size: 9.5pt !important;
+    box-shadow: none !important;
+    font-weight: 400 !important;
+  }
+  /* Active option: foreground-only treatment (thick black border +
+     bold weight + leading checkmark) so the selection reads clearly
+     even when the browser strips background graphics in print. */
+  .seg-control button[aria-pressed="true"],
+  .seg-control .is-active,
+  .seg button[aria-pressed="true"],
+  .seg .is-active {
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
+    font-weight: 700 !important;
+  }
+  .seg-control button[aria-pressed="true"]::before,
+  .seg-control .is-active::before,
+  .seg button[aria-pressed="true"]::before,
+  .seg .is-active::before {
+    content: "✓ ";
+    font-weight: 700;
+  }
+
+  /* N/A toggles: when active, just bold "N/A" text + thick black
+     border — no checkmark, no fill (per user pref). The literal
+     "N/A" label is meaningful on its own. */
+  .afm-na-btn[aria-pressed="true"],
+  .afm-na-btn.is-active {
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
+    font-weight: 700 !important;
+    padding: 2px 10px !important;
+    min-width: 36px !important;
+  }
+
+  /* ── Liabilities table ─────────────────────────────────────── */
+  /* The mobile responsive breakpoint (~720px) collapses the 8-col
+     liability grid to 2 cols AND hides the column headers — useful
+     on phone screens but a disaster on paper where the reader can't
+     tell what each value means. Restore the tabular layout sized to
+     fit A4 portrait inside our 12mm side margins (~186mm content). */
+  .afm-liab {
+    grid-template-columns: 26mm 30mm 22mm 24mm 16mm 14mm 22mm 0 !important;
+    gap: 2mm 2mm !important;
+    font-size: 9pt !important;
+  }
+  .afm-liab .h {
+    display: block !important;
+    font-size: 7.5pt !important;
+    letter-spacing: 0.04em !important;
+    padding-bottom: 2mm !important;
+    color: #444444 !important;
+  }
+  /* Keep the delete button in flow so the grid's auto-fill alignment
+     doesn't break — display:none would orphan the cell and shift the
+     next liability's Type badge into the wrong column. */
+  .afm-liab .row-del {
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+  }
+  .afm-liab .input {
+    font-size: 9pt !important;
+    padding: 1pt 2pt !important;
+  }
+  .afm-liab .type-badge {
+    font-size: 8.5pt !important;
+    padding: 2pt 4pt !important;
+    border: 1px solid #999999 !important;
+    border-radius: 3px !important;
+    background: transparent !important;
+  }
+  .afm-liab .type-badge .dot {
+    display: none !important;
+  }
+  /* "No liabilities to record" toggle in the section head — show
+     its checked state via the same active-pill treatment. */
+  .afm-section-na.is-active {
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+
+  /* ── Hide interactive-only elements ─────────────────────────── */
+  /* Action buttons (Save, NA toggle, Add row, Remove) all carry the
+     `.btn` class by convention. Bare `<button>` elements without
+     `.btn` are typically value-display widgets (seg-controls,
+     client switcher) — those stay visible so the chosen value
+     shows on paper.
+
+     Excluding `.row-del` from the aria-label-based hide because it
+     lives inside the liability grid — removing it via display:none
+     would break the grid's auto-flow alignment. It gets handled
+     separately further down with visibility:hidden. */
+  .afm-section .btn:not([data-print-keep]),
+  .afm-section .na-button,
+  .afm-section [aria-label*="Remove"]:not(.row-del),
+  .afm-section [aria-label*="Delete"]:not(.row-del) {
+    display: none !important;
+  }
+
+  /* Show NA badges (when a field is marked N/A) — these are usually
+     spans, not buttons, but in case they share class names with
+     buttons, opt them back in via data-print-keep on the element. */
+  [data-print-keep="na"],
+  .na-badge,
+  .pill {
+    display: inline-flex !important;
+    background: #f0f0f0 !important;
+    color: #333333 !important;
+    border: 1px solid #cccccc !important;
+  }
+
+  /* Links: don't underline-everywhere by default; keep as inline text. */
+  a {
+    color: #111111 !important;
+    text-decoration: none !important;
+  }
+
+  /* Anything explicitly marked as no-print. Use this class for any
+     future ad-hoc element that shouldn't appear on paper. */
+  .no-print {
+    display: none !important;
+  }
+}
