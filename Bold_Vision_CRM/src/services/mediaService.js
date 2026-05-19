@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { validatePhotoFile, ValidationError } from '../utils/validators'
 
 const BUCKET = { photo: 'property-photos', floorplan: 'property-floorplans' }
 const SIGNED_URL_TTL = 3600
@@ -8,6 +9,11 @@ const SIGNED_URL_TTL = 3600
 const urlCache = new Map()
 
 export async function uploadPropertyImage(propertyId, file, { kind = 'photo' } = {}) {
+  // Service-layer guard: callers can bypass the UI (devtools, programmatic
+  // upload) — enforce size/type here too. Bucket policy is the final net.
+  const err = validatePhotoFile(file)
+  if (err) throw new ValidationError({ file: err })
+
   const { data: { user } } = await supabase.auth.getUser()
   const ext = file.name.split('.').pop()
   const path = `${user.id}/${propertyId}/${Date.now()}.${ext}`

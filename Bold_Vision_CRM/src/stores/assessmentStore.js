@@ -6,6 +6,20 @@ import {
   updateMeta as updateMetaService,
   submitAssessment,
 } from '../services/assessmentsService'
+import { ValidationError } from '../utils/validators'
+import { useFeedback } from '../composables/useFeedback'
+
+// Show validation errors as a focused toast; surface other errors via the
+// generic prefix. Returns void.
+function reportAutosaveError(err, sectionLabel) {
+  const { notifyError, notifyFromError } = useFeedback()
+  if (err instanceof ValidationError) {
+    const msg = err.firstMessage ?? err.message
+    notifyError(`${sectionLabel}: ${msg}`)
+  } else {
+    notifyFromError(err, `Couldn't save ${sectionLabel}`)
+  }
+}
 
 const SECTION_DEBOUNCE_MS = 1000
 
@@ -104,6 +118,7 @@ export const useAssessmentStore = defineStore('assessments', {
           this.byCustomer[customerId] = updated
         } catch (e) {
           this.error = e.message
+          reportAutosaveError(e, sectionKey)
         } finally {
           this.saving = false
         }
@@ -128,6 +143,7 @@ export const useAssessmentStore = defineStore('assessments', {
           this.byCustomer[customerId] = updated
         } catch (e) {
           this.error = e.message
+          reportAutosaveError(e, 'meta')
         } finally {
           this.saving = false
         }
@@ -172,6 +188,7 @@ export const useAssessmentStore = defineStore('assessments', {
             }
           } catch (e) {
             this.error = e.message
+            reportAutosaveError(e, sectionKey === '__meta' ? 'meta' : sectionKey)
           } finally {
             this.saving = false
           }

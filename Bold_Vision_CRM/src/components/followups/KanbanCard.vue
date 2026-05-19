@@ -45,7 +45,7 @@
         <button
           type="button"
           class="qa-btn done"
-          title="Mark contacted"
+          title="Mark followed up"
           @click.prevent.stop="$emit('mark-contacted')"
           @mousedown.stop
         >
@@ -95,7 +95,7 @@ const overdueDays = computed(() => {
 })
 
 const lastContactLabel = computed(() => {
-  if (!props.customer.lastContactedAt) return 'Never contacted'
+  if (!props.customer.lastContactedAt) return 'No follow-ups yet'
   const d = new Date(props.customer.lastContactedAt)
   return 'Last: ' + d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 })

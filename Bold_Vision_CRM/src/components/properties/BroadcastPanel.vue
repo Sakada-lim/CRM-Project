@@ -100,12 +100,15 @@
 
         <div class="tg-edit-label">
           <span>Message</span>
-          <span class="count">{{ messageBody.length }} chars</span>
+          <span class="count" :class="{ 'count--warn': nearLimit, 'count--err': atLimit }">
+            {{ messageBody.length }} / {{ LIMITS.messageBody.max }}
+          </span>
         </div>
         <textarea
           v-model="messageBody"
           class="tg-edit"
           placeholder="Write your broadcast…"
+          :maxlength="LIMITS.messageBody.max"
         />
 
         <!-- Media toggle: include property photos + floor plans -->
@@ -162,9 +165,6 @@
       </div>
     </div>
 
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="4000">
-      {{ snackbar.text }}
-    </v-snackbar>
   </div>
 </template>
 
@@ -177,6 +177,10 @@ import { useCustomerStore } from '../../stores/customerStore'
 import { createBroadcast } from '../../services/messagesService'
 import { listPropertyMedia, getSignedUrl } from '../../services/mediaService'
 import AppIcon from '../base/AppIcon.vue'
+import { validateBroadcast, LIMITS } from '../../utils/validators'
+import { useFeedback } from '../../composables/useFeedback'
+
+const { notifySuccess, notifyError, notifyWarning, notifyFromError } = useFeedback()
 
 const ALBUM_PREVIEW_MAX = 4   // Telegram caps the album at 10; preview shows up to 4 thumbs + "+N"
 
@@ -191,6 +195,13 @@ const messageBody      = ref('')
 const sending          = ref(false)
 const sent             = ref(false)
 const lastSentCount    = ref(0)
+
+// Idempotency key (audit C10). Pinned for the lifetime of THIS dialog so that
+// a network retry of an in-flight Send hits the same key — the edge fn
+// recognises it as a retry, resends only the failed recipients, and the agent
+// doesn't accidentally double-broadcast. A fresh dialog open generates a new
+// key (fresh broadcast).
+const idempotencyKey = ref(crypto.randomUUID())
 
 // Media: photos + floor plans available for this property.
 const propertyMedia = ref([])
@@ -217,7 +228,10 @@ const albumThumbs = computed(() =>
 )
 const albumOverflow = computed(() => Math.max(0, orderedMedia.value.length - ALBUM_PREVIEW_MAX))
 
-const snackbar = ref({ show: false, text: '', color: 'success' })
+// Char-count warning thresholds — purely visual, doesn't block typing
+// (maxlength on the textarea is the hard cap)
+const nearLimit = computed(() => messageBody.value.length >= LIMITS.messageBody.max - 200)
+const atLimit   = computed(() => messageBody.value.length >= LIMITS.messageBody.max)
 
 const audienceOptions = [
   { label: 'All',  value: 'All',  tone: 'all'  },
@@ -273,25 +287,35 @@ function buildDefaultMessage() {
 }
 
 async function send() {
-  if (eligibleRecipients.value.length === 0 || !messageBody.value.trim()) return
+  // Hard pre-flight validation: body length 1..4096, recipient cap, non-empty list.
+  const errs = validateBroadcast({
+    body: messageBody.value,
+    recipients: eligibleRecipients.value,
+  })
+  if (errs) {
+    notifyError(errs.body ?? errs.recipients ?? 'Invalid broadcast')
+    return
+  }
   sending.value = true
   try {
     const result = await createBroadcast({
       propertyId: props.property.id,
       body: messageBody.value,
       audienceFilter: selectedAudience.value,
-      customers: eligibleRecipients.value,
       includeMedia: includeMedia.value && hasMedia.value,
+      idempotencyKey: idempotencyKey.value,
     })
     lastSentCount.value = result.sent
     sent.value = true
-    snackbar.value = {
-      show: true,
-      text: `Sent to ${result.sent} customer${result.sent === 1 ? '' : 's'}${result.failed ? ` (${result.failed} failed)` : ''}${result.includedMedia ? ' with media' : ''}.`,
-      color: result.failed ? 'warning' : 'success',
+    const mediaNote = result.includedMedia ? ' with media' : ''
+    const tail = `Sent to ${result.sent} customer${result.sent === 1 ? '' : 's'}${mediaNote}`
+    if (result.failed) {
+      notifyWarning(`${tail} (${result.failed} failed)`)
+    } else {
+      notifySuccess(tail)
     }
   } catch (e) {
-    snackbar.value = { show: true, text: `Error: ${e.message}`, color: 'error' }
+    notifyFromError(e, 'Broadcast failed')
   } finally {
     sending.value = false
   }
@@ -578,6 +602,8 @@ onMounted(async () => {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+.tg-edit-label .count--warn { color: oklch(60% 0.16 75); }
+.tg-edit-label .count--err  { color: var(--danger, oklch(56% 0.20 27)); font-weight: 600; }
 .tg-edit {
   width: 100%;
   background: var(--surface-2);

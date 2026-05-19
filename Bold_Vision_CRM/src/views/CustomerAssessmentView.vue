@@ -11,11 +11,15 @@
         :key="s.id"
         :href="`#${s.id}`"
         :aria-current="active === s.id ? 'page' : undefined"
-        :class="{ 'is-complete': touched.has(s.id) }"
+        :class="{
+          'is-complete': sectionStatus(s.id) === 'complete',
+          'is-progress': sectionStatus(s.id) === 'in-progress',
+        }"
         @click.prevent="scrollTo(s.id)"
       >
         <span class="step">
-          <AppIcon v-if="touched.has(s.id)" name="check" :size="10" />
+          <AppIcon v-if="sectionStatus(s.id) === 'complete'" name="check" :size="10" />
+          <span v-else-if="sectionStatus(s.id) === 'in-progress'" class="afm-nav-dot"></span>
           <template v-else>{{ s.num }}</template>
         </span>
         <span>{{ s.title }}</span>
@@ -23,7 +27,7 @@
       <div class="afm-progress">
         <div style="display:flex;justify-content:space-between">
           <span>Progress</span>
-          <span style="font-variant-numeric:tabular-nums">{{ touched.size }}/{{ SECTIONS.length }}</span>
+          <span style="font-variant-numeric:tabular-nums">{{ completeCount }}/{{ SECTIONS.length }}</span>
         </div>
         <div class="bar"><i :style="{ width: progressPct + '%' }"></i></div>
       </div>
@@ -115,6 +119,8 @@ import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useCustomerStore } from '../stores/customerStore'
 import { useAssessmentStore } from '../stores/assessmentStore'
+import { useFeedback } from '../composables/useFeedback'
+import { computeSectionStatus } from '../utils/validators'
 import AppIcon from '../components/base/AppIcon.vue'
 import PersonalSection from '../components/assessment/PersonalSection.vue'
 import EmploymentSection from '../components/assessment/EmploymentSection.vue'
@@ -142,15 +148,46 @@ const id = computed(() => route.params.id)
 const customerStore = useCustomerStore()
 const assessmentStore = useAssessmentStore()
 const { saving } = storeToRefs(assessmentStore)
+const { notifyFromError } = useFeedback()
 
 const customer = computed(() =>
   customerStore.customers.find((c) => c.id === id.value) || null,
 )
 const assessment = computed(() => assessmentStore.forCustomer(id.value))
 
-// ─── Touched tracking + progress ───
+// ─── Touched tracking + completion ───
+// Three-state nav (Slice 1b):
+//   'untouched'   → section not yet in touched_sections
+//   'in-progress' → touched but at least one optional field blank-without-NA
+//   'complete'    → every optional field is filled or explicitly N/A'd
+// Progress bar denominator counts only `complete` sections.
 const touched = computed(() => new Set(assessment.value?.touchedSections ?? []))
-const progressPct = computed(() => Math.round((touched.value.size / SECTIONS.length) * 100))
+
+// `mergedForCompletion` overlays pending mirrored fields (name, agent,
+// nextContactAt) onto the assessment so completion picks them up immediately
+// without waiting for the 2.5s customer-store flush. Reads the latest pending
+// values where present, otherwise the canonical customer.
+const mergedForCompletion = computed(() => {
+  const a = assessment.value
+  if (!a) return null
+  return {
+    ...a,
+    consultantName: mirroredValue('agent', customer.value?.agent),
+    nextAppointmentAt: ('nextContactAt' in pendingMirrored.value)
+      ? pendingMirrored.value.nextContactAt
+      : (customer.value?.nextContactAt ?? null),
+  }
+})
+
+function sectionStatus(id) {
+  if (!touched.value.has(id)) return 'untouched'
+  return computeSectionStatus(id, mergedForCompletion.value)
+}
+
+const completeCount = computed(() =>
+  SECTIONS.filter((s) => sectionStatus(s.id) === 'complete').length,
+)
+const progressPct = computed(() => Math.round((completeCount.value / SECTIONS.length) * 100))
 
 // ─── Scroll spy (query sections by DOM id; works regardless of whether
 // the section is a placeholder or a real component) ───
@@ -205,7 +242,7 @@ onBeforeUnmount(() => {
 const autosaveLabel = computed(() => {
   if (!assessment.value) return 'Loading…'
   if (saving.value) return 'Saving…'
-  return `Autosaved · ${touched.value.size}/${SECTIONS.length} sections complete`
+  return `Autosaved · ${completeCount.value}/${SECTIONS.length} sections complete`
 })
 
 // ─── Relative start date ───
@@ -269,7 +306,10 @@ const metaForView = computed(() => ({
 }))
 
 // Per-field debounce for customer-store writes — pending state updates
-// immediately, network PATCH waits.
+// immediately, network PATCH waits 2.5s. The window is generous so an agent
+// who clears a field and retypes (clear → pause → type) doesn't trigger a
+// premature validation failure mid-edit.
+const MIRROR_DEBOUNCE_MS = 2500
 const customerWriteTimers = new Map()
 function debouncedCustomerWrite(field, value) {
   // 1) Instant display update
@@ -281,23 +321,31 @@ function debouncedCustomerWrite(field, value) {
   customerWriteTimers.set(field, setTimeout(async () => {
     customerWriteTimers.delete(field)
     const writeValue = value
+    let didError = false
     try {
       if (field === 'nextContactAt') {
         await customerStore.setNextContactAt(id.value, writeValue)
       } else {
         await customerStore.updateCustomer(id.value, { [field]: writeValue })
       }
+    } catch (e) {
+      // Validation failed (or network blew up). Surface to the agent and
+      // drop the pending value so the field snaps back to the canonical
+      // customer state instead of showing the rejected value.
+      didError = true
+      notifyFromError(e, `Couldn't save ${field}`)
     } finally {
-      // Only clear pending if no newer keystroke arrived (i.e. the pending
-      // value still matches what we just wrote). Otherwise leave it so the
-      // newer typing stays visible until its own timer flushes.
-      if (pendingMirrored.value[field] === writeValue) {
+      // Clear pending if:
+      //  - the write succeeded AND no newer keystroke arrived, OR
+      //  - the write errored (always — show the canonical value)
+      const stillCurrent = pendingMirrored.value[field] === writeValue
+      if (didError || stillCurrent) {
         const next = { ...pendingMirrored.value }
         delete next[field]
         pendingMirrored.value = next
       }
     }
-  }, 1000))
+  }, MIRROR_DEBOUNCE_MS))
 }
 
 function handlePersonalUpdate(updated) {

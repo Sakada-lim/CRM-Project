@@ -195,6 +195,47 @@
   cursor: pointer;
 }
 
+/* Validation error state — set .is-error on the parent .field */
+.field.is-error .input,
+.field.is-error .textarea,
+.field.is-error .select {
+  border-color: var(--danger, oklch(56% 0.20 27));
+  background: oklch(96% 0.03 27);
+}
+:root[data-theme="dark"] .field.is-error .input,
+:root[data-theme="dark"] .field.is-error .textarea,
+:root[data-theme="dark"] .field.is-error .select {
+  background: oklch(28% 0.06 27);
+}
+.field.is-error .input:focus,
+.field.is-error .textarea:focus,
+.field.is-error .select:focus {
+  box-shadow: 0 0 0 3px oklch(56% 0.20 27 / 0.18);
+}
+.field-error {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--danger, oklch(56% 0.20 27));
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.form-error {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--danger, oklch(56% 0.20 27));
+  background: oklch(96% 0.03 27);
+  border: 1px solid oklch(80% 0.10 27);
+  border-radius: var(--r-md);
+}
+:root[data-theme="dark"] .form-error {
+  background: oklch(28% 0.06 27);
+  border-color: oklch(40% 0.10 27);
+}
+
 /* Input wrapper with prefix/suffix overlays */
 .input-affix { position: relative; display: flex; align-items: center; }
 .input-affix .prefix,

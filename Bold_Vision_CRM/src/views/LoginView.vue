@@ -17,7 +17,7 @@
             type="email"
             variant="outlined"
             prepend-inner-icon="mdi-email-outline"
-            :rules="[(v) => !!v || 'Email is required']"
+            :rules="emailRules"
             class="mb-3"
             autocomplete="email"
           />
@@ -33,6 +33,12 @@
             autocomplete="current-password"
             @click:append-inner="showPassword = !showPassword"
           />
+          <v-alert v-if="initError" type="warning" class="mb-3" density="compact" rounded="lg">
+            <div class="mb-2">{{ initError }}</div>
+            <v-btn size="small" variant="tonal" :loading="retrying" @click="retryInit">
+              Retry connection
+            </v-btn>
+          </v-alert>
           <v-alert v-if="error" type="error" class="mb-4" density="compact" rounded="lg">
             {{ error }}
           </v-alert>
@@ -46,21 +52,62 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { useAuthStore } from '../stores/authStore'
 import { signIn } from '../services/authService'
+import { validateEmail } from '../utils/validators'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const { initError } = storeToRefs(authStore)
 
 const form = ref()
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
+const retrying = ref(false)
 const error = ref('')
+
+// C8: if authStore.init() failed at boot (Supabase unreachable), the user
+// lands here with `initError` set on the store. The Retry button re-runs
+// init() so they don't have to refresh the page.
+async function retryInit() {
+  retrying.value = true
+  try {
+    await authStore.init()
+    // If retry succeeded AND there's now a session, jump them to where they
+    // were headed.
+    if (authStore.session) {
+      router.push(safeRedirect(route.query.redirect))
+    }
+  } finally {
+    retrying.value = false
+  }
+}
+
+// H14: validate the `redirect` query param before pushing the router to it.
+// Without this, a crafted link like /login?redirect=https://evil.com would
+// bounce signed-in users to an attacker site (phishing assist). Only accept
+// single-leading-slash absolute paths — reject protocol-relative ('//...'),
+// backslash variants (some browsers treat '/\evil.com' as cross-origin), and
+// non-strings. Legitimate redirects from the router guard are always
+// `to.fullPath` which starts with a single '/'.
+function safeRedirect(input) {
+  if (typeof input !== 'string') return '/'
+  if (!input.startsWith('/')) return '/'
+  if (input.startsWith('//') || input.startsWith('/\\')) return '/'
+  return input
+}
+
+// "required" + format. validateEmail returns null on success or error string.
+const emailRules = [
+  (v) => !!v || 'Email is required',
+  (v) => validateEmail(v) === null || validateEmail(v),
+]
 
 async function submit() {
   const { valid } = await form.value.validate()
@@ -72,8 +119,7 @@ async function submit() {
     const { session } = await signIn({ email: email.value, password: password.value })
     authStore.session = session
     authStore.user = session?.user ?? null
-    const redirect = route.query.redirect || '/'
-    router.push(redirect)
+    router.push(safeRedirect(route.query.redirect))
   } catch (e) {
     error.value = e.message || 'Sign in failed. Check your credentials.'
   } finally {

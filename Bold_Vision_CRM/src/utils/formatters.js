@@ -32,14 +32,23 @@ export function formatPrice(min, max) {
 }
 
 // Parse flexible user input ("1m", "1.5M", "850k", "$1,000,000", "1000000")
-// into a number. Returns null when unparseable.
+// into a number. Returns null when unparseable. Hardened for copy-paste edge
+// cases — strips NBSP / zero-width spaces, ignores leading "+", rejects
+// negative and scientific notation.
 export function parsePriceInput(raw) {
   if (raw == null) return null
-  const cleaned = String(raw).trim().replace(/[$,\s]/g, '').toLowerCase()
+  // \s covers ASCII whitespace; the extras are NBSP + zero-width chars that
+  // commonly sneak in when pasting from Word / web.
+  const cleaned = String(raw)
+    .trim()
+    .replace(/^\+/, '')
+    .replace(/[$,\s ​‌‍﻿]/g, '')
+    .toLowerCase()
   if (!cleaned) return null
   const m = cleaned.match(/^(\d+(?:\.\d+)?)([mk]?)$/)
   if (!m) return null
   const num = parseFloat(m[1])
+  if (!Number.isFinite(num)) return null
   if (m[2] === 'm') return Math.round(num * 1_000_000)
   if (m[2] === 'k') return Math.round(num * 1_000)
   return Math.round(num)

@@ -35,7 +35,7 @@
             <th class="col-agent">Agent</th>
             <th class="col-channel">Phone · Channel</th>
             <th class="col-status">Status</th>
-            <th class="col-followup">Last contact</th>
+            <th class="col-followup">Last follow-up</th>
             <th class="col-actions"></th>
           </tr>
         </thead>
@@ -189,13 +189,16 @@ import CustomerFilterDialog from '../components/customer/CustomerFilterDialog.vu
 import { useFilterChips } from '../composables/useFilterChips'
 import { daysUntilContact, isOverdue } from '../utils/followUp'
 import { useRouter } from 'vue-router'
+import { useFeedback } from '../composables/useFeedback'
+
+const { notifySuccess, notifyFromError } = useFeedback()
 
 const router = useRouter()
 const store = useCustomerStore()
 const customers = computed(() => store.customers)
 
 const SORT_OPTIONS = [
-  { value: 'last-contact', label: 'Last contact' },
+  { value: 'last-contact', label: 'Last follow-up' },
   { value: 'overdue',      label: 'Overdue first' },
   { value: 'status',       label: 'Status' },
   { value: 'name',         label: 'Name (A–Z)' },
@@ -300,8 +303,9 @@ async function handleAddCustomer(payload) {
   try {
     await store.addCustomer(payload)
     showAddCustomer.value = false
+    notifySuccess('Customer added')
   } catch (e) {
-    alert(`Failed to add customer: ${e.message}`)
+    notifyFromError(e, 'Failed to add customer')
   }
 }
 

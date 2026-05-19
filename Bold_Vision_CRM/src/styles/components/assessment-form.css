@@ -78,6 +78,18 @@
   background: var(--success);
   color: var(--text-on-accent, white);
 }
+/* In-progress: section has been touched but at least one required-or-tracked
+   field is blank-without-N/A. Amber dot replaces the number. */
+.afm-nav a.is-progress .step {
+  background: var(--warm-soft, color-mix(in oklab, #f6a821 22%, transparent));
+  color: var(--warm-ink, #b87410);
+}
+.afm-nav-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--warm-ink, #b87410);
+  display: inline-block;
+}
 
 .afm-progress {
   margin-top: 12px; padding: 8px 12px;
@@ -394,4 +406,81 @@
     margin-bottom: 8px;
   }
   .afm-actionbar { margin: 0 -12px -24px -12px; padding: 12px; }
+}
+
+/* ─── N/A toggle button (Slice 1b) ───
+   Tiny pill placed next to optional fields. Inactive: ghost outline. Active:
+   filled muted accent — the input next to it is disabled and visibly greyed
+   so the agent sees at a glance which fields were intentionally skipped. */
+.afm-na-btn {
+  display: inline-grid; place-items: center;
+  height: 22px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-faint);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+  flex-shrink: 0;
+  user-select: none;
+}
+.afm-na-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.afm-na-btn.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+.afm-na-btn.is-active:hover {
+  background: color-mix(in oklab, var(--accent-soft) 70%, var(--accent) 30%);
+}
+
+/* When a field is N/A'd, the input itself goes muted so the agent can see at
+   a glance which lines were skipped. Apply via .afm-na-on on a wrapper. */
+.afm-na-on .input,
+.afm-na-on .select,
+.afm-na-on .textarea {
+  opacity: 0.45;
+  pointer-events: none;
+  background: var(--surface-sunk);
+}
+.afm-na-on .seg-control {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Field + N/A button layout helper: places the button after the input on a
+   single line. Sections drop this around any (input, NAButton) pair. */
+.afm-field-with-na {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.afm-field-with-na > :first-child { flex: 1; min-width: 0; }
+
+/* Section-header N/A toggle (Liabilities "No liabilities to record"). Larger
+   than the inline pill, sits in the section head's right slot. */
+.afm-section-na {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.afm-section-na input[type="checkbox"] { cursor: pointer; }
+.afm-section-na.is-active {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-ink);
 }

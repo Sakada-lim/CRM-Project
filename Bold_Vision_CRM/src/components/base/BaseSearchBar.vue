@@ -8,6 +8,8 @@
     :name="name"
     :spellcheck="spellcheck"
     :autocapitalize="autocapitalize"
+    :maxlength="maxlength"
+    :counter="false"
     density="comfortable"
     variant="outlined"
     clearable
@@ -58,6 +60,12 @@ const props = defineProps({
   autocapitalize: {
     type: String,
     default: 'off',
+  },
+  // Cap input length at keystroke level. 200 chars is plenty for any search
+  // — anything longer is almost certainly paste-bomb / accidental input.
+  maxlength: {
+    type: [Number, String],
+    default: 200,
   },
 })
 

@@ -155,6 +155,9 @@
         <router-view />
       </v-main>
     </template>
+
+    <!-- Global toast — driven by useFeedback() composable -->
+    <AppSnackbar />
   </v-app>
 </template>
 
@@ -167,6 +170,7 @@ import { useCustomerStore } from './stores/customerStore'
 import { useTheme } from './composables/useTheme'
 import { isOverdue } from './utils/followUp'
 import AppIcon from './components/base/AppIcon.vue'
+import AppSnackbar from './components/base/AppSnackbar.vue'
 
 const route = useRoute()
 const router = useRouter()

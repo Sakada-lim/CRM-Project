@@ -88,6 +88,7 @@
                   type="text"
                   :placeholder="selectedCustomer ? selectedCustomer.name : 'Search by name, phone or email'"
                   autocomplete="off"
+                  maxlength="200"
                 />
               </div>
               <div v-if="filteredCustomers.length" class="customer-list">

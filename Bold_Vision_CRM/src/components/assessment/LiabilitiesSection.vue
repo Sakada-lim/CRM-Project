@@ -6,8 +6,13 @@
         <h2>Liabilities</h2>
         <div class="desc">Loans, cards, and other obligations.</div>
       </div>
+      <label :class="['afm-section-na', { 'is-active': naSection }]">
+        <input type="checkbox" :checked="naSection" @change="toggleSectionNA($event.target.checked)" />
+        No liabilities to record
+      </label>
     </div>
 
+    <template v-if="!naSection">
     <div v-if="rows.length === 0" class="afm-liab-empty">
       No liabilities yet. Pick a type below to add one.
     </div>
@@ -28,22 +33,29 @@
           {{ row.type }}
         </div>
         <input class="input" type="text" placeholder="Notes"
+               :maxlength="LIMITS.assessmentText.max"
                :value="row.details"
                @input="updateRow(i, { details: $event.target.value })" />
         <div class="input-affix">
           <span class="prefix">$</span>
           <input class="input has-prefix" type="text" placeholder="0"
+                 inputmode="decimal"
+                 maxlength="15"
                  :value="row.value"
-                 @input="updateRow(i, { value: $event.target.value })" />
+                 @keydown="currencyKeydown"
+                 @input="updateRow(i, { value: currencySanitize($event.target.value) })" />
         </div>
         <input class="input" type="text" placeholder="Lender"
+               :maxlength="LIMITS.assessmentText.max"
                :value="row.lender"
                @input="updateRow(i, { lender: $event.target.value })" />
-        <input class="input" type="text" placeholder="0 yrs"
+        <input class="input" type="number" placeholder="0"
+               min="0" max="99" step="1"
                :value="row.remainingTerm"
                @input="updateRow(i, { remainingTerm: $event.target.value })" />
         <div class="input-affix">
-          <input class="input" type="text" placeholder="0"
+          <input class="input" type="number" placeholder="0"
+                 min="0" max="30" step="0.01"
                  :value="row.interestRate"
                  @input="updateRow(i, { interestRate: $event.target.value })" />
           <span class="suffix">%</span>
@@ -51,8 +63,11 @@
         <div class="input-affix">
           <span class="prefix">$</span>
           <input class="input has-prefix" type="text" placeholder="0"
+                 inputmode="decimal"
+                 maxlength="15"
                  :value="row.repayment"
-                 @input="updateRow(i, { repayment: $event.target.value })" />
+                 @keydown="currencyKeydown"
+                 @input="updateRow(i, { repayment: currencySanitize($event.target.value) })" />
         </div>
         <button class="row-del" type="button" aria-label="Remove liability"
                 @click="removeRow(i)">
@@ -63,15 +78,25 @@
 
     <div class="afm-liab-presets">
       <button v-for="t in PRESET_TYPES" :key="t" type="button"
-              class="btn btn-ghost sm" @click="addRow(t)">
+              class="btn btn-ghost sm"
+              :disabled="rowCapReached"
+              @click="addRow(t)">
         <AppIcon name="plus" :size="11" />
         {{ t }}
       </button>
+      <span v-if="rowCapReached" class="afm-liab-cap">
+        Max {{ LIMITS.liabilityRowCap.max }} rows
+      </span>
     </div>
 
     <div class="afm-total-row">
       <span class="lbl">Total debt value</span>
       <span class="val">{{ formattedTotal }}</span>
+    </div>
+    </template>
+
+    <div v-else class="afm-liab-empty">
+      Marked as Not Applicable — no liabilities recorded for this customer.
     </div>
   </section>
 </template>
@@ -79,6 +104,11 @@
 <script setup>
 import { computed } from 'vue'
 import AppIcon from '../base/AppIcon.vue'
+import { LIMITS } from '../../utils/validators'
+import { useFeedback } from '../../composables/useFeedback'
+import { currencyKeydown, currencySanitize } from '../../utils/inputFilters'
+
+const { notifyError } = useFeedback()
 
 const PRESET_TYPES = [
   'Home Loan',
@@ -104,9 +134,22 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const rows = computed(() => props.modelValue?.rows ?? [])
+const naSection = computed(() => props.modelValue?.naSection === true)
 
 function emitRows(nextRows) {
   emit('update:modelValue', { ...props.modelValue, rows: nextRows })
+}
+
+// Whole-section N/A: marks the section as having no liabilities to record.
+// Clears the rows array on activate (so we don't keep stale data + flag).
+function toggleSectionNA(checked) {
+  if (checked) {
+    emit('update:modelValue', { ...props.modelValue, rows: [], naSection: true })
+  } else {
+    const next = { ...props.modelValue }
+    delete next.naSection
+    emit('update:modelValue', next)
+  }
 }
 
 function newId() {
@@ -115,7 +158,13 @@ function newId() {
     : 'lia_' + Math.random().toString(36).slice(2, 11)
 }
 
+const rowCapReached = computed(() => rows.value.length >= LIMITS.liabilityRowCap.max)
+
 function addRow(type) {
+  if (rowCapReached.value) {
+    notifyError(`Liabilities capped at ${LIMITS.liabilityRowCap.max} rows`)
+    return
+  }
   const next = [
     ...rows.value,
     { id: newId(), type, details: '', value: '', lender: '',
@@ -179,4 +228,11 @@ const formattedTotal = computed(() =>
   margin-top: 12px;
 }
 .afm-liab-presets .btn { text-decoration: none; }
+.afm-liab-presets .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.afm-liab-cap {
+  align-self: center;
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--text-faint);
+}
 </style>

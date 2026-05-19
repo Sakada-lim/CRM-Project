@@ -21,7 +21,14 @@ app.use(pinia)
 app.use(router)
 app.use(vuetify)
 
+// C12: Await auth init BEFORE mount. Without this, the router guard could
+// fire while the store is still empty — protected routes would briefly flash
+// the login page even for legitimate logged-in users (and worse on slow
+// connections, could render a protected view with no data for a frame).
+//
+// authStore.init() never throws — errors are captured into authStore.initError
+// and the user is shown a connection-error alert on the login page.
 import { useAuthStore } from './stores/authStore'
-useAuthStore().init()
+await useAuthStore().init()
 
 app.mount('#app')

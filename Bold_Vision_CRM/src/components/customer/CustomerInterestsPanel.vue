@@ -101,6 +101,7 @@
                   type="text"
                   :placeholder="selectedProperty ? selectedProperty.address : 'Search by address or suburb'"
                   autocomplete="off"
+                  maxlength="200"
                 />
               </div>
               <div v-if="filteredProperties.length" class="cd-int-picker__list">
