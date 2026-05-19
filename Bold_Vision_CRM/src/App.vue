@@ -35,7 +35,7 @@
               :aria-label="brandTitle"
               @click="onBrandClick"
             >
-              <AppIcon name="house" :size="18" />
+              <img src="@/assets/logo.jpg" alt="" class="bv-brand-mark__img" />
             </button>
             <span v-if="!collapsed" class="bv-brand-name">Bold Vision</span>
           </div>
@@ -87,7 +87,7 @@
           <header class="bv-mobile-bar">
             <span class="bv-mobile-bar__brand">
               <span class="bv-brand-mark bv-brand-mark--static">
-                <AppIcon name="house" :size="16" />
+                <img src="@/assets/logo.jpg" alt="" class="bv-brand-mark__img" />
               </span>
               Bold Vision
             </span>
@@ -273,23 +273,29 @@ async function handleSignOut() {
 }
 .bv-brand-mark {
   width: 34px; height: 34px;
-  border-radius: var(--r-md);
-  background: var(--accent);
-  color: var(--text-on-accent);
+  border-radius: 50%;
+  background: var(--surface);
   display: grid; place-items: center;
   flex-shrink: 0;
-  border: none;
+  border: 1px solid var(--border);
   cursor: pointer;
   padding: 0;
   font: inherit;
-  transition: transform .12s, box-shadow .12s, background .12s;
+  overflow: hidden;
+  transition: transform .12s, box-shadow .12s, border-color .12s;
 }
 .bv-brand-mark:hover {
-  background: var(--accent-hover, var(--accent));
   transform: scale(1.05);
   box-shadow: 0 0 0 4px var(--accent-soft);
+  border-color: var(--accent);
 }
 .bv-brand-mark:active { transform: scale(0.98); }
+.bv-brand-mark__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 .bv-brand-name {
   font-size: 15px;
   font-weight: 650;
@@ -484,7 +490,7 @@ async function handleSignOut() {
 .bv-brand-mark--static:hover {
   transform: none;
   box-shadow: none;
-  background: var(--accent);
+  border-color: var(--border);
 }
 .bv-mobile-bar__toggle { width: 36px; height: 36px; }
 
