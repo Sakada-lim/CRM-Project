@@ -57,9 +57,11 @@ export const LIMITS = Object.freeze({
   assessmentNote:     { max: 5000 },
   photoSizeBytes:     { max: 10 * 1024 * 1024 },
   photoBatch:         { max: 20 },
+  brochureSizeBytes:  { max: 25 * 1024 * 1024 },
 })
 
 const PHOTO_MIME = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const BROCHURE_MIME = new Set(['application/pdf'])
 
 // ── Atomic validators ───────────────────────────────────────────────────────
 
@@ -344,6 +346,15 @@ export function validatePhotoFile(file) {
   if (!file) return 'No file'
   if (!PHOTO_MIME.has(file.type)) return 'Only JPEG, PNG, or WebP images allowed'
   if (file.size > LIMITS.photoSizeBytes.max) return 'File must be 10 MB or smaller'
+  return null
+}
+
+// Brochure (PDF) upload pre-checks. Bucket policy is the final net; this
+// catches issues at the UI layer with friendlier errors.
+export function validateBrochureFile(file) {
+  if (!file) return 'No file'
+  if (!BROCHURE_MIME.has(file.type)) return 'Only PDF files are allowed'
+  if (file.size > LIMITS.brochureSizeBytes.max) return 'File must be 25 MB or smaller'
   return null
 }
 

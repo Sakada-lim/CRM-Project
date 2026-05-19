@@ -65,6 +65,7 @@ function mapRowToProperty(row) {
     houseSizeSqm,
     houseSize: formatSqm(houseSizeSqm),
     mainPhoto: row.main_photo_path ?? null,
+    brochurePath: row.brochure_path ?? null,
     photos: (row.property_photos ?? [])
       .filter((p) => p.kind === 'photo')
       .sort((a, b) => a.sort_order - b.sort_order)

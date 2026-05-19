@@ -1,7 +1,8 @@
 import { supabase } from './supabase'
-import { validatePhotoFile, ValidationError } from '../utils/validators'
+import { validatePhotoFile, validateBrochureFile, ValidationError } from '../utils/validators'
 
 const BUCKET = { photo: 'property-photos', floorplan: 'property-floorplans' }
+const BROCHURE_BUCKET = 'property-brochures'
 const SIGNED_URL_TTL = 3600
 
 // Simple in-memory cache so repeated renders don't re-request the same URL.
@@ -83,6 +84,81 @@ export async function listPropertyMedia(propertyId) {
     .order('sort_order', { ascending: true })
   if (error) throw error
   return data ?? []
+}
+
+// ── Brochure (PDF, single file per property) ─────────────────────────────────
+// Stored in the `property-brochures` bucket; the storage path lives directly
+// on properties.brochure_path (no separate table — one brochure per property).
+
+export async function uploadPropertyBrochure(propertyId, file) {
+  const err = validateBrochureFile(file)
+  if (err) throw new ValidationError({ file: err })
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const path = `${user.id}/${propertyId}/${Date.now()}.pdf`
+
+  const { error: uploadError } = await supabase.storage
+    .from(BROCHURE_BUCKET)
+    .upload(path, file, { contentType: 'application/pdf', upsert: false })
+  if (uploadError) throw uploadError
+
+  // Read existing brochure path so we can delete the previous file after the
+  // new one is committed to properties.brochure_path.
+  const { data: existing } = await supabase
+    .from('properties')
+    .select('brochure_path')
+    .eq('id', propertyId)
+    .single()
+
+  const { error: updateError } = await supabase
+    .from('properties')
+    .update({ brochure_path: path })
+    .eq('id', propertyId)
+  if (updateError) {
+    // Compensating delete: row never got the new path, so the storage object
+    // is orphaned — clean it up.
+    await supabase.storage.from(BROCHURE_BUCKET).remove([path])
+    throw updateError
+  }
+
+  if (existing?.brochure_path && existing.brochure_path !== path) {
+    await supabase.storage.from(BROCHURE_BUCKET).remove([existing.brochure_path])
+    urlCache.delete(existing.brochure_path)
+  }
+
+  return path
+}
+
+export async function removePropertyBrochure(propertyId) {
+  const { data: row, error: fetchError } = await supabase
+    .from('properties')
+    .select('brochure_path')
+    .eq('id', propertyId)
+    .single()
+  if (fetchError) throw fetchError
+  if (!row?.brochure_path) return
+
+  const { error: updateError } = await supabase
+    .from('properties')
+    .update({ brochure_path: null })
+    .eq('id', propertyId)
+  if (updateError) throw updateError
+
+  await supabase.storage.from(BROCHURE_BUCKET).remove([row.brochure_path])
+  urlCache.delete(row.brochure_path)
+}
+
+export async function getBrochureSignedUrl(storagePath) {
+  const cached = urlCache.get(storagePath)
+  if (cached && cached.expiresAt > Date.now() + 60_000) return cached.url
+
+  const { data, error } = await supabase.storage
+    .from(BROCHURE_BUCKET)
+    .createSignedUrl(storagePath, SIGNED_URL_TTL)
+  if (error) throw error
+
+  urlCache.set(storagePath, { url: data.signedUrl, expiresAt: Date.now() + SIGNED_URL_TTL * 1000 })
+  return data.signedUrl
 }
 
 // Generates short-TTL signed URLs for the property's media, suitable for

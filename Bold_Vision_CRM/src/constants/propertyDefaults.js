@@ -22,6 +22,7 @@ export function createEmptyPropertyDraft() {
     houseSizeSqm: null,
     houseSize: '',
     mainPhoto: '',
+    brochurePath: null,
     gallery: [],
     highlights: [],
     amenities: [],

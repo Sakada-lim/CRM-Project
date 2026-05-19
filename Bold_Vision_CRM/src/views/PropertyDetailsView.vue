@@ -110,6 +110,11 @@
           <button class="btn btn-primary" @click="broadcastOpen = true">
             <AppIcon name="chat" :size="14" /> Broadcast
           </button>
+          <PropertyBrochure
+            :property-id="id"
+            :brochure-path="original?.brochurePath ?? null"
+            @update:brochure-path="onBrochureChanged"
+          />
         </div>
       </div>
     </div>
@@ -274,6 +279,7 @@ import { usePropertyStore } from '../stores/propertyStore'
 import { createEmptyPropertyDraft } from '../constants/propertyDefaults'
 import { useSignedUrl } from '../composables/useSignedUrl'
 import PropertyForm from '../components/properties/PropertiesForm.vue'
+import PropertyBrochure from '../components/properties/PropertyBrochure.vue'
 import PropertyInterestsPanel from '../components/properties/PropertyInterestsPanel.vue'
 import BroadcastPanel from '../components/properties/BroadcastPanel.vue'
 import PhotoLightbox from '../components/properties/PhotoLightbox.vue'
@@ -472,6 +478,13 @@ async function onHeroFileInputChange(e) {
 onMounted(() => {
   if (id) propertyStore.fetchProperty(id)
 })
+
+// Brochure is updated by the PropertyBrochure component via its own service
+// calls; the DB write has already landed when this fires. Re-fetch so
+// `original.brochurePath` reflects the new value.
+async function onBrochureChanged() {
+  if (id) await propertyStore.fetchProperty(id)
+}
 
 // ── photo handlers ───────────────────────────────────────────
 async function handleAdd(files, kind) {
