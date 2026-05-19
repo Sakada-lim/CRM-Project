@@ -126,6 +126,7 @@
   text-overflow: ellipsis;
 }
 .afm-pageheader .sub { margin-top: 4px; font-size: 13.5px; color: var(--text-muted); }
+.afm-pageheader__actions { display: inline-flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 720px) { .afm-pageheader h1 { font-size: 22px; } }
 
 /* ─── Section card ─── */
