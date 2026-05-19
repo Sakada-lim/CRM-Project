@@ -8,6 +8,9 @@ import FollowUpsView from '../views/FollowUpsView.vue'
 import MessageHistoryView from '../views/MessageHistoryView.vue'
 import LoginView from '../views/LoginView.vue'
 import { getSession } from '../services/authService'
+import { useAuthStore } from '../stores/authStore'
+import { usePropertyStore } from '../stores/propertyStore'
+import { useCustomerStore } from '../stores/customerStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -68,17 +71,33 @@ const router = createRouter({
   ],
 })
 
-// Guard re-queries Supabase getSession() on every navigation. We tried
-// reading from the auth store (C12 — to dedupe the redundant lookup) but
-// that broke session persistence on hard refresh, even though the store
-// WAS populated and localStorage HAD the token. Suspect: top-level await
-// + Pinia store-to-guard reactivity timing in dev mode. Re-investigate
-// later; for now the extra network call is cheap (getSession reads from
-// localStorage, no remote roundtrip when the token is still valid).
+// C12: store-first guard with getSession fallback.
+//
+// Fast path (99% of navigations): the auth store has a session from a
+// prior init() or sign-in. Guard reads `authStore.session` synchronously,
+// no network call, no localStorage read.
+//
+// Fallback path: the store is empty on the first request after hard-
+// refresh. main.js's `await authStore.init()` calls getSession(), but
+// the SDK can return null on the very first call (a known Supabase-JS
+// startup race) — the real session lands via the onAuthChange
+// INITIAL_SESSION event slightly later. Our fallback uses getSession()
+// directly to verify against Supabase storage. If a session exists,
+// heal the store AND kick off the same data fetches that init() would
+// have triggered — otherwise the route renders with empty stores until
+// onAuthChange catches up, flashing "no properties" / "no customers".
 router.beforeEach(async (to) => {
   if (!to.meta.requiresAuth) return true
+  const authStore = useAuthStore()
+  if (authStore.session) return true
   const session = await getSession()
   if (!session) return { name: 'login', query: { redirect: to.fullPath } }
+  authStore.session = session
+  authStore.user = session.user ?? null
+  // Same fetches as authStore.init() would do once it sees a session.
+  // Safe if they were already triggered — both stores dedupe / re-populate.
+  usePropertyStore().fetchProperties()
+  useCustomerStore().fetchCustomers()
   return true
 })
 
