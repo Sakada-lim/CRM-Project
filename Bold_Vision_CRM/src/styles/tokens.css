@@ -368,12 +368,14 @@
   color: var(--text); box-shadow: var(--shadow-xs);
 }
 .status-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
-.status-badge.on-market     { color: var(--success-ink); }  .status-badge.on-market     .dot { background: var(--success); }
-.status-badge.coming-soon   { color: var(--warm-ink); }     .status-badge.coming-soon   .dot { background: var(--warm); }
-.status-badge.under-contract{ color: var(--accent-ink); }   .status-badge.under-contract .dot { background: var(--accent); }
-.status-badge.sold          { color: var(--cold-ink); }     .status-badge.sold          .dot { background: var(--cold); }
-.status-badge.off-market    { color: var(--text-muted); }   .status-badge.off-market    .dot { background: var(--text-muted); }
-.status-badge.withdrawn     { color: var(--hot-ink); }      .status-badge.withdrawn     .dot { background: var(--hot); }
+.status-badge.on-market         { color: var(--success-ink); }  .status-badge.on-market         .dot { background: var(--success); }
+.status-badge.coming-soon       { color: var(--warm-ink); }     .status-badge.coming-soon       .dot { background: var(--warm); }
+.status-badge.under-construction{ color: var(--warm-ink); }     .status-badge.under-construction .dot { background: var(--warm); }
+.status-badge.ready-built       { color: var(--success-ink); }  .status-badge.ready-built       .dot { background: var(--success); }
+.status-badge.under-contract    { color: var(--accent-ink); }   .status-badge.under-contract    .dot { background: var(--accent); }
+.status-badge.sold              { color: var(--cold-ink); }     .status-badge.sold              .dot { background: var(--cold); }
+.status-badge.off-market        { color: var(--text-muted); }   .status-badge.off-market        .dot { background: var(--text-muted); }
+.status-badge.withdrawn         { color: var(--hot-ink); }      .status-badge.withdrawn         .dot { background: var(--hot); }
 
 /* Status chip toolbar */
 .status-chips {

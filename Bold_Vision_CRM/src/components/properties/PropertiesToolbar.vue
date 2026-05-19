@@ -84,15 +84,24 @@
 import { computed } from 'vue'
 import AppIcon from '../base/AppIcon.vue'
 import BaseFilterBar from '../base/BaseFilterBar.vue'
+import { PROPERTY_STATUSES } from '../../constants/enums'
+
+// Colour token per status. Status names come from enums.js; if a new status
+// lands without an entry here, the chip falls back to text-muted grey.
+const STATUS_DOTS = {
+  'On Market':          'var(--success)',
+  'Coming Soon':        'var(--warm)',
+  'Under Construction': 'var(--warm)',
+  'Ready Built':        'var(--success)',
+  'Under Contract':     'var(--accent)',
+  'Sold':               'var(--cold)',
+  'Off Market':         'var(--text-muted)',
+  'Withdrawn':          'var(--hot)',
+}
 
 const STATUS_GROUPS = [
-  { label: 'All',            dot: null },
-  { label: 'On Market',      dot: 'var(--success)' },
-  { label: 'Coming Soon',    dot: 'var(--warm)' },
-  { label: 'Under Contract', dot: 'var(--accent)' },
-  { label: 'Sold',           dot: 'var(--cold)' },
-  { label: 'Off Market',     dot: 'var(--text-muted)' },
-  { label: 'Withdrawn',      dot: 'var(--hot)' },
+  { label: 'All', dot: null },
+  ...PROPERTY_STATUSES.map((label) => ({ label, dot: STATUS_DOTS[label] ?? 'var(--text-muted)' })),
 ]
 
 const props = defineProps({

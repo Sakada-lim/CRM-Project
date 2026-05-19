@@ -1,4 +1,10 @@
-// Centralized filter configurations reused across views
+// Centralized filter configurations reused across views.
+// Property option values derive from src/constants/enums.js — single source of truth.
+
+import { PROPERTY_TYPES, PROPERTY_STATUSES } from '../constants/enums'
+
+const toOption = (v) => ({ title: v, value: v })
+
 export const propertyFilterDefinitions = [
   {
     key: 'status',
@@ -10,14 +16,7 @@ export const propertyFilterDefinitions = [
       { label: 'is', value: 'is' },
       { label: 'is not', value: 'is_not' },
     ],
-    options: [
-      { title: 'On Market',      value: 'On Market' },
-      { title: 'Coming Soon',    value: 'Coming Soon' },
-      { title: 'Under Contract', value: 'Under Contract' },
-      { title: 'Sold',           value: 'Sold' },
-      { title: 'Off Market',     value: 'Off Market' },
-      { title: 'Withdrawn',      value: 'Withdrawn' },
-    ],
+    options: PROPERTY_STATUSES.map(toOption),
   },
   {
     key: 'type',
@@ -29,12 +28,7 @@ export const propertyFilterDefinitions = [
       { label: 'is', value: 'is' },
       { label: 'is not', value: 'is_not' },
     ],
-    options: [
-      { title: 'House', value: 'House' },
-      { title: 'Townhouse', value: 'Townhouse' },
-      { title: 'Apartment', value: 'Apartment' },
-      { title: 'Villa', value: 'Villa' },
-    ],
+    options: PROPERTY_TYPES.map(toOption),
   },
 ]
 
