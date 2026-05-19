@@ -51,6 +51,7 @@ const ICONS = {
   logout:   ['M10 18H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5', 'm16 16 4-4-4-4', 'M20 12H10'],
   search:   ['M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z', 'm21 21-4.35-4.35'],
   grid:     ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M13 13h7v7h-7z'],
+  document: ['M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z', 'M14 3v5h5', 'M9 13h6', 'M9 17h4'],
 }
 
 const props = defineProps({
