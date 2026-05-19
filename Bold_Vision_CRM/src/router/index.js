@@ -68,6 +68,13 @@ const router = createRouter({
   ],
 })
 
+// Guard re-queries Supabase getSession() on every navigation. We tried
+// reading from the auth store (C12 — to dedupe the redundant lookup) but
+// that broke session persistence on hard refresh, even though the store
+// WAS populated and localStorage HAD the token. Suspect: top-level await
+// + Pinia store-to-guard reactivity timing in dev mode. Re-investigate
+// later; for now the extra network call is cheap (getSession reads from
+// localStorage, no remote roundtrip when the token is still valid).
 router.beforeEach(async (to) => {
   if (!to.meta.requiresAuth) return true
   const session = await getSession()
